@@ -1,13 +1,14 @@
 import Image from "next/image";
-import { ChatInput } from "@/components/chat-input";
+import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 import { Partners } from "@/components/partners";
 import { FeatureGrid } from "@/components/feature-card";
+import { ChatInput } from "@/components/chat-input";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-white font-sans dark:bg-black">
-      <main className="flex flex-1 min-h-screen max-w-7xl mx-auto flex-col items-center justify-center py-32 px-16 bg-neutral-50 dark:bg-black">
+    <div className="flex min-h-screen flex-col bg-white font-sans">
+      <main className="flex flex-1 min-h-screen max-w-7xl mx-auto flex-col items-center justify-center py-32 px-16 bg-neutral-50">
         <Navbar />
 
         <div className="flex flex-col items-center gap-4 max-w-4xl">
@@ -21,13 +22,13 @@ export default function Home() {
               Start simple, make it yours, launch effortlessly.
             </p>
           </div>
-          <ChatInput />
+          <ChatInput/>
           <Partners />
+          <div className="max-w-4xl mx-auto px-6">
+            <FeatureGrid />
+          </div>
         </div>
       </main>
-      <div className="max-w-4xl mx-auto px-6">
-      <FeatureGrid/>
-      </div>
     </div>
   );
 }
