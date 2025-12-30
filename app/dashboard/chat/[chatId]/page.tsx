@@ -9,9 +9,10 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import { motion } from "motion/react"
 
 interface Message {
   id: string
@@ -25,6 +26,15 @@ export default function ChatPage() {
   const chatId = params.chatId as string
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const { setOpen: setSidebarOpen } = useSidebar()
+
+  // Hide sidebar when panel opens
+  useEffect(() => {
+    if (isPanelOpen) {
+      setSidebarOpen(false)
+    }
+  }, [isPanelOpen, setSidebarOpen])
 
   useEffect(() => {
     // Load messages from localStorage
@@ -93,8 +103,16 @@ export default function ChatPage() {
           <NavActions />
         </div>
       </header>
-      <div className="bg-zinc-50 flex min-h-screen flex-col gap-4 px-4 py-10 justify-center items-center">
-        <ChatInput chatId={chatId} initialMessages={messages} />
+      <div className="bg-zinc-50 flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col items-center py-10 overflow-hidden">
+          <div className="w-full flex-1 overflow-hidden">
+            <ChatInput 
+              chatId={chatId} 
+              initialMessages={messages}
+              onPanelOpenChange={setIsPanelOpen}
+            />
+          </div>
+        </div>
       </div>
     </SidebarInset>
   )

@@ -23,9 +23,10 @@ interface Message {
 interface ChatInputProps {
   chatId?: string
   initialMessages?: Message[]
+  onPanelOpenChange?: (isOpen: boolean) => void
 }
 
-export function ChatInput({ chatId, initialMessages = [] }: ChatInputProps) {
+export function ChatInput({ chatId, initialMessages = [], onPanelOpenChange }: ChatInputProps) {
   const router = useRouter()
   const [value, setValue] = React.useState("")
   const [placeholder, setPlaceholder] = React.useState("")
@@ -137,10 +138,13 @@ export function ChatInput({ chatId, initialMessages = [] }: ChatInputProps) {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-3">
-      <ChatConversation messages={messages} isThinking={isThinking} />
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 overflow-hidden">
+        <ChatConversation messages={messages} isThinking={isThinking} onPanelOpenChange={onPanelOpenChange} />
+      </div>
 
-      <div className="relative rounded-4xl border border-neutral-200 bg-white">
+      <div className="w-full max-w-3xl mx-auto px-4 pb-6">
+        <div className="relative rounded-4xl border border-neutral-200 bg-white">
         {/* Top bar - Mention & Add context */}
         <div className="flex items-center gap-2 px-4 pt-3 pb-2"> 
           <button className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors">
@@ -192,6 +196,7 @@ export function ChatInput({ chatId, initialMessages = [] }: ChatInputProps) {
           >
             <ArrowUp className="h-5 w-5" />
           </button>
+        </div>
         </div>
       </div>
     </div>
