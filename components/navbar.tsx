@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 export function Navbar() {
   return (
@@ -11,9 +12,7 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-xl font-semibold tracking-tight">
-              Lume<span className="text-zinc-400">AI</span>
-            </div>
+            <img src="/images/logo.png" alt="LumeAI" width={30} height={100} />
           </Link>
 
           {/* Navigation Links */}
