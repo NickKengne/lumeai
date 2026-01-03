@@ -25,7 +25,7 @@ export function SidebarPremium() {
             </div>
           </div>
           <Button 
-            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white text-sm"
+            className="bg-neutral-800 text-white rounded-xl p-0"
             size="sm"
           >
             Upgrade Now

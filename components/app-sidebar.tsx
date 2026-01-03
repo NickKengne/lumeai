@@ -9,6 +9,7 @@ import {
   Home,
   Inbox,
   MessageCircleQuestion,
+  Plus,
   Search,
   Settings2,
   Sparkles,
@@ -29,6 +30,7 @@ import {
   SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { Button } from "./ui/button"
 
 // This is sample data.
 const data = {
@@ -202,7 +204,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
-        <NavMain items={data.navMain} />
+        <Button className="bg-neutral-800 text-white rounded-xl p-0" variant={"default"}>
+          <Plus className="size-4" />
+          New Chat</Button>
       </SidebarHeader>
       <SidebarContent>
         <NavWorkspaces workspaces={data.workspaces} />
