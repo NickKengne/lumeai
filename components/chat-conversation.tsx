@@ -7,7 +7,8 @@ import { DesignCanvas } from "./design-canvas"
 import { motion, AnimatePresence } from "motion/react"
 import { FormattedMessage } from "./formatted-message"
 import { generateMockStructure, hasOpenAIKey, generateScreenshotStructure } from "@/lib/openai-stream"
-import type { AIResponse } from "@/lib/ai-helpers"
+import type { AIResponse, PromptAnalysis } from "@/lib/ai-helpers"
+import { analyzeUserPrompt } from "@/lib/ai-helpers"
 
 interface Message {
   id: string
@@ -32,6 +33,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const [uploadedScreenshots, setUploadedScreenshots] = React.useState<string[]>([])
   const [showUploader, setShowUploader] = React.useState(false)
   const [aiStructure, setAiStructure] = React.useState<AIResponse | undefined>(undefined)
+  const [promptAnalysis, setPromptAnalysis] = React.useState<PromptAnalysis | undefined>(undefined)
   const [isGeneratingStructure, setIsGeneratingStructure] = React.useState(false)
   const [panelWidth, setPanelWidth] = React.useState("70%")
   const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -96,15 +98,24 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     if (screenshots && screenshots.length > 0) {
       setUploadedScreenshots(screenshots)
       
-      // Generate AI structure before opening canvas
+      // Generate AI structure and prompt analysis before opening canvas
       setIsGeneratingStructure(true)
       try {
+        // First, analyze the prompt with Gemini
+        console.log("🔍 Analyzing user prompt with Gemini...")
+        const analysis = await analyzeUserPrompt(content)
+        setPromptAnalysis(analysis)
+        console.log("✅ Prompt analysis complete:", analysis)
+        
+        // Then generate structure with OpenAI (enhanced with analysis)
+        console.log("🎨 Generating screenshot structure...")
         const structure = hasOpenAIKey() 
-          ? await generateScreenshotStructure(content)
+          ? await generateScreenshotStructure(content, undefined, analysis)
           : generateMockStructure(content)
         setAiStructure(structure)
+        console.log("✅ Structure generation complete:", structure)
       } catch (error) {
-        console.error('Failed to generate structure:', error)
+        console.error('Failed to generate structure or analysis:', error)
         // Fallback to mock
         setAiStructure(generateMockStructure(content))
       }
@@ -335,6 +346,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
               userPrompt={selectedPrompt}
               uploadedScreenshots={uploadedScreenshots}
               aiStructure={aiStructure}
+              promptAnalysis={promptAnalysis}
             />
           </motion.div>
         )}

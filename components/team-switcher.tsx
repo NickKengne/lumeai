@@ -23,7 +23,7 @@ export function TeamSwitcher({
 }: {
   teams: {
     name: string
-    logo: React.ElementType
+    logo: React.ElementType | string
     plan: string
   }[]
 }) {
@@ -39,8 +39,12 @@ export function TeamSwitcher({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton className="w-fit px-1.5">
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
-                <activeTeam.logo className="size-3" />
+              <div className=" text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
+                {typeof activeTeam.logo === 'string' ? (
+                  <img src={activeTeam.logo} alt={activeTeam.name} className="size-4" />
+                ) : (
+                  <activeTeam.logo className="size-3" />
+                )}
               </div>
               <span className="truncate font-medium">{activeTeam.name}</span>
               <ChevronDown className="opacity-50" />

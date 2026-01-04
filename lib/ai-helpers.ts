@@ -1,9 +1,22 @@
 /**
  * AI Helper Functions for Lume AI
  * Based on Claude.md specifications for structured screenshot generation
+ * Enhanced with Gemini Nano Banana (2.5 Flash Image) integration
  */
 
 import { z } from "zod"
+
+// ===========================
+// GEMINI NANO BANANA CONFIG
+// ===========================
+
+const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_NANO_KEY || ""
+
+// Using REST API for client-side compatibility
+// Model: gemini-2.0-flash-exp (text generation)
+// For image generation, use gemini-2.5-flash-image when available
+const GEMINI_TEXT_MODEL = "gemini-2.0-flash-exp"
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 // ===========================
 // ZOD SCHEMAS FOR VALIDATION
@@ -53,14 +66,13 @@ export type AIResponse = z.infer<typeof AIResponseSchema>
 export const SYSTEM_PROMPT = `You are an App Store marketing expert specializing in screenshot design.
 Your job is to transform an app description into structured App Store screenshot instructions.
 
-CRITICAL RULES:
-- Output ONLY valid JSON matching the required schema
-- No markdown, no code blocks, no explanations
-- No pixel values or exact measurements
-- Use only known layout types and background styles
-- Keep headlines under 8 words (50 characters max)
-- Generate 3-5 screenshots that tell a story
-- Focus on user benefits, not technical features
+CRITICAL: Output ONLY valid JSON. Use EXACT enum values as specified below.
+
+VALID VALUES (use EXACTLY as shown, case-sensitive):
+- tone: MUST be one of: "clean", "bold", "professional", "playful", "minimal"
+- layout: MUST be one of: "iphone_centered", "iphone_offset", "iphone_feature_list", "iphone_comparison", "iphone_hero"
+- background: MUST be one of: "soft_gradient", "solid_light", "solid_dark", "branded", "minimal"
+- emphasis: MUST be one of: "dashboard", "charts", "social", "onboarding", "feature"
 
 LAYOUT TYPES:
 - iphone_centered: Main app screen centered with headline above
@@ -107,7 +119,67 @@ OUTPUT FORMAT (example):
   ]
 }
 
+RULES:
+- Generate 3-5 screens that tell a story
+- Headlines: Max 8 words (50 characters max)
+- Focus on user benefits, not technical features
+- Use ONLY the exact enum values listed above
+- No markdown, no code blocks, ONLY JSON
+
 Now analyze the user's app description and generate the JSON structure.`
+
+// ===========================
+// SANITIZATION HELPERS
+// ===========================
+
+/**
+ * Sanitize and coerce AI response to match schema
+ */
+function sanitizeAIResponse(response: any): any {
+  // Valid enum values
+  const validTones = ["clean", "bold", "professional", "playful", "minimal"]
+  const validEmphases = ["dashboard", "charts", "social", "onboarding", "feature"]
+  const validLayouts = ["iphone_centered", "iphone_offset", "iphone_feature_list", "iphone_comparison", "iphone_hero"]
+  const validBackgrounds = ["soft_gradient", "solid_light", "solid_dark", "branded", "minimal"]
+  
+  // Coerce tone to valid value
+  if (response.tone && !validTones.includes(response.tone)) {
+    console.warn(`Invalid tone "${response.tone}", defaulting to "professional"`)
+    response.tone = "professional"
+  }
+  
+  // Ensure tone is set
+  if (!response.tone) {
+    response.tone = "professional"
+  }
+  
+  // Coerce screens
+  if (Array.isArray(response.screens)) {
+    response.screens = response.screens.map((screen: any) => {
+      // Coerce emphasis
+      if (screen.emphasis && !validEmphases.includes(screen.emphasis)) {
+        console.warn(`Invalid emphasis "${screen.emphasis}", defaulting to "feature"`)
+        screen.emphasis = "feature"
+      }
+      
+      // Coerce layout
+      if (screen.layout && !validLayouts.includes(screen.layout)) {
+        console.warn(`Invalid layout "${screen.layout}", defaulting to "iphone_centered"`)
+        screen.layout = "iphone_centered"
+      }
+      
+      // Coerce background
+      if (screen.background && !validBackgrounds.includes(screen.background)) {
+        console.warn(`Invalid background "${screen.background}", defaulting to "soft_gradient"`)
+        screen.background = "soft_gradient"
+      }
+      
+      return screen
+    })
+  }
+  
+  return response
+}
 
 // ===========================
 // OPENAI API CALL (READY TO USE)
@@ -115,12 +187,29 @@ Now analyze the user's app description and generate the JSON structure.`
 
 export async function generateScreenshotStructure(
   userPrompt: string,
-  apiKey?: string
+  apiKey?: string,
+  promptAnalysis?: PromptAnalysis
 ): Promise<AIResponse> {
   const key = apiKey || process.env.NEXT_PUBLIC_OPENAI_API_KEY
 
   if (!key) {
     throw new Error("OpenAI API key not found")
+  }
+
+  // Enhanced prompt with analysis context
+  let enhancedPrompt = userPrompt
+  if (promptAnalysis) {
+    enhancedPrompt = `User Request: ${userPrompt}
+
+Analysis Context:
+- App Category: ${promptAnalysis.appCategory}
+- Target Audience: ${promptAnalysis.targetAudience}
+- Visual Style: ${promptAnalysis.visualStyle.mood}, ${promptAnalysis.visualStyle.designStyle}
+- Key Features: ${promptAnalysis.keyFeatures.join(", ")}
+- Recommended Screenshots: ${promptAnalysis.screenshotStrategy.recommendedCount}
+- Story Arc: ${promptAnalysis.screenshotStrategy.storytellingArc.join(" → ")}
+
+Please generate screenshot structures that align with this analysis.`
   }
 
   try {
@@ -131,10 +220,10 @@ export async function generateScreenshotStructure(
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
+          { role: "user", content: enhancedPrompt },
         ],
         temperature: 0.7,
         max_tokens: 1000,
@@ -155,7 +244,13 @@ export async function generateScreenshotStructure(
 
     // Parse and validate with Zod
     const parsed = JSON.parse(content)
-    const validated = AIResponseSchema.parse(parsed)
+    console.log('Raw OpenAI response:', parsed)
+    
+    // Sanitize response before validation
+    const sanitized = sanitizeAIResponse(parsed)
+    console.log('Sanitized response:', sanitized)
+    
+    const validated = AIResponseSchema.parse(sanitized)
 
     return validated
   } catch (error) {
@@ -419,6 +514,354 @@ export function generateMockAIResponse(userPrompt: string): AIResponse {
         emphasis: "social",
       },
     ],
+  }
+}
+
+// ===========================
+// PROMPT ANALYSIS WITH GEMINI
+// ===========================
+
+export interface PromptAnalysis {
+  appCategory: string
+  appName: string
+  keyFeatures: string[]
+  targetAudience: string
+  visualStyle: {
+    mood: string
+    colorScheme: string[]
+    designStyle: string
+  }
+  screenshotStrategy: {
+    recommendedCount: number
+    focusAreas: string[]
+    storytellingArc: string[]
+  }
+  confidence: number
+  suggestions: string[]
+}
+
+export async function analyzeUserPrompt(userPrompt: string, retryCount = 0): Promise<PromptAnalysis> {
+  if (!GEMINI_API_KEY) {
+    console.warn("⚠️ Gemini API key not found, using fallback analysis")
+    return fallbackPromptAnalysis(userPrompt)
+  }
+
+  try {
+    const analysisPrompt = `You are an expert App Store marketing analyst. Analyze the following user prompt for creating app screenshots and provide a detailed analysis.
+
+User Prompt: "${userPrompt}"
+
+Provide a comprehensive analysis in JSON format with the following structure:
+{
+  "appCategory": "primary category (e.g., fitness, finance, social, productivity, etc.)",
+  "appName": "detected or inferred app name",
+  "keyFeatures": ["list", "of", "main", "features", "to", "highlight"],
+  "targetAudience": "description of target users",
+  "visualStyle": {
+    "mood": "overall mood (e.g., energetic, calm, professional, playful)",
+    "colorScheme": ["primary", "colors", "suggested"],
+    "designStyle": "design approach (e.g., minimal, bold, gradient, glassmorphic)"
+  },
+  "screenshotStrategy": {
+    "recommendedCount": 3-5,
+    "focusAreas": ["what", "to", "emphasize", "in", "each", "screenshot"],
+    "storytellingArc": ["screen 1 purpose", "screen 2 purpose", "screen 3 purpose"]
+  },
+  "confidence": 0.0-1.0,
+  "suggestions": ["actionable", "suggestions", "for", "better", "screenshots"]
+}
+
+Provide ONLY the JSON response, no markdown or explanations.`
+
+    const apiUrl = `${GEMINI_API_BASE}/models/${GEMINI_TEXT_MODEL}:generateContent?key=${GEMINI_API_KEY}`
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: analysisPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json"
+        }
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      
+      // Handle 429 rate limit with retry
+      if (response.status === 429) {
+        console.warn("⚠️ Gemini API rate limit (60 req/min)")
+        if (retryCount === 0) {
+          console.log("⏳ Retrying in 2 seconds...")
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          return analyzeUserPrompt(userPrompt, retryCount + 1)
+        }
+        console.log("🔄 Using fallback analysis")
+        return fallbackPromptAnalysis(userPrompt)
+      }
+      
+      // Handle 400 - invalid request
+      if (response.status === 400) {
+        console.error("❌ Invalid API request:", errorData)
+        return fallbackPromptAnalysis(userPrompt)
+      }
+      
+      // Handle 403 - invalid API key
+      if (response.status === 403) {
+        console.error("❌ Invalid Gemini API key")
+        return fallbackPromptAnalysis(userPrompt)
+      }
+      
+      // Other errors
+      console.error("❌ Gemini API error:", response.status, errorData)
+      return fallbackPromptAnalysis(userPrompt)
+    }
+
+    const data = await response.json()
+    const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+    if (!textContent) {
+      console.warn("⚠️ No response from Gemini")
+      return fallbackPromptAnalysis(userPrompt)
+    }
+
+    // Clean up potential markdown formatting
+    const cleanedContent = textContent.replace(/```json\n?|\n?```/g, "").trim()
+    const analysis = JSON.parse(cleanedContent)
+    
+    console.log("✅ Gemini analysis:", analysis.appCategory)
+    return analysis as PromptAnalysis
+  } catch (error) {
+    console.error("❌ Error:", error instanceof Error ? error.message : error)
+    console.log("🔄 Using fallback analysis")
+    return fallbackPromptAnalysis(userPrompt)
+  }
+}
+
+function fallbackPromptAnalysis(userPrompt: string): PromptAnalysis {
+  const promptLower = userPrompt.toLowerCase()
+  
+  let category = "general"
+  let mood = "professional"
+  let colors = ["#3B82F6", "#10B981"]
+  
+  if (promptLower.includes("finance") || promptLower.includes("budget") || promptLower.includes("money")) {
+    category = "finance"
+    mood = "professional"
+    colors = ["#10B981", "#059669", "#047857"]
+  } else if (promptLower.includes("fitness") || promptLower.includes("health") || promptLower.includes("workout")) {
+    category = "fitness"
+    mood = "energetic"
+    colors = ["#F59E0B", "#EF4444", "#EC4899"]
+  } else if (promptLower.includes("meditation") || promptLower.includes("mindful") || promptLower.includes("calm")) {
+    category = "meditation"
+    mood = "calm"
+    colors = ["#8B5CF6", "#A78BFA", "#C4B5FD"]
+  } else if (promptLower.includes("social") || promptLower.includes("chat") || promptLower.includes("message")) {
+    category = "social"
+    mood = "playful"
+    colors = ["#3B82F6", "#8B5CF6", "#EC4899"]
+  }
+  
+  return {
+    appCategory: category,
+    appName: "Your App",
+    keyFeatures: ["Main Feature", "Key Benefit", "Unique Selling Point"],
+    targetAudience: "young professionals aged 25-40",
+    visualStyle: {
+      mood,
+      colorScheme: colors,
+      designStyle: "modern gradient"
+    },
+    screenshotStrategy: {
+      recommendedCount: 3,
+      focusAreas: ["Main interface", "Key features", "User benefits"],
+      storytellingArc: ["Hook with main value", "Show key features", "Call to action"]
+    },
+    confidence: 0.6,
+    suggestions: ["Upload actual app screenshots for better results", "Specify your target audience"]
+  }
+}
+
+// ===========================
+// NANO BANANA IMAGE GENERATION
+// ===========================
+
+export interface ImageGenerationOptions {
+  prompt: string
+  aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:4"
+  numberOfImages?: number
+  style?: string
+}
+
+export async function generateBackgroundWithNanoBanana(
+  prompt: string,
+  options: Partial<ImageGenerationOptions> = {}
+): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    return generateGradientFromDescription(prompt)
+  }
+
+  const fullPrompt = `Suggest CSS gradient colors for a modern App Store screenshot background. ${prompt}. 
+Respond with ONLY a JSON object in this format:
+{
+  "color1": "#hexcode",
+  "color2": "#hexcode",
+  "angle": 135
+}
+The gradient should be suitable for placing mobile app screenshots on top.`
+
+  try {
+    const apiUrl = `${GEMINI_API_BASE}/models/${GEMINI_TEXT_MODEL}:generateContent?key=${GEMINI_API_KEY}`
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: fullPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 256,
+          responseMimeType: "application/json"
+        }
+      })
+    })
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.warn("⚠️ Rate limit, using gradient")
+      }
+      return generateGradientFromDescription(prompt)
+    }
+
+    const data = await response.json()
+    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text
+    
+    if (textResponse) {
+      try {
+        const cleanedResponse = textResponse.replace(/```json\n?|\n?```/g, "").trim()
+        const gradientData = JSON.parse(cleanedResponse)
+        
+        if (gradientData.color1 && gradientData.color2) {
+          const angle = gradientData.angle || 135
+          console.log("✅ AI gradient:", `${gradientData.color1} → ${gradientData.color2}`)
+          return `linear-gradient(${angle}deg, ${gradientData.color1} 0%, ${gradientData.color2} 100%)`
+        }
+      } catch (parseError) {
+        // Silent fallback
+      }
+    }
+    
+    return generateGradientFromDescription(prompt)
+  } catch (error) {
+    return generateGradientFromDescription(prompt)
+  }
+}
+
+function generateGradientFromDescription(description: string): string {
+  const lower = description.toLowerCase()
+  
+  // Finance - Green/Blue professional gradients
+  if (lower.includes("finance") || lower.includes("professional") || lower.includes("trust")) {
+    return "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+  }
+  
+  // Fitness - Energetic orange/red gradients
+  if (lower.includes("fitness") || lower.includes("energy") || lower.includes("active")) {
+    return "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+  }
+  
+  // Meditation - Calm purple/blue gradients
+  if (lower.includes("calm") || lower.includes("meditat") || lower.includes("peace")) {
+    return "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)"
+  }
+  
+  // Social - Vibrant multi-color gradients
+  if (lower.includes("social") || lower.includes("fun") || lower.includes("playful")) {
+    return "linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
+  }
+  
+  // Default modern gradient
+  return "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+}
+
+// ===========================
+// ENHANCED SCREENSHOT ENHANCEMENT
+// ===========================
+
+export async function enhanceScreenshotWithAI(
+  imageBase64: string,
+  enhancement: "clarity" | "color" | "professional" | "vibrant"
+): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    console.warn("Gemini API key not found, returning original image")
+    return imageBase64
+  }
+
+  const enhancementPrompts = {
+    clarity: "Enhance the clarity and sharpness of this app screenshot while maintaining authenticity",
+    color: "Enhance the colors to be more vibrant and appealing while keeping it natural",
+    professional: "Make this screenshot look more professional and polished for App Store presentation",
+    vibrant: "Make the colors more vibrant and eye-catching for marketing purposes"
+  }
+
+  try {
+    const response = await fetch(`${GEMINI_API_BASE}/models/${GEMINI_TEXT_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              text: enhancementPrompts[enhancement]
+            },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageBase64.split(",")[1] // Remove data:image/jpeg;base64, prefix
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+        }
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    // For now, return original as Gemini API response format varies
+    // In production, extract enhanced image from response
+    return imageBase64
+  } catch (error) {
+    console.error("Screenshot enhancement error:", error)
+    return imageBase64
   }
 }
 

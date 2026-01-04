@@ -34,7 +34,15 @@ Rules:
 const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert.
 Transform app descriptions into structured screenshot instructions.
 
-Output ONLY valid JSON with this exact format:
+CRITICAL: Output ONLY valid JSON matching this exact schema.
+
+VALID VALUES (use EXACTLY as shown):
+- tone: MUST be one of: "clean", "bold", "professional", "playful", "minimal"
+- layout: MUST be one of: "iphone_centered", "iphone_offset", "iphone_feature_list", "iphone_comparison", "iphone_hero"
+- background: MUST be one of: "soft_gradient", "solid_light", "solid_dark", "branded", "minimal"
+- emphasis: MUST be one of: "dashboard", "charts", "social", "onboarding", "feature"
+
+OUTPUT FORMAT:
 {
   "theme": "finance",
   "tone": "professional",
@@ -51,10 +59,12 @@ Output ONLY valid JSON with this exact format:
   ]
 }
 
-Layouts: iphone_centered, iphone_offset, iphone_feature_list, iphone_hero
-Backgrounds: soft_gradient, solid_light, solid_dark, minimal
-Headlines: Max 8 words, benefit-focused
-Generate 3-5 screens that tell a story`
+RULES:
+- Generate 3-5 screens that tell a story
+- Headlines: Max 8 words, benefit-focused
+- Subheadlines: Optional, max 15 words
+- Use ONLY the exact enum values listed above
+- No markdown, no explanations, ONLY JSON`
 
 export interface StreamCallbacks {
   onStart?: () => void
@@ -88,7 +98,7 @@ export async function streamAIResponse(
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: CHAT_SYSTEM_PROMPT },
           { role: 'user', content: userMessage }
@@ -249,6 +259,50 @@ I'll generate multiple layout variations optimized for:
 }
 
 /**
+ * Sanitize and coerce AI response to match schema
+ */
+function sanitizeAIResponse(response: any): any {
+  // Valid enum values
+  const validTones = ["clean", "bold", "professional", "playful", "minimal"]
+  const validEmphases = ["dashboard", "charts", "social", "onboarding", "feature"]
+  const validLayouts = ["iphone_centered", "iphone_offset", "iphone_feature_list", "iphone_comparison", "iphone_hero"]
+  const validBackgrounds = ["soft_gradient", "solid_light", "solid_dark", "branded", "minimal"]
+  
+  // Coerce tone to valid value
+  if (response.tone && !validTones.includes(response.tone)) {
+    console.warn(`Invalid tone "${response.tone}", defaulting to "professional"`)
+    response.tone = "professional"
+  }
+  
+  // Coerce screens
+  if (Array.isArray(response.screens)) {
+    response.screens = response.screens.map((screen: any) => {
+      // Coerce emphasis
+      if (screen.emphasis && !validEmphases.includes(screen.emphasis)) {
+        console.warn(`Invalid emphasis "${screen.emphasis}", defaulting to "feature"`)
+        screen.emphasis = "feature"
+      }
+      
+      // Coerce layout
+      if (screen.layout && !validLayouts.includes(screen.layout)) {
+        console.warn(`Invalid layout "${screen.layout}", defaulting to "iphone_centered"`)
+        screen.layout = "iphone_centered"
+      }
+      
+      // Coerce background
+      if (screen.background && !validBackgrounds.includes(screen.background)) {
+        console.warn(`Invalid background "${screen.background}", defaulting to "soft_gradient"`)
+        screen.background = "soft_gradient"
+      }
+      
+      return screen
+    })
+  }
+  
+  return response
+}
+
+/**
  * Generate screenshot structure from OpenAI (JSON)
  */
 export async function generateScreenshotStructure(
@@ -290,10 +344,23 @@ export async function generateScreenshotStructure(
     throw new Error('No response from OpenAI')
   }
 
-  const parsed = JSON.parse(content)
-  const validated = AIResponseSchema.parse(parsed)
-  
-  return validated
+  try {
+    const parsed = JSON.parse(content)
+    console.log('Raw OpenAI response:', parsed)
+    
+    // Sanitize response before validation
+    const sanitized = sanitizeAIResponse(parsed)
+    console.log('Sanitized response:', sanitized)
+    
+    const validated = AIResponseSchema.parse(sanitized)
+    
+    return validated
+  } catch (error) {
+    if (error instanceof Error && 'issues' in error) {
+      console.error('Zod validation error:', (error as any).issues)
+    }
+    throw error
+  }
 }
 
 /**

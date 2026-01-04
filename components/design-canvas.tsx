@@ -3,7 +3,7 @@
 import * as React from "react"
 import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut } from "lucide-react"
 
-import { resolveTemplate, type AIResponse } from "@/lib/ai-helpers"
+import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
 
 interface Layer {
   id: string
@@ -34,9 +34,10 @@ interface DesignCanvasProps {
   userPrompt?: string
   uploadedScreenshots?: string[]
   aiStructure?: AIResponse // AI-generated structure
+  promptAnalysis?: PromptAnalysis // Enhanced prompt analysis from Gemini
 }
 
-export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], aiStructure }: DesignCanvasProps) {
+export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], aiStructure, promptAnalysis }: DesignCanvasProps) {
   const [screens, setScreens] = React.useState<Screen[]>([])
   const [currentScreenId, setCurrentScreenId] = React.useState("")
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)
@@ -48,6 +49,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
   const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 })
   const [spacePressed, setSpacePressed] = React.useState(false)
   const [isGenerating, setIsGenerating] = React.useState(false)
+  const [isGeneratingBackground, setIsGeneratingBackground] = React.useState(false)
   const canvasRef = React.useRef<HTMLDivElement>(null)
 
   // Generate screens from uploaded screenshots + AI structure
@@ -180,8 +182,30 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
   }
 
   const getRandomBackground = (): string => {
+    // Use colors from prompt analysis if available
+    if (promptAnalysis?.visualStyle?.colorScheme) {
+      return promptAnalysis.visualStyle.colorScheme[0] || '#F0F4FF'
+    }
     const backgrounds = ['#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBEB', '#FEF2F2', '#F0FDFA']
     return backgrounds[Math.floor(Math.random() * backgrounds.length)]
+  }
+
+  const generateAIBackground = async () => {
+    if (!currentScreen) return
+    
+    setIsGeneratingBackground(true)
+    try {
+      const backgroundPrompt = promptAnalysis 
+        ? `${promptAnalysis.visualStyle.mood} background for ${promptAnalysis.appCategory} app. Colors: ${promptAnalysis.visualStyle.colorScheme.join(", ")}. Style: ${promptAnalysis.visualStyle.designStyle}`
+        : `Modern app store screenshot background for ${userPrompt || 'mobile app'}`
+      
+      const generatedBackground = await generateBackgroundWithNanoBanana(backgroundPrompt)
+      updateScreenBackground(generatedBackground)
+    } catch (error) {
+      console.error("Background generation failed:", error)
+    } finally {
+      setIsGeneratingBackground(false)
+    }
   }
 
   // Initialize with default screen if no uploads
@@ -461,7 +485,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
                 {screen.layers.map(layer => (
                   <div
                     key={layer.id}
-                    className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${selectedLayer === layer.id && currentScreenId === screen.id ? 'ring-2 ring-neutral-800' : ''}`}
+                    className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${selectedLayer === layer.id && currentScreenId === screen.id ? 'ring-2 ring-neutral-400' : ''}`}
                     style={{
                       left: layer.x * zoom,
                       top: layer.y * zoom,
@@ -493,7 +517,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
                       <img
                         src={layer.content}
                         alt="App screenshot"
-                        className="w-full h-full object-contain rounded-lg shadow-lg"
+                        className="w-full h-full  rounded-xl"
                         draggable={false}
                       />
                     )}
@@ -507,12 +531,53 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
         {/* Tools Sidebar - Fixed on Right, collapsible on mobile */}
         <div className="w-full sm:w-[280px] md:w-[320px] bg-white border-t sm:border-t-0 sm:border-l border-neutral-200 overflow-y-auto shrink-0 max-h-[40vh] sm:max-h-none">
           <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-          {/* User Prompt */}
+          {/* User Prompt & AI Analysis */}
           {userPrompt && (
-            <div className="bg-neutral-50 rounded-lg p-2 sm:p-3">
-              <p className="text-[10px] sm:text-xs text-neutral-600 leading-relaxed line-clamp-3 sm:line-clamp-none">
-                "{userPrompt}"
-              </p>
+            <div className="space-y-2">
+              <div className="bg-neutral-50 rounded-lg p-2 sm:p-3">
+                <p className="text-[10px] sm:text-xs text-neutral-600 leading-relaxed">
+                  "{userPrompt.length > 20 ? userPrompt.slice(0, 20) + '...' : userPrompt}"
+                </p>
+              </div>
+              
+              {promptAnalysis && (
+                <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-5 w-5 rounded-full bg-neutral-800 flex items-center justify-center text-white text-xs font-bold">
+                      AI
+                    </div>
+                    <h4 className="text-xs font-semibold text-neutral-700">Analysis</h4>
+                  </div>
+                  
+                  <div className="space-y-2 text-xs text-neutral-600">
+                    <div>
+                      <span className="font-medium">Category:</span> {promptAnalysis.appCategory}
+                    </div>
+                    <div>
+                      <span className="font-medium">Audience:</span> {promptAnalysis.targetAudience}
+                    </div>
+                    <div>
+                      <span className="font-medium">Features:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {promptAnalysis.keyFeatures.slice(0, 3).map((feature, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-neutral-100 rounded-full text-[10px]">
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="font-medium">Style:</span> {promptAnalysis.visualStyle.mood} • {promptAnalysis.visualStyle.designStyle}
+                    </div>
+                    {promptAnalysis.suggestions.length > 0 && (
+                      <div className="pt-2 border-t border-neutral-200">
+                        <span className="font-medium">Suggestion:</span>
+                        <p className="text-[10px] mt-1 text-neutral-500">{promptAnalysis.suggestions[0]}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -546,11 +611,27 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
 
           {/* Background Color */}
           <div className="space-y-2">
-            <h3 className="text-xs font-medium text-neutral-700">Background</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-medium text-neutral-700">Background</h3>
+              <button
+                onClick={generateAIBackground}
+                disabled={isGeneratingBackground}
+                className="px-2 py-1 text-xs bg-neutral-800 text-white rounded hover:bg-neutral-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                {isGeneratingBackground ? (
+                  <>
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <span>AI</span>
+                  </>
+                ) : (
+                  <>AI Generate</>
+                )}
+              </button>
+            </div>
             <div className="space-y-2">
               <input
                 type="color"
-                value={currentScreen.backgroundColor}
+                value={currentScreen.backgroundColor.startsWith('#') ? currentScreen.backgroundColor : '#F0F4FF'}
                 onChange={(e) => updateScreenBackground(e.target.value)}
                 className="w-full h-10 rounded border border-neutral-200 cursor-pointer"
               />
@@ -573,6 +654,13 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
                   />
                 ))}
               </div>
+              {promptAnalysis && (
+                <div className="p-2 rounded bg-neutral-100 border border-neutral-200">
+                  <p className="text-xs text-neutral-600">
+                    AI suggests: <span className="font-medium">{promptAnalysis.visualStyle.mood}</span> {promptAnalysis.visualStyle.designStyle}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -729,14 +817,41 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
                     >
                       <option value="inherit">Default (System)</option>
                       <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">SF Pro (iOS)</option>
+                      <option value="'Inter', sans-serif">Inter</option>
+                      <option value="'Poppins', sans-serif">Poppins</option>
+                      <option value="'Roboto', sans-serif">Roboto</option>
+                      <option value="'Montserrat', sans-serif">Montserrat</option>
+                      <option value="'Open Sans', sans-serif">Open Sans</option>
+                      <option value="'Lato', sans-serif">Lato</option>
+                      <option value="'Raleway', sans-serif">Raleway</option>
+                      <option value="'Nunito', sans-serif">Nunito</option>
+                      <option value="'Playfair Display', serif">Playfair Display</option>
+                      <option value="'Merriweather', serif">Merriweather</option>
+                      <option value="'Source Sans Pro', sans-serif">Source Sans Pro</option>
+                      <option value="'Oswald', sans-serif">Oswald</option>
+                      <option value="'PT Sans', sans-serif">PT Sans</option>
+                      <option value="'Ubuntu', sans-serif">Ubuntu</option>
+                      <option value="'Work Sans', sans-serif">Work Sans</option>
+                      <option value="'DM Sans', sans-serif">DM Sans</option>
+                      <option value="'Rubik', sans-serif">Rubik</option>
+                      <option value="'Manrope', sans-serif">Manrope</option>
+                      <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+                      <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                      <option value="'Outfit', sans-serif">Outfit</option>
+                      <option value="'Quicksand', sans-serif">Quicksand</option>
+                      <option value="'Barlow', sans-serif">Barlow</option>
+                      <option value="'Karla', sans-serif">Karla</option>
+                      <option value="'Lexend', sans-serif">Lexend</option>
+                      <option value="'Sora', sans-serif">Sora</option>
+                      <option value="'Epilogue', sans-serif">Epilogue</option>
+                      <option value="'Red Hat Display', sans-serif">Red Hat Display</option>
+                      <option value="'IBM Plex Sans', sans-serif">IBM Plex Sans</option>
+                      <option value="'Mulish', sans-serif">Mulish</option>
+                      <option value="'Archivo', sans-serif">Archivo</option>
                       <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica</option>
                       <option value="Arial, sans-serif">Arial</option>
                       <option value="'Times New Roman', Times, serif">Times New Roman</option>
                       <option value="Georgia, serif">Georgia</option>
-                      <option value="'Courier New', Courier, monospace">Courier</option>
-                      <option value="'Comic Sans MS', cursive">Comic Sans</option>
-                      <option value="Impact, fantasy">Impact</option>
-                      <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
                       <option value="Verdana, sans-serif">Verdana</option>
                     </select>
                   </div>

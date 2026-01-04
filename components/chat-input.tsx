@@ -5,6 +5,7 @@ import { Paperclip, Globe, ArrowUp, Library, Wand2, Image, X } from "lucide-reac
 import { ChatConversation } from "./chat-conversation"
 import { useRouter } from "next/navigation"
 import { streamAIResponse, mockStreamAIResponse, hasOpenAIKey } from "@/lib/openai-stream"
+import { motion } from "motion/react"
 
 const placeholderTexts = [
   "Ask, search, or make anything...",
@@ -46,7 +47,39 @@ export function ChatInput({
   const [showMentionPopover, setShowMentionPopover] = React.useState(false)
   const [showBanner, setShowBanner] = React.useState(true)
   const [messages, setMessages] = React.useState<Message[]>(initialMessages)
+  const [isPanelOpen, setIsPanelOpen] = React.useState(false)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const [panelWidth, setPanelWidth] = React.useState("70%")
+
+  // Update panel width based on screen size
+  React.useEffect(() => {
+    const updatePanelWidth = () => {
+      if (typeof window === 'undefined') return
+      
+      const width = window.innerWidth
+      if (width < 640) {
+        setPanelWidth("90%")
+      } else if (width < 768) {
+        setPanelWidth("85%")
+      } else if (width < 1024) {
+        setPanelWidth("75%")
+      } else if (width < 1280) {
+        setPanelWidth("70%")
+      } else {
+        setPanelWidth("65%")
+      }
+    }
+
+    updatePanelWidth()
+    window.addEventListener('resize', updatePanelWidth)
+    return () => window.removeEventListener('resize', updatePanelWidth)
+  }, [])
+
+  // Track panel open state
+  const handlePanelOpenChange = React.useCallback((isOpen: boolean) => {
+    setIsPanelOpen(isOpen)
+    onPanelOpenChange?.(isOpen)
+  }, [onPanelOpenChange])
 
   // AI Response Generator (moved up for use in effects)
   const generateAIResponse = React.useCallback((userInput: string): string => {
@@ -471,11 +504,12 @@ Ready to upload your app screenshots?`
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="flex-1 overflow-hidden min-h-0">
-        <ChatConversation messages={messages} onPanelOpenChange={onPanelOpenChange} />
-      </div>
+        <ChatConversation messages={messages} onPanelOpenChange={handlePanelOpenChange} />
 
-      <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6 shrink-0">
+      <motion.div 
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        className="w-full max-w-3xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6"
+      >
         <div className="relative rounded-2xl sm:rounded-4xl border border-neutral-200 bg-white ">
         {/* Top bar - Mention & Add context */}
         <div className="flex items-center gap-2 px-3 sm:px-4 pt-2 sm:pt-3 pb-2"> 
@@ -531,7 +565,7 @@ Ready to upload your app screenshots?`
           </button>
         </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

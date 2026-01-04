@@ -5,7 +5,6 @@ import {
   AudioWaveform,
   Blocks,
   Calendar,
-  Command,
   Home,
   Inbox,
   MessageCircleQuestion,
@@ -47,8 +46,8 @@ interface Workspace {
 const defaultData = {
   teams: [
     {
-      name: "Lume",
-      logo: Command,
+      name: "Lume-ai",
+      logo: "/images/logo.png",
       plan: "Enterprise",
     }
   ],
