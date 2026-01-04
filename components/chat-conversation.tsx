@@ -2,28 +2,63 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Copy, RotateCcw, Share2, Check, Sparkles } from "lucide-react"
+import { Copy, RotateCcw, Share2, Check, Sparkles, Upload, X } from "lucide-react"
 import { DesignCanvas } from "./design-canvas"
 import { motion, AnimatePresence } from "motion/react"
+import { FormattedMessage } from "./formatted-message"
+import { generateMockStructure, hasOpenAIKey, generateScreenshotStructure } from "@/lib/openai-stream"
+import type { AIResponse } from "@/lib/ai-helpers"
 
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   timestamp: Date
+  screenshots?: string[]
+  isStreaming?: boolean
 }
 
 interface ChatConversationProps {
   messages: Message[]
-  isThinking?: boolean
   onPanelOpenChange?: (isOpen: boolean) => void
+  onScreenshotsUpload?: (screenshots: string[]) => void
 }
 
-export function ChatConversation({ messages, isThinking, onPanelOpenChange }: ChatConversationProps) {
+export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpload }: ChatConversationProps) {
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const [copiedId, setCopiedId] = React.useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = React.useState(false)
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>("")
+  const [uploadedScreenshots, setUploadedScreenshots] = React.useState<string[]>([])
+  const [showUploader, setShowUploader] = React.useState(false)
+  const [aiStructure, setAiStructure] = React.useState<AIResponse | undefined>(undefined)
+  const [isGeneratingStructure, setIsGeneratingStructure] = React.useState(false)
+  const [panelWidth, setPanelWidth] = React.useState("70%")
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  // Update panel width based on screen size
+  React.useEffect(() => {
+    const updatePanelWidth = () => {
+      if (typeof window === 'undefined') return
+      
+      const width = window.innerWidth
+      if (width < 640) {
+        setPanelWidth("90%")
+      } else if (width < 768) {
+        setPanelWidth("85%")
+      } else if (width < 1024) {
+        setPanelWidth("75%")
+      } else if (width < 1280) {
+        setPanelWidth("70%")
+      } else {
+        setPanelWidth("65%")
+      }
+    }
+
+    updatePanelWidth()
+    window.addEventListener('resize', updatePanelWidth)
+    return () => window.removeEventListener('resize', updatePanelWidth)
+  }, [])
 
   React.useEffect(() => {
     onPanelOpenChange?.(isPanelOpen)
@@ -31,7 +66,7 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isThinking])
+  }, [messages])
 
   const handleCopy = async (content: string, id: string) => {
     await navigator.clipboard.writeText(content)
@@ -56,8 +91,25 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
     console.log("Refresh message:", messageId)
   }
 
-  const handleOpenDesignTool = (content: string) => {
+  const handleOpenDesignTool = async (content: string, screenshots?: string[]) => {
     setSelectedPrompt(content)
+    if (screenshots && screenshots.length > 0) {
+      setUploadedScreenshots(screenshots)
+      
+      // Generate AI structure before opening canvas
+      setIsGeneratingStructure(true)
+      try {
+        const structure = hasOpenAIKey() 
+          ? await generateScreenshotStructure(content)
+          : generateMockStructure(content)
+        setAiStructure(structure)
+      } catch (error) {
+        console.error('Failed to generate structure:', error)
+        // Fallback to mock
+        setAiStructure(generateMockStructure(content))
+      }
+      setIsGeneratingStructure(false)
+    }
     setIsPanelOpen(true)
   }
 
@@ -66,7 +118,45 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
     return keywords.some(keyword => content.toLowerCase().includes(keyword))
   }
 
-  if (messages.length === 0 && !isThinking) {
+  const shouldShowUploader = (message: Message): boolean => {
+    // Show uploader for assistant messages that are design-related
+    if (message.role !== 'assistant') return false
+    
+    // Check if it's the last assistant message
+    const lastAssistantIndex = messages.map(m => m.role).lastIndexOf('assistant')
+    const currentIndex = messages.findIndex(m => m.id === message.id)
+    
+    return currentIndex === lastAssistantIndex && isDesignRelated(message.content)
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const urls: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const result = reader.result as string
+          urls.push(result)
+          if (urls.length === files.length) {
+            setUploadedScreenshots(prev => [...prev, ...urls])
+            onScreenshotsUpload?.(urls)
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+    setShowUploader(false)
+  }
+
+  const handleRemoveScreenshot = (index: number) => {
+    setUploadedScreenshots(prev => prev.filter((_, i) => i !== index))
+  }
+
+  if (messages.length === 0 ) {
     return null
   }
 
@@ -75,12 +165,12 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
       {/* Main Content - Slides LEFT when panel opens */}
       <motion.div
         animate={{ 
-          marginRight: isPanelOpen ? "70%" : "0%"
+          marginRight: isPanelOpen ? panelWidth : "0%"
         }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className="w-full overflow-y-auto"
       >
-        <div className="w-full max-w-3xl mx-auto space-y-4 mb-6 px-4">
+        <div className="w-full max-w-3xl mx-auto space-y-4 mb-6 px-2 sm:px-4">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -91,15 +181,90 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
           >
             <div
               className={cn(
-                "rounded-2xl px-4 py-3 max-w-[85%]",
+                "rounded-2xl px-3 sm:px-4 py-3 max-w-[90%] sm:max-w-[85%]",
                 message.role === "user"
                   ? "bg-neutral-100 text-neutral-600"
                   : "text-neutral-600"
               )}
             >
-              <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
-                {message.content}
-              </p>
+              {/* Render formatted message for assistant */}
+              {message.role === "assistant" ? (
+                <FormattedMessage 
+                  content={message.content} 
+                  isStreaming={message.isStreaming}
+                />
+              ) : (
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                  {message.content}
+                </p>
+              )}
+              
+              {/* Show upload button for design-related messages */}
+              {shouldShowUploader(message) && (
+                <div className="mt-4 space-y-3">
+                  {uploadedScreenshots.length === 0 && !showUploader && (
+                    <button
+                      onClick={() => setShowUploader(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload App Screenshots
+                    </button>
+                  )}
+                  
+                  {showUploader && (
+                    <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full"
+                      >
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-neutral-400" />
+                        <p className="text-sm text-neutral-600">Click to upload or drag and drop</p>
+                        <p className="text-xs text-neutral-400 mt-1">PNG, JPG up to 10MB</p>
+                      </button>
+                    </div>
+                  )}
+
+                  {uploadedScreenshots.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-neutral-500">Uploaded Screenshots ({uploadedScreenshots.length})</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {uploadedScreenshots.map((url, idx) => (
+                          <div key={idx} className="relative group">
+                            <img 
+                              src={url} 
+                              alt={`Screenshot ${idx + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border border-neutral-200"
+                            />
+                            <button
+                              onClick={() => handleRemoveScreenshot(idx)}
+                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
+                        disabled={isGeneratingStructure}
+                        className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        {isGeneratingStructure ? 'Generating Structure...' : 'Generate App Store Screenshots'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Show design tool button for design-related user messages */}
               {message.role === "user" && isDesignRelated(message.content) && (
@@ -151,13 +316,11 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
           </div>
         ))}
 
-          {isThinking && <ThinkingAnimation />}
-          
           <div ref={messagesEndRef} />
         </div>
       </motion.div>
 
-      {/* Design Canvas - Slides in from right, 70% width */}
+      {/* Design Canvas - Slides in from right, responsive width */}
       <AnimatePresence>
         {isPanelOpen && (
           <motion.div
@@ -165,27 +328,17 @@ export function ChatConversation({ messages, isThinking, onPanelOpenChange }: Ch
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 h-full w-[70%] z-50"
+            className="fixed right-0 top-0 bottom-0 h-full w-[90%] sm:w-[85%] md:w-[75%] lg:w-[70%] xl:w-[65%] z-50"
           >
             <DesignCanvas 
               onClose={() => setIsPanelOpen(false)}
               userPrompt={selectedPrompt}
+              uploadedScreenshots={uploadedScreenshots}
+              aiStructure={aiStructure}
             />
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  )
-}
-
-function ThinkingAnimation() {
-  return (
-    <div className="flex items-start justify-start">
-      <div className="py-2">
-        <span className="shimmer-text text-[15px]  text-neutral-700">
-          Exploring
-        </span>
-      </div>
     </div>
   )
 }

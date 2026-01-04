@@ -3,6 +3,8 @@
 import * as React from "react"
 import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut } from "lucide-react"
 
+import { resolveTemplate, type AIResponse } from "@/lib/ai-helpers"
+
 interface Layer {
   id: string
   type: "text" | "image"
@@ -12,6 +14,7 @@ interface Layer {
   width: number
   height: number
   fontSize?: number
+  fontFamily?: string
   color?: string
   bold?: boolean
   italic?: boolean
@@ -29,44 +32,13 @@ interface Screen {
 interface DesignCanvasProps {
   onClose: () => void
   userPrompt?: string
+  uploadedScreenshots?: string[]
+  aiStructure?: AIResponse // AI-generated structure
 }
 
-export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
-  const [screens, setScreens] = React.useState<Screen[]>([
-    {
-      id: "1",
-      name: "Screen 1",
-      backgroundColor: "#F0F4FF",
-      layers: [
-        {
-          id: "1",
-          type: "text",
-          content: "Your App Name",
-          x: 50,
-          y: 100,
-          width: 275,
-          height: 60,
-          fontSize: 32,
-          color: "#000000",
-          bold: true,
-          align: "center"
-        },
-        {
-          id: "2",
-          type: "text",
-          content: "Discover amazing features",
-          x: 50,
-          y: 180,
-          width: 275,
-          height: 40,
-          fontSize: 16,
-          color: "#666666",
-          align: "center"
-        }
-      ]
-    }
-  ])
-  const [currentScreenId, setCurrentScreenId] = React.useState("1")
+export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], aiStructure }: DesignCanvasProps) {
+  const [screens, setScreens] = React.useState<Screen[]>([])
+  const [currentScreenId, setCurrentScreenId] = React.useState("")
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)
   const [dragging, setDragging] = React.useState<string | null>(null)
   const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 })
@@ -75,10 +47,182 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 })
   const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 })
   const [spacePressed, setSpacePressed] = React.useState(false)
+  const [isGenerating, setIsGenerating] = React.useState(false)
   const canvasRef = React.useRef<HTMLDivElement>(null)
 
-  const currentScreen = screens.find(s => s.id === currentScreenId)!
-  const layers = currentScreen.layers
+  // Generate screens from uploaded screenshots + AI structure
+  React.useEffect(() => {
+    if (uploadedScreenshots.length > 0 && screens.length === 0) {
+      generateScreensFromAIStructure()
+    }
+  }, [uploadedScreenshots, aiStructure])
+
+  const generateScreensFromAIStructure = () => {
+    setIsGenerating(true)
+    
+    setTimeout(() => {
+      let generatedScreens: Screen[] = []
+
+      if (aiStructure && aiStructure.screens) {
+        // Use AI structure to generate screens
+        generatedScreens = aiStructure.screens.map((screenSpec, index) => {
+          const screenshot = uploadedScreenshots[index] || uploadedScreenshots[0]
+          const canvasState = resolveTemplate(screenSpec, screenshot, index)
+          
+          return {
+            id: screenSpec.id,
+            name: `Screen ${index + 1}`,
+            backgroundColor: canvasState.backgroundColor,
+            layers: canvasState.layers.map(layer => ({
+              ...layer,
+              type: layer.type as "text" | "image"
+            }))
+          }
+        })
+      } else {
+        // Fallback to smart generation
+        generatedScreens = uploadedScreenshots.map((screenshot, index) => ({
+          id: `screen_${index + 1}`,
+          name: `Screenshot ${index + 1}`,
+          backgroundColor: getRandomBackground(),
+          layers: [
+            {
+              id: `bg_img_${index}`,
+              type: "image",
+              content: screenshot,
+              x: 37.5,
+              y: 100,
+              width: 300,
+              height: 500,
+            },
+            {
+              id: `headline_${index}`,
+              type: "text",
+              content: generateContextualHeadline(index, extractAppContext(userPrompt || '')),
+              x: 20,
+              y: 30,
+              width: 335,
+              height: 50,
+              fontSize: 28,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              color: "#000000",
+              bold: true,
+              align: "center"
+            },
+            {
+              id: `subtitle_${index}`,
+              type: "text",
+              content: generateContextualSubtitle(index, extractAppContext(userPrompt || '')),
+              x: 20,
+              y: 610,
+              width: 335,
+              height: 40,
+              fontSize: 14,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              color: "#666666",
+              align: "center"
+            }
+          ]
+        }))
+      }
+
+      setScreens(generatedScreens)
+      setCurrentScreenId(generatedScreens[0]?.id || "")
+      setIsGenerating(false)
+    }, 1500)
+  }
+
+  const extractAppContext = (prompt: string): string => {
+    const lower = prompt.toLowerCase()
+    if (lower.includes('finance') || lower.includes('budget') || lower.includes('money')) return 'finance'
+    if (lower.includes('fitness') || lower.includes('health') || lower.includes('workout')) return 'fitness'
+    if (lower.includes('meditation') || lower.includes('mindfulness') || lower.includes('calm')) return 'meditation'
+    if (lower.includes('social') || lower.includes('chat') || lower.includes('message')) return 'social'
+    if (lower.includes('food') || lower.includes('recipe') || lower.includes('cooking')) return 'food'
+    if (lower.includes('travel') || lower.includes('trip')) return 'travel'
+    return 'general'
+  }
+
+  const generateContextualHeadline = (index: number, context: string): string => {
+    const headlines: Record<string, string[]> = {
+      finance: ["Track Every Expense", "Budget Smarter", "Reach Your Goals", "Control Your Money", "Save More Today"],
+      fitness: ["Achieve Your Goals", "Track Your Progress", "Stay Motivated", "Transform Your Body", "Get Stronger"],
+      meditation: ["Find Your Peace", "Breathe & Relax", "Mindful Moments", "Reduce Stress", "Inner Calm"],
+      social: ["Stay Connected", "Share Your Story", "Build Community", "Connect & Engage", "Join The Conversation"],
+      food: ["Cook Like A Pro", "Delicious Recipes", "Meal Planning Made Easy", "Healthy & Tasty", "Your Kitchen Companion"],
+      travel: ["Explore The World", "Plan Your Journey", "Discover New Places", "Travel Smarter", "Adventure Awaits"],
+      general: ["Transform Your Experience", "Built For You", "Simple. Powerful.", "Everything You Need", "Start Today"]
+    }
+    const contextHeadlines = headlines[context] || headlines.general
+    return contextHeadlines[index % contextHeadlines.length]
+  }
+
+  const generateContextualSubtitle = (index: number, context: string): string => {
+    const subtitles: Record<string, string[]> = {
+      finance: ["Smart insights for your money", "Reach your savings goals faster", "Budget with confidence", "Financial freedom starts here", "Your money, simplified"],
+      fitness: ["Personalized workouts for your goals", "Track progress & stay consistent", "Join thousands getting results", "Your fitness journey begins", "Transform your lifestyle"],
+      meditation: ["Guided sessions for peace of mind", "Reduce stress in minutes", "Your daily moment of calm", "Find balance & clarity", "Breathe. Relax. Reset."],
+      social: ["Connect with people who matter", "Share moments that count", "Build meaningful relationships", "Your community awaits", "Express yourself freely"],
+      food: ["Hundreds of delicious recipes", "Plan meals in seconds", "Healthy eating made simple", "Cook with confidence", "Discover new favorites"],
+      travel: ["Plan trips with ease", "Discover hidden gems", "Travel guides at your fingertips", "Make memories everywhere", "Your next adventure starts here"],
+      general: ["Features that work for you", "Designed with your needs in mind", "Simple, intuitive, powerful", "Join thousands of happy users", "Experience the difference"]
+    }
+    const contextSubtitles = subtitles[context] || subtitles.general
+    return contextSubtitles[index % contextSubtitles.length]
+  }
+
+  const generateHeadline = (index: number): string => {
+    return generateContextualHeadline(index, 'general')
+  }
+
+  const generateSubtitle = (index: number): string => {
+    return generateContextualSubtitle(index, 'general')
+  }
+
+  const getRandomBackground = (): string => {
+    const backgrounds = ['#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBEB', '#FEF2F2', '#F0FDFA']
+    return backgrounds[Math.floor(Math.random() * backgrounds.length)]
+  }
+
+  // Initialize with default screen if no uploads
+  React.useEffect(() => {
+    if (uploadedScreenshots.length === 0 && screens.length === 0) {
+      const defaultScreen: Screen = {
+        id: "1",
+        name: "Screen 1",
+        backgroundColor: "#F0F4FF",
+        layers: [
+          {
+            id: "1",
+            type: "text",
+            content: "Your App Name",
+            x: 50,
+            y: 100,
+            width: 275,
+            height: 60,
+            fontSize: 32,
+            color: "#000000",
+            bold: true,
+            align: "center"
+          },
+          {
+            id: "2",
+            type: "text",
+            content: "Discover amazing features",
+            x: 50,
+            y: 180,
+            width: 275,
+            height: 40,
+            fontSize: 16,
+            color: "#666666",
+            align: "center"
+          }
+        ]
+      }
+      setScreens([defaultScreen])
+      setCurrentScreenId("1")
+    }
+  }, [uploadedScreenshots.length, screens.length])
 
   // Handle space key for panning
   React.useEffect(() => {
@@ -102,6 +246,19 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
       window.removeEventListener('keyup', handleKeyUp)
     }
   }, [spacePressed])
+
+  // Get current screen and layers - AFTER all hooks
+  const currentScreen = screens.find(s => s.id === currentScreenId)
+  const layers = currentScreen?.layers || []
+
+  // Early return AFTER all hooks
+  if (!currentScreen) {
+    return (
+      <div className="w-full h-full bg-white flex items-center justify-center">
+        <p className="text-neutral-500">Loading canvas...</p>
+      </div>
+    )
+  }
 
   const handleMouseDown = (layerId: string, e: React.MouseEvent, screenId: string) => {
     if (spacePressed) return
@@ -216,58 +373,68 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
 
   return (
     <div className="w-full bg-white border-l border-neutral-200 overflow-hidden shrink-0 h-full flex flex-col">
+      {/* Loading State */}
+      {isGenerating && (
+        <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center">
+          <div className="text-center px-4">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-neutral-800 border-r-transparent mb-4"></div>
+            <p className="text-xs sm:text-sm text-neutral-600">Generating your App Store screenshots...</p>
+          </div>
+        </div>
+      )}
+
       {/* Canvas Header */}
-      <div className="bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="bg-white border-b border-neutral-200 px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
           >
-            <X className="h-5 w-5 text-neutral-600" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-600" />
           </button>
-          <h2 className="text-sm font-medium text-neutral-700">Edit Screenshot</h2>
+          <h2 className="text-xs sm:text-sm font-medium text-neutral-700">Edit Screenshot</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button 
             onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
-            className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
             title="Zoom Out"
           >
-            <ZoomOut className="h-4 w-4 text-neutral-600" />
+            <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-neutral-600" />
           </button>
-          <span className="text-xs text-neutral-600 min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
+          <span className="text-[10px] sm:text-xs text-neutral-600 min-w-[35px] sm:min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
           <button 
             onClick={() => setZoom(Math.min(2, zoom + 0.25))}
-            className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
             title="Zoom In"
           >
-            <ZoomIn className="h-4 w-4 text-neutral-600" />
+            <ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-neutral-600" />
           </button>
           <button 
             onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }) }}
-            className="px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors ml-2"
+            className="hidden sm:block px-2 sm:px-3 py-1 sm:py-1.5 text-xs text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors ml-1 sm:ml-2"
           >
-            Reset View
+            Reset
           </button>
-          <div className="h-4 w-px bg-neutral-300 mx-1" />
-          <button className="px-3 py-1.5 text-xs bg-black text-white hover:bg-neutral-800 rounded-lg transition-colors">
+          <div className="hidden sm:block h-4 w-px bg-neutral-300 mx-1" />
+          <button className="px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs bg-black text-white hover:bg-neutral-800 rounded-lg transition-colors">
             Export
           </button>
         </div>
       </div>
 
       {/* Main Content Area - Flex Row */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden flex-col sm:flex-row">
         {/* Canvas Area - Scrollable */}
         <div 
           ref={canvasRef}
-          className={`flex-1 p-8 overflow-auto flex items-center bg-neutral-200 ${spacePressed ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
+          className={`flex-1 p-2 sm:p-4 md:p-8 overflow-auto flex items-center bg-neutral-200 ${spacePressed ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         >
           <div
-            className="flex gap-8 min-w-max"
+            className="flex gap-4 sm:gap-6 md:gap-8 min-w-max"
             style={{
               transform: `translate(${panOffset.x}px, ${panOffset.y}px)`
             }}
@@ -282,7 +449,8 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                   width: `${375 * zoom}px`, 
                   height: `${667 * zoom}px`,
                   backgroundColor: screen.backgroundColor,
-                  flexShrink: 0
+                  flexShrink: 0,
+                  minWidth: '200px' // Ensure minimum readable size on mobile
                 }}
                 onClick={() => setCurrentScreenId(screen.id)}
               >
@@ -293,7 +461,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                 {screen.layers.map(layer => (
                   <div
                     key={layer.id}
-                    className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${selectedLayer === layer.id && currentScreenId === screen.id ? 'ring-2 ring-blue-500' : ''}`}
+                    className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${selectedLayer === layer.id && currentScreenId === screen.id ? 'ring-2 ring-neutral-800' : ''}`}
                     style={{
                       left: layer.x * zoom,
                       top: layer.y * zoom,
@@ -307,6 +475,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         className="w-full h-full flex items-center px-2"
                         style={{
                           fontSize: (layer.fontSize || 20) * zoom,
+                          fontFamily: layer.fontFamily || 'inherit',
                           color: layer.color,
                           fontWeight: layer.bold ? 700 : 400,
                           fontStyle: layer.italic ? 'italic' : 'normal',
@@ -320,6 +489,14 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         {layer.content}
                       </div>
                     )}
+                    {layer.type === "image" && (
+                      <img
+                        src={layer.content}
+                        alt="App screenshot"
+                        className="w-full h-full object-contain rounded-lg shadow-lg"
+                        draggable={false}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -327,13 +504,13 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
           </div>
         </div>
 
-        {/* Tools Sidebar - Fixed on Right */}
-        <div className="w-[320px] bg-white border-l border-neutral-200 overflow-y-auto shrink-0">
-          <div className="p-4 space-y-4">
+        {/* Tools Sidebar - Fixed on Right, collapsible on mobile */}
+        <div className="w-full sm:w-[280px] md:w-[320px] bg-white border-t sm:border-t-0 sm:border-l border-neutral-200 overflow-y-auto shrink-0 max-h-[40vh] sm:max-h-none">
+          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
           {/* User Prompt */}
           {userPrompt && (
-            <div className="bg-neutral-50 rounded-lg p-3">
-              <p className="text-xs text-neutral-600 leading-relaxed">
+            <div className="bg-neutral-50 rounded-lg p-2 sm:p-3">
+              <p className="text-[10px] sm:text-xs text-neutral-600 leading-relaxed line-clamp-3 sm:line-clamp-none">
                 "{userPrompt}"
               </p>
             </div>
@@ -357,7 +534,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                   onClick={() => setCurrentScreenId(screen.id)}
                   className={`shrink-0 px-3 py-2 rounded-lg text-xs transition-colors ${
                     currentScreenId === screen.id 
-                      ? 'bg-blue-500 text-white' 
+                      ? 'bg-neutral-800 text-white' 
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
@@ -389,7 +566,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                     onClick={() => updateScreenBackground(color)}
                     className={`w-full aspect-square rounded-lg border-2 transition-all ${
                       currentScreen.backgroundColor === color 
-                        ? 'border-blue-500 scale-110' 
+                        ? 'border-neutral-800 scale-110' 
                         : 'border-neutral-200 hover:border-neutral-300'
                     }`}
                     style={{ backgroundColor: color }}
@@ -428,7 +605,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                   key={layer.id}
                   onClick={() => setSelectedLayer(layer.id)}
                   className={`px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between ${
-                    selectedLayer === layer.id ? 'bg-blue-50 border border-blue-200' : 'bg-neutral-50 hover:bg-neutral-100'
+                    selectedLayer === layer.id ? 'bg-neutral-100 border border-neutral-300' : 'bg-neutral-50 hover:bg-neutral-100'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -463,7 +640,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                     <textarea
                       value={selectedLayerData.content}
                       onChange={(e) => updateLayerContent(selectedLayerData.id, e.target.value)}
-                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-neutral-800 resize-none"
                       rows={2}
                     />
                   </div>
@@ -476,7 +653,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         onClick={() => updateLayerStyle(selectedLayerData.id, { bold: !selectedLayerData.bold })}
                         className={`p-2 rounded border transition-colors ${
                           selectedLayerData.bold 
-                            ? 'bg-blue-500 text-white border-blue-500' 
+                            ? 'bg-neutral-800 text-white border-neutral-800' 
                             : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}
                       >
@@ -486,7 +663,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         onClick={() => updateLayerStyle(selectedLayerData.id, { italic: !selectedLayerData.italic })}
                         className={`p-2 rounded border transition-colors ${
                           selectedLayerData.italic 
-                            ? 'bg-blue-500 text-white border-blue-500' 
+                            ? 'bg-neutral-800 text-white border-neutral-800' 
                             : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}
                       >
@@ -496,7 +673,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         onClick={() => updateLayerStyle(selectedLayerData.id, { underline: !selectedLayerData.underline })}
                         className={`p-2 rounded border transition-colors ${
                           selectedLayerData.underline 
-                            ? 'bg-blue-500 text-white border-blue-500' 
+                            ? 'bg-neutral-800 text-white border-neutral-800' 
                             : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}
                       >
@@ -513,7 +690,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'left' })}
                         className={`p-2 rounded border transition-colors ${
                           selectedLayerData.align === 'left' 
-                            ? 'bg-blue-500 text-white border-blue-500' 
+                            ? 'bg-neutral-800 text-white border-neutral-800' 
                             : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}
                       >
@@ -523,7 +700,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'center' })}
                         className={`p-2 rounded border transition-colors ${
                           selectedLayerData.align === 'center' 
-                            ? 'bg-blue-500 text-white border-blue-500' 
+                            ? 'bg-neutral-800 text-white border-neutral-800' 
                             : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}
                       >
@@ -533,13 +710,35 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'right' })}
                         className={`p-2 rounded border transition-colors ${
                           selectedLayerData.align === 'right' 
-                            ? 'bg-blue-500 text-white border-blue-500' 
+                            ? 'bg-neutral-800 text-white border-neutral-800' 
                             : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                         }`}
                       >
                         <AlignRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Font Family */}
+                  <div>
+                    <label className="text-xs text-neutral-600 mb-1 block">Font Family</label>
+                    <select
+                      value={selectedLayerData.fontFamily || 'inherit'}
+                      onChange={(e) => updateLayerStyle(selectedLayerData.id, { fontFamily: e.target.value })}
+                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-neutral-800 bg-white"
+                    >
+                      <option value="inherit">Default (System)</option>
+                      <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">SF Pro (iOS)</option>
+                      <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica</option>
+                      <option value="Arial, sans-serif">Arial</option>
+                      <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                      <option value="Georgia, serif">Georgia</option>
+                      <option value="'Courier New', Courier, monospace">Courier</option>
+                      <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                      <option value="Impact, fantasy">Impact</option>
+                      <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+                      <option value="Verdana, sans-serif">Verdana</option>
+                    </select>
                   </div>
 
                   {/* Font Size */}
@@ -551,7 +750,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                       max="72"
                       value={selectedLayerData.fontSize || 20}
                       onChange={(e) => updateLayerStyle(selectedLayerData.id, { fontSize: parseInt(e.target.value) })}
-                      className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500"
+                      className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neutral-800"
                     />
                     <span className="text-xs text-neutral-500">{selectedLayerData.fontSize || 20}px</span>
                   </div>
@@ -571,7 +770,7 @@ export function DesignCanvas({ onClose, userPrompt }: DesignCanvasProps) {
                             key={color}
                             onClick={() => updateLayerStyle(selectedLayerData.id, { color })}
                             className={`w-7 h-7 rounded border-2 ${
-                              selectedLayerData.color === color ? 'border-blue-500' : 'border-neutral-200'
+                              selectedLayerData.color === color ? 'border-neutral-800' : 'border-neutral-200'
                             }`}
                             style={{ backgroundColor: color }}
                           />

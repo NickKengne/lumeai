@@ -31,25 +31,26 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Button } from "./ui/button"
+import { useRouter } from "next/navigation"
+
+interface Workspace {
+  name: string
+  emoji: string
+  pages: Array<{
+    name: string
+    url: string
+    emoji: string
+  }>
+}
 
 // This is sample data.
-const data = {
+const defaultData = {
   teams: [
     {
-      name: "Acme Inc",
+      name: "Lume",
       logo: Command,
       plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
+    }
   ],
   navMain: [
     {
@@ -148,72 +149,58 @@ const data = {
       emoji: "✅",
     },
   ],
-  workspaces: [
-    {
-      name: "New Project",
-      emoji: "🏠",
-      pages: [
-        {
-          name: "Daily Journal & Reflection",
-          url: "#",
-          emoji: "📔",
-        },
-        {
-          name: "Health & Wellness Tracker",
-          url: "#",
-          emoji: "🍏",
-        },
-        {
-          name: "Personal Growth & Learning Goals",
-          url: "#",
-          emoji: "🌟",
-        },
-      ],
-    },
-    {
-      name: "Bloom app Store",
-      emoji: "💼",
-      pages: [
-        {
-          name: "Career Objectives & Milestones",
-          url: "#",
-          emoji: "🎯",
-        },
-        {
-          name: "Skill Acquisition & Training Log",
-          url: "#",
-          emoji: "🧠",
-        },
-        {
-          name: "Networking Contacts & Events",
-          url: "#",
-          emoji: "🤝",
-        },
-      ],
-    }
-  ],
+  workspaces: [],
   user: {
-    name: "John Smith",
-    email: "john@example.com",
-    avatar: "",
+    name: "Nick Dibrilain",
+    email: "nickdk294@gmail.com",
+    avatar: "https://media.licdn.com/dms/image/v2/D4E03AQHTYbBtKMY2Vg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1714722950547?e=1769040000&v=beta&t=uwYoa3mmJNdHaic0FpADf8r_qPm7CmhWN7jRId4Yxq0",
   },
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const router = useRouter()
+  const [workspaces, setWorkspaces] = React.useState<Workspace[]>(defaultData.workspaces)
+
+  // Load workspaces from localStorage on mount
+  React.useEffect(() => {
+    const stored = localStorage.getItem('lume-workspaces')
+    if (stored) {
+      try {
+        setWorkspaces(JSON.parse(stored))
+      } catch (e) {
+        console.error('Failed to load workspaces', e)
+      }
+    }
+  }, [])
+
+  // Save workspaces to localStorage whenever they change
+  React.useEffect(() => {
+    localStorage.setItem('lume-workspaces', JSON.stringify(workspaces))
+  }, [workspaces])
+
+  const handleNewChat = () => {
+    router.push('/dashboard')
+  }
+
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
-        <Button className="bg-neutral-800 text-white rounded-xl p-0" variant={"default"}>
+        <TeamSwitcher teams={defaultData.teams} />
+        <Button 
+          onClick={handleNewChat}
+          className="bg-neutral-800 text-white rounded-xl p-0" 
+          variant={"default"}
+        >
           <Plus className="size-4" />
-          New Chat</Button>
+          New Chat
+        </Button>
       </SidebarHeader>
       <SidebarContent>
-        <NavWorkspaces workspaces={data.workspaces} />
+        <NavWorkspaces workspaces={workspaces} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarPremium />
-        <SidebarUser user={data.user} />
+        <SidebarUser user={defaultData.user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

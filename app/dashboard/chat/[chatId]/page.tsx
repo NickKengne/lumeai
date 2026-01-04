@@ -27,6 +27,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [needsAIResponse, setNeedsAIResponse] = useState(false)
   const { setOpen: setSidebarOpen } = useSidebar()
 
   // Hide sidebar when panel opens
@@ -41,10 +42,17 @@ export default function ChatPage() {
     const storedMessages = localStorage.getItem(`chat-${chatId}`)
     if (storedMessages) {
       const parsed = JSON.parse(storedMessages)
-      setMessages(parsed.map((msg: any) => ({
+      const loadedMessages = parsed.map((msg: any) => ({
         ...msg,
         timestamp: new Date(msg.timestamp)
-      })))
+      }))
+      setMessages(loadedMessages)
+      
+      // Check if we need to generate AI response
+      // (happens when first message is created and redirected)
+      if (loadedMessages.length === 1 && loadedMessages[0].role === 'user') {
+        setNeedsAIResponse(true)
+      }
     }
     setIsLoading(false)
   }, [chatId])
@@ -82,34 +90,36 @@ export default function ChatPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-14 shrink-0 items-center gap-2 bg-zinc-50">
-        <div className="flex flex-1 items-center gap-2 px-3">
+      <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 bg-zinc-50 border-b border-zinc-200">
+        <div className="flex flex-1 items-center gap-1 sm:gap-2 px-2 sm:px-3">
           <SidebarTrigger />
           <Separator
             orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
+            className="mr-1 sm:mr-2 data-[orientation=vertical]:h-4"
           />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage className="line-clamp-1">
+                <BreadcrumbPage className="line-clamp-1 text-sm sm:text-base">
                   Chat
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <div className="ml-auto px-3">
+        <div className="ml-auto px-2 sm:px-3">
           <NavActions />
         </div>
       </header>
-      <div className="bg-zinc-50 flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 flex flex-col items-center py-10 overflow-hidden">
-          <div className="w-full flex-1 overflow-hidden">
+      <div className="bg-zinc-50 flex-1 flex flex-col overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col items-center py-4 sm:py-6 md:py-10 overflow-hidden min-h-0">
+          <div className="w-full flex-1 overflow-hidden min-h-0">
             <ChatInput 
               chatId={chatId} 
               initialMessages={messages}
               onPanelOpenChange={setIsPanelOpen}
+              triggerAIResponse={needsAIResponse}
+              onAIResponseTriggered={() => setNeedsAIResponse(false)}
             />
           </div>
         </div>
