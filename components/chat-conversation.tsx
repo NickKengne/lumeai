@@ -172,17 +172,17 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   }
 
   return (
-    <div className="flex w-full h-full overflow-hidden relative">
-      {/* Main Content - Slides LEFT when panel opens */}
+    <div className="w-full h-full overflow-hidden relative">
+      {/* Main Content - Shrinks when panel opens */}
       <motion.div
         animate={{ 
-          marginRight: isPanelOpen ? panelWidth : "0%"
+          width: isPanelOpen ? `calc(100% - ${panelWidth})` : "100%"
         }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="w-full overflow-y-auto"
+        className="h-full overflow-y-auto"
       >
-        <div className="w-full max-w-3xl mx-auto space-y-4 mb-6 px-2 sm:px-4">
-        {messages.map((message) => (
+        <div className={`w-full mx-auto space-y-4 py-6 px-2 sm:px-4 ${isPanelOpen ? 'max-w-2xl' : 'max-w-3xl'}`}>
+          {messages.map((message) => (
           <div
             key={message.id}
             className={cn(
@@ -327,11 +327,11 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
           </div>
         ))}
 
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-4" />
         </div>
       </motion.div>
 
-      {/* Design Canvas - Slides in from right, responsive width */}
+      {/* Design Canvas - Slides in from right */}
       <AnimatePresence>
         {isPanelOpen && (
           <motion.div
@@ -339,7 +339,8 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 h-full w-[90%] sm:w-[85%] md:w-[75%] lg:w-[70%] xl:w-[65%] z-50"
+            style={{ width: panelWidth }}
+            className="absolute right-0 top-0 bottom-0 h-full z-40 border-l border-neutral-200"
           >
             <DesignCanvas 
               onClose={() => setIsPanelOpen(false)}

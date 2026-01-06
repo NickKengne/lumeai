@@ -503,14 +503,22 @@ Ready to upload your app screenshots?`
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-hidden">
         <ChatConversation messages={messages} onPanelOpenChange={handlePanelOpenChange} />
+      </div>
 
+      {/* Chat Input - Shrinks when canvas is open */}
       <motion.div 
+        animate={{ 
+          width: isPanelOpen ? `calc(100% - ${panelWidth})` : "100%"
+        }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="w-full max-w-3xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6"
+        className="shrink-0 relative z-50 bg-zinc-50 border-t border-neutral-100"
       >
-        <div className="relative rounded-2xl sm:rounded-4xl border border-neutral-200 bg-white ">
+        <div className={`w-full mx-auto px-2 sm:px-4 py-4 ${isPanelOpen ? 'max-w-2xl' : 'max-w-3xl'}`}>
+          <div className="relative rounded-2xl border border-neutral-200 bg-white shadow-xl hover:shadow-md transition-shadow">
         {/* Top bar - Mention & Add context */}
         <div className="flex items-center gap-2 px-3 sm:px-4 pt-2 sm:pt-3 pb-2"> 
           <button className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-700 transition-colors">
@@ -564,6 +572,7 @@ Ready to upload your app screenshots?`
             <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
+          </div>
         </div>
       </motion.div>
     </div>

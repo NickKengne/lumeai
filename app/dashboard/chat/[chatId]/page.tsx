@@ -111,17 +111,15 @@ export default function ChatPage() {
           <NavActions />
         </div>
       </header>
-      <div className="bg-zinc-50 flex-1 flex flex-col overflow-hidden min-h-0">
-        <div className="flex-1 flex flex-col items-center py-4 sm:py-6 md:py-10 overflow-hidden min-h-0">
-          <div className="w-full flex-1 overflow-hidden min-h-0">
-            <ChatInput 
-              chatId={chatId} 
-              initialMessages={messages}
-              onPanelOpenChange={setIsPanelOpen}
-              triggerAIResponse={needsAIResponse}
-              onAIResponseTriggered={() => setNeedsAIResponse(false)}
-            />
-          </div>
+      <div className="bg-zinc-50 flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 w-full overflow-hidden">
+          <ChatInput 
+            chatId={chatId} 
+            initialMessages={messages}
+            onPanelOpenChange={setIsPanelOpen}
+            triggerAIResponse={needsAIResponse}
+            onAIResponseTriggered={() => setNeedsAIResponse(false)}
+          />
         </div>
       </div>
     </SidebarInset>
