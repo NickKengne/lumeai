@@ -78,6 +78,9 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const [isGeneratingBackground, setIsGeneratingBackground] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
   const canvasRef = React.useRef<HTMLDivElement>(null)
+  const rafRef = React.useRef<number | null>(null)
+  const dragPositionRef = React.useRef({ x: 0, y: 0 })
+  const isDraggingRef = React.useRef(false)
 
   // Generate screens from uploaded screenshots + AI structure
   React.useEffect(() => {
@@ -302,6 +305,89 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     }
   }, [spacePressed])
 
+  // Cleanup effect for RAF
+  React.useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+      }
+    }
+  }, [])
+
+  // Mouse handlers - MUST be before early return
+  const handleMouseDown = React.useCallback((layerId: string, e: React.MouseEvent, screenId: string) => {
+    if (spacePressed) return
+    e.stopPropagation()
+    setCurrentScreenId(screenId)
+    setSelectedLayer(layerId)
+    setDragging(layerId)
+    isDraggingRef.current = true
+    const screen = screens.find(s => s.id === screenId)
+    const layer = screen?.layers.find(l => l.id === layerId)
+    if (layer) {
+      setDragStart({ x: e.clientX - (layer.x * zoom), y: e.clientY - (layer.y * zoom) })
+      dragPositionRef.current = { x: layer.x, y: layer.y }
+    }
+  }, [spacePressed, screens, zoom])
+
+  const handleCanvasMouseDown = React.useCallback((e: React.MouseEvent) => {
+    if (spacePressed) {
+      setIsPanning(true)
+      setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y })
+    }
+  }, [spacePressed, panOffset])
+
+  const updateLayers = React.useCallback((updater: (layers: Layer[]) => Layer[]) => {
+    setScreens(prev => prev.map(screen => 
+      screen.id === currentScreenId 
+        ? { ...screen, layers: updater(screen.layers) }
+        : screen
+    ))
+  }, [currentScreenId])
+
+  const handleMouseMove = React.useCallback((e: React.MouseEvent) => {
+    if (isPanning && spacePressed) {
+      if (rafRef.current !== null) return
+      rafRef.current = requestAnimationFrame(() => {
+        setPanOffset({
+          x: e.clientX - panStart.x,
+          y: e.clientY - panStart.y
+        })
+        rafRef.current = null
+      })
+      return
+    }
+    
+    if (dragging && !spacePressed) {
+      dragPositionRef.current = {
+        x: (e.clientX - dragStart.x) / zoom,
+        y: (e.clientY - dragStart.y) / zoom
+      }
+      
+      if (rafRef.current !== null) return
+      rafRef.current = requestAnimationFrame(() => {
+        if (dragging) {
+          updateLayers(prev => prev.map(layer => 
+            layer.id === dragging 
+              ? { ...layer, x: dragPositionRef.current.x, y: dragPositionRef.current.y }
+              : layer
+          ))
+        }
+        rafRef.current = null
+      })
+    }
+  }, [isPanning, spacePressed, dragging, panStart, dragStart, zoom, updateLayers])
+
+  const handleMouseUp = React.useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    isDraggingRef.current = false
+    setDragging(null)
+    setIsPanning(false)
+  }, [])
+
   // Get current screen and layers - AFTER all hooks
   const currentScreen = screens.find(s => s.id === currentScreenId)
   const layers = currentScreen?.layers || []
@@ -313,57 +399,6 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         <p className="text-neutral-500">Loading canvas...</p>
       </div>
     )
-  }
-
-  const handleMouseDown = (layerId: string, e: React.MouseEvent, screenId: string) => {
-    if (spacePressed) return
-    e.stopPropagation()
-    setCurrentScreenId(screenId)
-    setSelectedLayer(layerId)
-    setDragging(layerId)
-    const screen = screens.find(s => s.id === screenId)
-    const layer = screen?.layers.find(l => l.id === layerId)
-    if (layer) {
-      setDragStart({ x: e.clientX - layer.x, y: e.clientY - layer.y })
-    }
-  }
-
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (spacePressed) {
-      setIsPanning(true)
-      setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y })
-    }
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning && spacePressed) {
-      setPanOffset({
-        x: e.clientX - panStart.x,
-        y: e.clientY - panStart.y
-      })
-      return
-    }
-    
-    if (dragging && !spacePressed) {
-      updateLayers(prev => prev.map(layer => 
-        layer.id === dragging 
-          ? { ...layer, x: (e.clientX - dragStart.x) / zoom, y: (e.clientY - dragStart.y) / zoom }
-          : layer
-      ))
-    }
-  }
-
-  const handleMouseUp = () => {
-    setDragging(null)
-    setIsPanning(false)
-  }
-
-  const updateLayers = (updater: (layers: Layer[]) => Layer[]) => {
-    setScreens(prev => prev.map(screen => 
-      screen.id === currentScreenId 
-        ? { ...screen, layers: updater(screen.layers) }
-        : screen
-    ))
   }
 
   const addScreen = () => {
@@ -490,7 +525,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="hidden lg:flex items-center gap-1 bg-neutral-50 rounded-md px-2 py-1">
             <button 
-              onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
+              onClick={() => {
+                const newZoom = Math.max(0.5, zoom - 0.1)
+                setZoom(newZoom)
+              }}
               className="p-1 hover:bg-white rounded transition-all duration-200"
               title="Zoom Out"
             >
@@ -498,7 +536,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </button>
             <span className="text-xs text-neutral-600 min-w-[45px] text-center">{Math.round(zoom * 100)}%</span>
             <button 
-              onClick={() => setZoom(Math.min(2, zoom + 0.25))}
+              onClick={() => {
+                const newZoom = Math.min(1.5, zoom + 0.1)
+                setZoom(newZoom)
+              }}
               className="p-1 hover:bg-white rounded transition-all duration-200"
               title="Zoom In"
             >
@@ -534,17 +575,23 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ 
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+          }}
         >
           <div
             className="flex gap-8 min-w-max"
             style={{
-              transform: `translate(${panOffset.x}px, ${panOffset.y}px)`
+              transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0)`,
+              willChange: isPanning ? 'transform' : 'auto',
             }}
           >
             {screens.map((screen) => (
               <div 
                 key={screen.id}
-                className={`relative bg-white rounded-2xl transition-all duration-300 shadow-sm hover:shadow-md ${
+                className={`relative bg-white rounded-2xl transition-shadow duration-200 shadow-sm hover:shadow-md ${
                   currentScreenId === screen.id ? 'ring-2 ring-neutral-900 shadow-lg' : 'ring-1 ring-neutral-200'
                 }`}
                 style={{ 
@@ -552,7 +599,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   height: `${812 * zoom}px`,
                   backgroundColor: screen.backgroundColor,
                   flexShrink: 0,
-                  minWidth: '200px'
+                  minWidth: '200px',
+                  transform: 'translateZ(0)',
                 }}
                 onClick={() => setCurrentScreenId(screen.id)}
               >
@@ -561,19 +609,24 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
                 {/* Draggable Layers - Minimalist */}
                 {screen.layers.map(layer => {
+                  const isSelected = selectedLayer === layer.id && currentScreenId === screen.id
+                  const isDraggingThis = dragging === layer.id
+                  
                   return (
                     <div
                       key={layer.id}
-                      className={`absolute ${!spacePressed ? 'cursor-move' : ''} transition-all duration-200 ${
-                        selectedLayer === layer.id && currentScreenId === screen.id 
+                      className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${
+                        isDraggingThis ? '' : 'transition-all duration-150'
+                      } ${
+                        isSelected
                           ? 'ring-2 ring-neutral-900 ring-offset-2' 
                           : 'hover:ring-1 hover:ring-neutral-300'
                       }`}
                       style={{
-                        left: layer.x * zoom,
-                        top: layer.y * zoom,
+                        transform: `translate(${layer.x * zoom}px, ${layer.y * zoom}px)`,
                         width: layer.width * zoom,
                         height: layer.height * zoom,
+                        willChange: isDraggingThis ? 'transform' : 'auto',
                       }}
                       onMouseDown={(e) => handleMouseDown(layer.id, e, screen.id)}
                     >

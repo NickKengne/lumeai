@@ -51,7 +51,9 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     suggestedTemplates: string[]
   } | null>(null)
   const [showLayoutPreview, setShowLayoutPreview] = React.useState(false)
-  const [panelWidth, setPanelWidth] = React.useState("70%")
+  const [panelWidth, setPanelWidth] = React.useState(800)
+  const [isResizing, setIsResizing] = React.useState(false)
+  const resizeStartRef = React.useRef({ x: 0, width: 0 })
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const logoInputRef = React.useRef<HTMLInputElement>(null)
   const assetsInputRef = React.useRef<HTMLInputElement>(null)
@@ -63,15 +65,15 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
       
       const width = window.innerWidth
       if (width < 640) {
-        setPanelWidth("90%")
+        setPanelWidth(Math.min(width * 0.9, 500))
       } else if (width < 768) {
-        setPanelWidth("85%")
+        setPanelWidth(Math.min(width * 0.85, 600))
       } else if (width < 1024) {
-        setPanelWidth("75%")
+        setPanelWidth(Math.min(width * 0.75, 700))
       } else if (width < 1280) {
-        setPanelWidth("70%")
+        setPanelWidth(Math.min(width * 0.70, 800))
       } else {
-        setPanelWidth("65%")
+        setPanelWidth(Math.min(width * 0.65, 900))
       }
     }
 
@@ -79,6 +81,38 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     window.addEventListener('resize', updatePanelWidth)
     return () => window.removeEventListener('resize', updatePanelWidth)
   }, [])
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    setIsResizing(true)
+    resizeStartRef.current = {
+      x: e.clientX,
+      width: panelWidth
+    }
+  }
+
+  React.useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = resizeStartRef.current.x - e.clientX
+      const newWidth = resizeStartRef.current.width + delta
+      const minWidth = 400
+      const maxWidth = window.innerWidth * 0.9
+      setPanelWidth(Math.max(minWidth, Math.min(maxWidth, newWidth)))
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
 
   React.useEffect(() => {
     onPanelOpenChange?.(isPanelOpen)
@@ -270,11 +304,14 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   }
 
   return (
-    <div className="w-full h-full overflow-hidden relative">
+    <div 
+      className="w-full h-full overflow-hidden relative"
+      style={{ userSelect: isResizing ? 'none' : 'auto' }}
+    >
       {/* Main Content - Shrinks when panel opens */}
       <motion.div
         animate={{ 
-          width: isPanelOpen ? `calc(100% - ${panelWidth})` : "100%"
+          width: isPanelOpen ? `calc(100% - ${panelWidth}px)` : "100%"
         }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className="h-full overflow-y-auto"
@@ -606,9 +643,21 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            style={{ width: panelWidth }}
+            style={{ width: `${panelWidth}px` }}
             className="fixed right-0 top-0 bottom-0 h-screen overflow-hidden z-50 border-l border-neutral-200 bg-white"
           >
+            {/* Resize Handle */}
+            <div
+              onMouseDown={handleResizeStart}
+              className={`absolute left-0 top-0 bottom-0 w-1 hover:w-1.5 bg-transparent hover:bg-neutral-300 cursor-ew-resize transition-all z-50 group ${
+                isResizing ? 'w-1.5 bg-neutral-400' : ''
+              }`}
+            >
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-1 h-8 bg-neutral-400 rounded-full"></div>
+              </div>
+            </div>
+            
             <DesignCanvas 
               onClose={() => setIsPanelOpen(false)}
               userPrompt={selectedPrompt}
