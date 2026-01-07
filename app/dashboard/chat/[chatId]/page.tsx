@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { motion } from "motion/react"
+import { getChatById } from "@/lib/chat-storage"
 
 interface Message {
   id: string
@@ -28,6 +28,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [needsAIResponse, setNeedsAIResponse] = useState(false)
+  const [chatTitle, setChatTitle] = useState("Chat")
   const { setOpen: setSidebarOpen } = useSidebar()
 
   // Hide sidebar when panel opens
@@ -38,20 +39,30 @@ export default function ChatPage() {
   }, [isPanelOpen, setSidebarOpen])
 
   useEffect(() => {
-    // Load messages from localStorage
-    const storedMessages = localStorage.getItem(`chat-${chatId}`)
-    if (storedMessages) {
-      const parsed = JSON.parse(storedMessages)
-      const loadedMessages = parsed.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }))
-      setMessages(loadedMessages)
+    // Try loading from new chat storage system
+    const existingChat = getChatById(chatId)
+    if (existingChat) {
+      setMessages(existingChat.messages)
+      setChatTitle(existingChat.title)
       
-      // Check if we need to generate AI response
-      // (happens when first message is created and redirected)
-      if (loadedMessages.length === 1 && loadedMessages[0].role === 'user') {
+      // Check if we need AI response
+      if (existingChat.messages.length === 1 && existingChat.messages[0].role === 'user') {
         setNeedsAIResponse(true)
+      }
+    } else {
+      // Fallback: Try old localStorage format for backwards compatibility
+      const storedMessages = localStorage.getItem(`chat-${chatId}`)
+      if (storedMessages) {
+        const parsed = JSON.parse(storedMessages)
+        const loadedMessages = parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }))
+        setMessages(loadedMessages)
+        
+        if (loadedMessages.length === 1 && loadedMessages[0].role === 'user') {
+          setNeedsAIResponse(true)
+        }
       }
     }
     setIsLoading(false)
@@ -101,7 +112,7 @@ export default function ChatPage() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbPage className="line-clamp-1 text-sm sm:text-base">
-                  Chat
+                  {chatTitle}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>

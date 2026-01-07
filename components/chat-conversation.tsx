@@ -11,6 +11,8 @@ import type { AIResponse, PromptAnalysis } from "@/lib/ai-helpers"
 import { analyzeUserPrompt } from "@/lib/ai-helpers"
 import { analyzeScreenshots, suggestTemplatesForMood } from "@/lib/screenshot-analyzer"
 import { AVAILABLE_TEMPLATES } from "@/lib/template-library"
+import { saveChatToHistory, generateChatTitle, getChatById } from "@/lib/chat-storage"
+import { useParams, useSearchParams } from "next/navigation"
 
 interface Message {
   id: string
@@ -30,6 +32,10 @@ interface ChatConversationProps {
 }
 
 export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpload }: ChatConversationProps) {
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const chatId = params?.chatId as string | undefined
+  const workspaceId = searchParams?.get('workspace') || 'default'
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const [copiedId, setCopiedId] = React.useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = React.useState(false)
@@ -121,6 +127,62 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Load existing chat data if navigating to an existing chat
+  React.useEffect(() => {
+    if (!chatId) return
+
+    const existingChat = getChatById(chatId)
+    if (existingChat) {
+      if (existingChat.screenshots.length > 0) {
+        setUploadedScreenshots(existingChat.screenshots)
+      }
+      if (existingChat.logo) {
+        setUploadedLogo(existingChat.logo)
+      }
+      if (existingChat.assets.length > 0) {
+        setUploadedAssets(existingChat.assets)
+      }
+    }
+  }, [chatId])
+
+  // Auto-save chat to history
+  React.useEffect(() => {
+    if (!chatId || messages.length === 0) return
+
+    const saveChat = () => {
+      const title = generateChatTitle(messages.map(m => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp
+      })))
+
+      saveChatToHistory({
+        id: chatId,
+        workspaceId: workspaceId,
+        title,
+        messages: messages.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp
+        })),
+        screenshots: uploadedScreenshots,
+        logo: uploadedLogo,
+        assets: uploadedAssets,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+
+      // Notify sidebar to refresh
+      window.dispatchEvent(new Event('chat-updated'))
+    }
+
+    // Debounce save
+    const timeoutId = setTimeout(saveChat, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [chatId, messages, uploadedScreenshots, uploadedLogo, uploadedAssets, workspaceId])
 
   const handleCopy = async (content: string, id: string) => {
     await navigator.clipboard.writeText(content)
