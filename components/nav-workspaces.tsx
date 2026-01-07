@@ -35,8 +35,8 @@ export function NavWorkspaces({
       <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {workspaces.map((workspace) => (
-            <Collapsible key={workspace.name}>
+          {workspaces.map((workspace, index) => (
+            <Collapsible key={`workspace-${index}`}>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <a href="#">
@@ -57,8 +57,8 @@ export function NavWorkspaces({
                 </SidebarMenuAction>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {workspace.pages.map((page) => (
-                      <SidebarMenuSubItem key={page.name}>
+                    {workspace.pages.map((page, pageIndex) => (
+                      <SidebarMenuSubItem key={`page-${index}-${pageIndex}`}>
                         <SidebarMenuSubButton asChild>
                           <a href="#">
                             <span>{page.emoji}</span>

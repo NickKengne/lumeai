@@ -1,0 +1,30 @@
+# robots.txt for Lume AI
+# https://lumeai.com/robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/chat/
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 0.5
+
+# Sitemap location
+Sitemap: https://lumeai.com/sitemap.xml
+
+# Block specific bots if needed (examples)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+

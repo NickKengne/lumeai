@@ -10,6 +10,12 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard - Start Creating App Store Screenshots | Lume AI",
+  description: "Welcome to your Lume AI dashboard. Start creating beautiful App Store screenshots with AI assistance.",
+};
 
 export default function Page() {
   return (
