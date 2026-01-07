@@ -9,6 +9,8 @@ import { FormattedMessage } from "./formatted-message"
 import { generateMockStructure, hasOpenAIKey, generateScreenshotStructure } from "@/lib/openai-stream"
 import type { AIResponse, PromptAnalysis } from "@/lib/ai-helpers"
 import { analyzeUserPrompt } from "@/lib/ai-helpers"
+import { analyzeScreenshots, suggestTemplatesForMood } from "@/lib/screenshot-analyzer"
+import { AVAILABLE_TEMPLATES } from "@/lib/template-library"
 
 interface Message {
   id: string
@@ -16,6 +18,8 @@ interface Message {
   content: string
   timestamp: Date
   screenshots?: string[]
+  logo?: string
+  assets?: string[]
   isStreaming?: boolean
 }
 
@@ -31,12 +35,26 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const [isPanelOpen, setIsPanelOpen] = React.useState(false)
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>("")
   const [uploadedScreenshots, setUploadedScreenshots] = React.useState<string[]>([])
+  const [uploadedLogo, setUploadedLogo] = React.useState<string>("")
+  const [uploadedAssets, setUploadedAssets] = React.useState<string[]>([])
   const [showUploader, setShowUploader] = React.useState(false)
+  const [showLogoUploader, setShowLogoUploader] = React.useState(false)
+  const [showAssetsUploader, setShowAssetsUploader] = React.useState(false)
   const [aiStructure, setAiStructure] = React.useState<AIResponse | undefined>(undefined)
   const [promptAnalysis, setPromptAnalysis] = React.useState<PromptAnalysis | undefined>(undefined)
   const [isGeneratingStructure, setIsGeneratingStructure] = React.useState(false)
+  const [isAnalyzingScreenshots, setIsAnalyzingScreenshots] = React.useState(false)
+  const [screenshotAnalysis, setScreenshotAnalysis] = React.useState<{
+    dominantColors: string[]
+    suggestedBackgrounds: string[]
+    mood: string
+    suggestedTemplates: string[]
+  } | null>(null)
+  const [showLayoutPreview, setShowLayoutPreview] = React.useState(false)
   const [panelWidth, setPanelWidth] = React.useState("70%")
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const logoInputRef = React.useRef<HTMLInputElement>(null)
+  const assetsInputRef = React.useRef<HTMLInputElement>(null)
 
   // Update panel width based on screen size
   React.useEffect(() => {
@@ -167,6 +185,86 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     setUploadedScreenshots(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const file = files[0] // Only one logo
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        setUploadedLogo(result)
+      }
+      reader.readAsDataURL(file)
+    }
+    setShowLogoUploader(false)
+  }
+
+  const handleAssetsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const urls: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const result = reader.result as string
+          urls.push(result)
+          if (urls.length === files.length) {
+            setUploadedAssets(prev => [...prev, ...urls])
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+    setShowAssetsUploader(false)
+  }
+
+  const handleRemoveLogo = () => {
+    setUploadedLogo("")
+  }
+
+  const handleRemoveAsset = (index: number) => {
+    setUploadedAssets(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleAnalyzeAndSuggest = async () => {
+    if (uploadedScreenshots.length === 0) return
+
+    setIsAnalyzingScreenshots(true)
+
+    try {
+      // Analyze screenshots to extract colors and mood
+      const analysis = await analyzeScreenshots(uploadedScreenshots)
+      
+      // Get suggested templates based on mood
+      const suggestedTemplates = suggestTemplatesForMood(analysis.mood)
+      
+      setScreenshotAnalysis({
+        ...analysis,
+        suggestedTemplates
+      })
+
+      // Show layout preview
+      setShowLayoutPreview(true)
+    } catch (error) {
+      console.error('Screenshot analysis failed:', error)
+      // Fallback to default suggestions
+      setScreenshotAnalysis({
+        dominantColors: ['#F0F4FF'],
+        suggestedBackgrounds: ['#F0F4FF', '#FFF0F5', '#F0FFF4'],
+        mood: 'minimal',
+        suggestedTemplates: ['centered_bold', 'minimal', 'gradient']
+      })
+      setShowLayoutPreview(true)
+    } finally {
+      setIsAnalyzingScreenshots(false)
+    }
+  }
+
   if (messages.length === 0 ) {
     return null
   }
@@ -245,7 +343,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                   )}
 
                   {uploadedScreenshots.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <p className="text-xs text-neutral-500">Uploaded Screenshots ({uploadedScreenshots.length})</p>
                       <div className="grid grid-cols-3 gap-2">
                         {uploadedScreenshots.map((url, idx) => (
@@ -264,14 +362,183 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                           </div>
                         ))}
                       </div>
-                      <button
-                        onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
-                        disabled={isGeneratingStructure}
-                        className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        {isGeneratingStructure ? 'Generating Structure...' : 'Generate App Store Screenshots'}
-                      </button>
+
+                      {/* Logo Upload Section */}
+                      <div className="pt-2 border-t border-neutral-200">
+                        <p className="text-xs text-neutral-500 mb-2">App Logo (Optional)</p>
+                        {!uploadedLogo && !showLogoUploader && (
+                          <button
+                            onClick={() => setShowLogoUploader(true)}
+                            className="flex items-center gap-2 px-3 py-2 bg-white border border-neutral-300 text-neutral-700 text-xs rounded-lg hover:bg-neutral-50 transition-colors w-full justify-center"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload Logo
+                          </button>
+                        )}
+
+                        {showLogoUploader && (
+                          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+                            <input
+                              ref={logoInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                              className="hidden"
+                            />
+                            <button
+                              onClick={() => logoInputRef.current?.click()}
+                              className="w-full"
+                            >
+                              <Upload className="h-6 w-6 mx-auto mb-1 text-neutral-400" />
+                              <p className="text-xs text-neutral-600">Upload your app logo</p>
+                              <p className="text-[10px] text-neutral-400 mt-0.5">PNG or SVG (square format)</p>
+                            </button>
+                          </div>
+                        )}
+
+                        {uploadedLogo && (
+                          <div className="relative group inline-block">
+                            <img 
+                              src={uploadedLogo} 
+                              alt="App Logo"
+                              className="w-20 h-20 object-cover rounded-lg border border-neutral-200 bg-white"
+                            />
+                            <button
+                              onClick={handleRemoveLogo}
+                              className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Assets Upload Section */}
+                      <div className="pt-2 border-t border-neutral-200">
+                        <p className="text-xs text-neutral-500 mb-2">Brand Assets (Optional)</p>
+                        <p className="text-[10px] text-neutral-400 mb-2">Icons, badges, or decorative elements</p>
+                        
+                        {!showAssetsUploader && (
+                          <button
+                            onClick={() => setShowAssetsUploader(true)}
+                            className="flex items-center gap-2 px-3 py-2 bg-white border border-neutral-300 text-neutral-700 text-xs rounded-lg hover:bg-neutral-50 transition-colors w-full justify-center"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload Assets
+                          </button>
+                        )}
+
+                        {showAssetsUploader && (
+                          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+                            <input
+                              ref={assetsInputRef}
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handleAssetsUpload}
+                              className="hidden"
+                            />
+                            <button
+                              onClick={() => assetsInputRef.current?.click()}
+                              className="w-full"
+                            >
+                              <Upload className="h-6 w-6 mx-auto mb-1 text-neutral-400" />
+                              <p className="text-xs text-neutral-600">Upload brand assets</p>
+                              <p className="text-[10px] text-neutral-400 mt-0.5">Icons, badges, or decorations</p>
+                            </button>
+                          </div>
+                        )}
+
+                        {uploadedAssets.length > 0 && (
+                          <div className="grid grid-cols-4 gap-2 mt-2">
+                            {uploadedAssets.map((url, idx) => (
+                              <div key={idx} className="relative group">
+                                <img 
+                                  src={url} 
+                                  alt={`Asset ${idx + 1}`}
+                                  className="w-full h-16 object-cover rounded-lg border border-neutral-200 bg-white"
+                                />
+                                <button
+                                  onClick={() => handleRemoveAsset(idx)}
+                                  className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {!showLayoutPreview ? (
+                        <button
+                          onClick={handleAnalyzeAndSuggest}
+                          disabled={isAnalyzingScreenshots}
+                          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          {isAnalyzingScreenshots ? 'Analyzing...' : 'Analyze & Suggest Layouts'}
+                        </button>
+                      ) : (
+                        <div className="mt-3 space-y-3">
+                          {/* AI Analysis Results */}
+                          <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg p-3 border border-neutral-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="h-6 w-6 rounded-md bg-neutral-900 flex items-center justify-center text-white text-xs font-semibold">
+                                AI
+                              </div>
+                              <p className="text-xs font-semibold text-neutral-900">Analysis Complete!</p>
+                            </div>
+                            <p className="text-xs text-neutral-600 mb-3">
+                              I've analyzed your screenshots and detected a <span className="font-semibold">{screenshotAnalysis?.mood}</span> mood. 
+                              Here are my recommended layouts:
+                            </p>
+
+                            {/* Suggested Backgrounds */}
+                            <div className="mb-3">
+                              <p className="text-[10px] text-neutral-500 mb-2">Suggested Backgrounds (from your app)</p>
+                              <div className="flex gap-2">
+                                {screenshotAnalysis?.suggestedBackgrounds.slice(0, 4).map((color, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="w-8 h-8 rounded-md border border-neutral-300"
+                                    style={{ backgroundColor: color }}
+                                    title={color}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Suggested Templates */}
+                            <div>
+                              <p className="text-[10px] text-neutral-500 mb-2">Recommended Layouts</p>
+                              <div className="grid grid-cols-3 gap-2">
+                                {screenshotAnalysis?.suggestedTemplates.slice(0, 3).map((templateId) => {
+                                  const template = AVAILABLE_TEMPLATES.find(t => t.id === templateId)
+                                  return template ? (
+                                    <div
+                                      key={templateId}
+                                      className="p-2 bg-white rounded-md border border-neutral-200 text-center"
+                                    >
+                                      <p className="text-[9px] font-semibold text-neutral-900 mb-0.5">{template.name}</p>
+                                      <p className="text-[8px] text-neutral-500">{template.description}</p>
+                                    </div>
+                                  ) : null
+                                })}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
+                            disabled={isGeneratingStructure}
+                            className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            {isGeneratingStructure ? 'Generating...' : 'Generate with AI Suggestions'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -340,12 +607,15 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             style={{ width: panelWidth }}
-            className="absolute right-0 top-0 bottom-0 h-full z-40 border-l border-neutral-200"
+            className="fixed right-0 top-0 bottom-0 h-screen overflow-hidden z-50 border-l border-neutral-200 bg-white"
           >
             <DesignCanvas 
               onClose={() => setIsPanelOpen(false)}
               userPrompt={selectedPrompt}
               uploadedScreenshots={uploadedScreenshots}
+              uploadedLogo={uploadedLogo}
+              uploadedAssets={uploadedAssets}
+              screenshotAnalysis={screenshotAnalysis}
               aiStructure={aiStructure}
               promptAnalysis={promptAnalysis}
             />

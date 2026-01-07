@@ -56,13 +56,27 @@ export function FeatureGrid() {
   <div className="col-span-12 md:col-span-3">
     <FeatureCard
       icon={
-        <div className="relative flex gap-2 justify-center">
+        <div className="relative flex gap-2 justify-center w-[70px]">
           <Image
-            src="/images/card-2.png"
+            src="/images/1255@3x.png"
             alt="AI generation"
-            width={400}
-            height={400}
+            width={100}
+            height={70}
+            className="w-full h-full object-cover rounded-md"
           />
+          <Image
+            src="/images/1256@3x.png"
+            alt="AI generation"
+            width={70}
+            height={70}
+            className="w-full h-full object-cover rounded-md"
+          /><Image
+          src="/images/1257@3x.png"
+          alt="AI generation"
+          width={70}
+          height={70}
+          className="w-full h-full object-cover rounded-md"
+        />
         </div>
       }
       title="AI-enhanced App Store visuals"
@@ -74,13 +88,42 @@ export function FeatureGrid() {
   <div className="col-span-12 md:col-span-3">
     <FeatureCard
       icon={
-        <div className="flex gap-3 items-center justify-center">
+        <div className="relative flex gap-2 justify-center w-[70px]">
           <Image
-            src="/images/card-3.png"
-            alt="App Store export"
-            width={450}
-            height={450}
+            src="/images/1345@3x.png"
+            alt="AI generation"
+            width={100}
+            height={70}
+            className="w-full h-full object-cover rounded-md"
           />
+          <Image
+            src="/images/1344@3x.png"
+            alt="AI generation"
+            width={70}
+            height={70}
+            className="w-full h-full object-cover rounded-md"
+          />
+          <Image
+          src="/images/1347@3x.png"
+          alt="AI generation"
+          width={70}
+          height={70}
+          className="w-full h-full object-cover rounded-md"
+        />
+        <Image
+          src="/images/1343@3x.png"
+          alt="AI generation"
+          width={70}
+          height={70}
+          className="w-full h-full object-cover rounded-md"
+        />
+        <Image
+          src="/images/1346@3x.png"
+          alt="AI generation"
+          width={70}
+          height={70}
+          className="w-full h-full object-cover rounded-md"
+        />
         </div>
       }
       title="Ready for the App Store"
@@ -93,9 +136,13 @@ export function FeatureGrid() {
     <FeatureCard
       icon={
         <div className="relative flex items-center justify-center">
-          <div className="absolute w-15 h-15 bg-blue-500 rounded-full flex items-center justify-center">
-            <Mic className="w-7 h-7 text-white" />
-          </div>
+          <Image
+          src="/images/cloud-check.png"
+          alt="AI generation"
+          width={100}
+          height={10}
+          className="w-full h-full object-cover rounded-md"
+        />
         </div>
       }
       title="Done in one minute"

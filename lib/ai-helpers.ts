@@ -709,6 +709,12 @@ export async function generateBackgroundWithNanoBanana(
   prompt: string,
   options: Partial<ImageGenerationOptions> = {}
 ): Promise<string> {
+  // DISABLED: Gemini API causes 429 rate limits
+  // Using local gradient generation instead for stability
+  console.log("📊 Using local gradient generation (Gemini disabled to prevent 429 errors)")
+  return generateGradientFromDescription(prompt)
+  
+  /* GEMINI CODE DISABLED TO PREVENT 429 ERRORS
   if (!GEMINI_API_KEY) {
     return generateGradientFromDescription(prompt)
   }
@@ -775,6 +781,7 @@ The gradient should be suitable for placing mobile app screenshots on top.`
   } catch (error) {
     return generateGradientFromDescription(prompt)
   }
+  */
 }
 
 function generateGradientFromDescription(description: string): string {

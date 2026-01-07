@@ -1,13 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers } from "lucide-react"
+import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout } from "lucide-react"
 
 import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
+import { AVAILABLE_TEMPLATES, applyTemplate, type TemplateLayer } from "@/lib/template-library"
+import { IphoneMockup } from "./iphone-mockup"
 
 interface Layer {
   id: string
-  type: "text" | "image"
+  type: "text" | "image" | "mockup" | "background" | "decoration"
   content: string
   x: number
   y: number
@@ -20,6 +22,21 @@ interface Layer {
   italic?: boolean
   underline?: boolean
   align?: "left" | "center" | "right"
+  // Mockup specific
+  mockupFrame?: {
+    x: number
+    y: number
+    width: number
+    height: number
+    borderRadius?: number
+  }
+  // Background specific
+  backgroundColor?: string
+  backgroundGradient?: {
+    type: "linear" | "radial"
+    colors: string[]
+    angle?: number
+  }
 }
 
 interface Screen {
@@ -27,17 +44,26 @@ interface Screen {
   name: string
   backgroundColor: string
   layers: Layer[]
+  templateId?: string // Track which template is being used
 }
 
 interface DesignCanvasProps {
   onClose: () => void
   userPrompt?: string
   uploadedScreenshots?: string[]
+  uploadedLogo?: string
+  uploadedAssets?: string[]
+  screenshotAnalysis?: {
+    dominantColors: string[]
+    suggestedBackgrounds: string[]
+    mood: string
+    suggestedTemplates: string[]
+  } | null
   aiStructure?: AIResponse // AI-generated structure
   promptAnalysis?: PromptAnalysis // Enhanced prompt analysis from Gemini
 }
 
-export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], aiStructure, promptAnalysis }: DesignCanvasProps) {
+export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], uploadedLogo, uploadedAssets = [], screenshotAnalysis, aiStructure, promptAnalysis }: DesignCanvasProps) {
   const [screens, setScreens] = React.useState<Screen[]>([])
   const [currentScreenId, setCurrentScreenId] = React.useState("")
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)
@@ -66,67 +92,65 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
     setTimeout(() => {
       let generatedScreens: Screen[] = []
 
+      // Determine template for each screen - prioritize AI suggested templates
+      const templates = screenshotAnalysis?.suggestedTemplates?.length 
+        ? screenshotAnalysis.suggestedTemplates 
+        : ['centered_bold', 'offset_left', 'offset_right', 'gradient', 'minimal', 'tilted']
+      
       if (aiStructure && aiStructure.screens) {
-        // Use AI structure to generate screens
+        // Use AI structure to generate screens WITH TEMPLATES
         generatedScreens = aiStructure.screens.map((screenSpec, index) => {
           const screenshot = uploadedScreenshots[index] || uploadedScreenshots[0]
-          const canvasState = resolveTemplate(screenSpec, screenshot, index)
+          
+          // Select template (rotate through available templates)
+          const templateId = templates[index % templates.length]
+          const headline = screenSpec.headline || generateContextualHeadline(index, extractAppContext(userPrompt || ''))
+          const subtitle = screenSpec.subheadline || generateContextualSubtitle(index, extractAppContext(userPrompt || ''))
+          
+          // Apply template
+          const templateLayers = applyTemplate(
+            templateId,
+            screenshot,
+            headline,
+            subtitle,
+            screenSpec.background || getRandomBackground(),
+            uploadedLogo
+          )
           
           return {
             id: screenSpec.id,
             name: `Screen ${index + 1}`,
-            backgroundColor: canvasState.backgroundColor,
-            layers: canvasState.layers.map(layer => ({
-              ...layer,
-              type: layer.type as "text" | "image"
-            }))
+            backgroundColor: templateLayers[0]?.backgroundColor || "#F0F4FF",
+            templateId: templateId,
+            layers: templateLayers as Layer[]
           }
         })
       } else {
-        // Fallback to smart generation
-        generatedScreens = uploadedScreenshots.map((screenshot, index) => ({
-          id: `screen_${index + 1}`,
-          name: `Screenshot ${index + 1}`,
-          backgroundColor: getRandomBackground(),
-          layers: [
-            {
-              id: `bg_img_${index}`,
-              type: "image",
-              content: screenshot,
-              x: 37.5,
-              y: 100,
-              width: 300,
-              height: 500,
-            },
-            {
-              id: `headline_${index}`,
-              type: "text",
-              content: generateContextualHeadline(index, extractAppContext(userPrompt || '')),
-              x: 20,
-              y: 30,
-              width: 335,
-              height: 50,
-              fontSize: 28,
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              color: "#000000",
-              bold: true,
-              align: "center"
-            },
-            {
-              id: `subtitle_${index}`,
-              type: "text",
-              content: generateContextualSubtitle(index, extractAppContext(userPrompt || '')),
-              x: 20,
-              y: 610,
-              width: 335,
-              height: 40,
-              fontSize: 14,
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              color: "#666666",
-              align: "center"
-            }
-          ]
-        }))
+        // Fallback: Use templates with smart generation
+        generatedScreens = uploadedScreenshots.map((screenshot, index) => {
+          const templateId = templates[index % templates.length]
+          const headline = generateContextualHeadline(index, extractAppContext(userPrompt || ''))
+          const subtitle = generateContextualSubtitle(index, extractAppContext(userPrompt || ''))
+          const bgColor = getRandomBackground()
+          
+          // Apply template
+          const templateLayers = applyTemplate(
+            templateId,
+            screenshot,
+            headline,
+            subtitle,
+            bgColor,
+            uploadedLogo
+          )
+          
+          return {
+            id: `screen_${index + 1}`,
+            name: `Screenshot ${index + 1}`,
+            backgroundColor: templateLayers[0]?.backgroundColor || bgColor,
+            templateId: templateId,
+            layers: templateLayers as Layer[]
+          }
+        })
       }
 
       setScreens(generatedScreens)
@@ -183,10 +207,15 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
   }
 
   const getRandomBackground = (): string => {
-    // Use colors from prompt analysis if available
+    // Priority 1: Use colors from screenshot analysis (extracted from actual app)
+    if (screenshotAnalysis?.suggestedBackgrounds?.length) {
+      return screenshotAnalysis.suggestedBackgrounds[Math.floor(Math.random() * screenshotAnalysis.suggestedBackgrounds.length)]
+    }
+    // Priority 2: Use colors from prompt analysis
     if (promptAnalysis?.visualStyle?.colorScheme) {
       return promptAnalysis.visualStyle.colorScheme[0] || '#F0F4FF'
     }
+    // Fallback: Default palette
     const backgrounds = ['#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBEB', '#FEF2F2', '#F0FDFA']
     return backgrounds[Math.floor(Math.random() * backgrounds.length)]
   }
@@ -216,6 +245,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
         id: "1",
         name: "Screen 1",
         backgroundColor: "#F0F4FF",
+        templateId: "minimal",
         layers: [
           {
             id: "1",
@@ -355,6 +385,43 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
     ))
   }
 
+  const changeTemplate = (templateId: string) => {
+    if (!currentScreen) return
+    
+    // Extract current content from layers
+    const currentScreenshot = currentScreen.layers.find(l => l.type === "mockup" || l.type === "image")?.content || ""
+    const currentHeadline = currentScreen.layers.find(l => l.type === "text" && l.fontSize && l.fontSize > 20)?.content || "Your App Feature"
+    const currentSubtitle = currentScreen.layers.find(l => l.type === "text" && l.fontSize && l.fontSize <= 16)?.content || "Discover amazing features"
+    
+    // If no screenshot found, can't change template
+    if (!currentScreenshot) {
+      console.warn("No screenshot found in current screen")
+      return
+    }
+    
+    // Apply new template with existing content
+    const newLayers = applyTemplate(
+      templateId,
+      currentScreenshot,
+      currentHeadline,
+      currentSubtitle,
+      currentScreen.backgroundColor,
+      uploadedLogo
+    )
+    
+    // Update screen with new template
+    setScreens(prev => prev.map(screen => 
+      screen.id === currentScreenId 
+        ? { 
+            ...screen, 
+            templateId: templateId,
+            backgroundColor: newLayers[0]?.backgroundColor || screen.backgroundColor,
+            layers: newLayers as Layer[]
+          }
+        : screen
+    ))
+  }
+
   const addTextLayer = () => {
     const newLayer: Layer = {
       id: Date.now().toString(),
@@ -482,7 +549,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
                 }`}
                 style={{ 
                   width: `${375 * zoom}px`, 
-                  height: `${667 * zoom}px`,
+                  height: `${812 * zoom}px`,
                   backgroundColor: screen.backgroundColor,
                   flexShrink: 0,
                   minWidth: '200px'
@@ -493,51 +560,74 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
                 <div className="absolute -top-8 left-0 text-xs font-medium text-neutral-400">{screen.name}</div>
 
                 {/* Draggable Layers - Minimalist */}
-                {screen.layers.map(layer => (
-                  <div
-                    key={layer.id}
-                    className={`absolute ${!spacePressed ? 'cursor-move' : ''} transition-all duration-200 ${
-                      selectedLayer === layer.id && currentScreenId === screen.id 
-                        ? 'ring-2 ring-neutral-900 ring-offset-2' 
-                        : 'hover:ring-1 hover:ring-neutral-300'
-                    }`}
-                    style={{
-                      left: layer.x * zoom,
-                      top: layer.y * zoom,
-                      width: layer.width * zoom,
-                      height: layer.height * zoom,
-                    }}
-                    onMouseDown={(e) => handleMouseDown(layer.id, e, screen.id)}
-                  >
-                    {layer.type === "text" && (
-                      <div
-                        className="w-full h-full flex items-center px-2"
-                        style={{
-                          fontSize: (layer.fontSize || 20) * zoom,
-                          fontFamily: layer.fontFamily || 'inherit',
-                          color: layer.color,
-                          fontWeight: layer.bold ? 700 : 400,
-                          fontStyle: layer.italic ? 'italic' : 'normal',
-                          textDecoration: layer.underline ? 'underline' : 'none',
-                          textAlign: layer.align || 'left',
-                          justifyContent: 
-                            layer.align === 'center' ? 'center' : 
-                            layer.align === 'right' ? 'flex-end' : 'flex-start'
-                        }}
-                      >
-                        {layer.content}
-                      </div>
-                    )}
-                    {layer.type === "image" && (
-                      <img
-                        src={layer.content}
-                        alt="App screenshot"
-                        className="w-full h-full rounded-xl shadow-sm"
-                        draggable={false}
-                      />
-                    )}
-                  </div>
-                ))}
+                {screen.layers.map(layer => {
+                  return (
+                    <div
+                      key={layer.id}
+                      className={`absolute ${!spacePressed ? 'cursor-move' : ''} transition-all duration-200 ${
+                        selectedLayer === layer.id && currentScreenId === screen.id 
+                          ? 'ring-2 ring-neutral-900 ring-offset-2' 
+                          : 'hover:ring-1 hover:ring-neutral-300'
+                      }`}
+                      style={{
+                        left: layer.x * zoom,
+                        top: layer.y * zoom,
+                        width: layer.width * zoom,
+                        height: layer.height * zoom,
+                      }}
+                      onMouseDown={(e) => handleMouseDown(layer.id, e, screen.id)}
+                    >
+                      {/* Text Layer */}
+                      {layer.type === "text" && (
+                        <div
+                          className="w-full h-full flex items-center px-2"
+                          style={{
+                            fontSize: (layer.fontSize || 20) * zoom,
+                            fontFamily: layer.fontFamily || 'inherit',
+                            color: layer.color,
+                            fontWeight: layer.bold ? 700 : 400,
+                            fontStyle: layer.italic ? 'italic' : 'normal',
+                            textDecoration: layer.underline ? 'underline' : 'none',
+                            textAlign: layer.align || 'left',
+                            justifyContent: 
+                              layer.align === 'center' ? 'center' : 
+                              layer.align === 'right' ? 'flex-end' : 'flex-start'
+                          }}
+                        >
+                          {layer.content}
+                        </div>
+                      )}
+                      
+                      {/* Simple Image Layer */}
+                      {layer.type === "image" && (
+                        <img
+                          src={layer.content}
+                          alt="App screenshot"
+                          className="w-full h-full rounded-xl shadow-sm"
+                          draggable={false}
+                        />
+                      )}
+                      
+                      {/* iPhone Mockup Frame with Screenshot Inside */}
+                      {layer.type === "mockup" && (
+                        <IphoneMockup 
+                          src={layer.content}
+                          className="w-full h-full"
+                        />
+                      )}
+                      
+                      {/* Decoration Layer (colored boxes, shapes) */}
+                      {layer.type === "decoration" && (
+                        <div
+                          className="w-full h-full rounded-lg"
+                          style={{
+                            backgroundColor: layer.backgroundColor || 'rgba(255,255,255,0.1)',
+                          }}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ))}
           </div>
@@ -629,6 +719,36 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
             </div>
           </div>
 
+          {/* Template Switcher - NEW */}
+          {currentScreen && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-neutral-900">Layout Template</h3>
+                <Layout className="h-4 w-4 text-neutral-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {AVAILABLE_TEMPLATES.map(template => (
+                  <button
+                    key={template.id}
+                    onClick={() => changeTemplate(template.id)}
+                    className={`p-3 rounded-md border text-left transition-all duration-200 ${
+                      currentScreen.templateId === template.id
+                        ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
+                        : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                    }`}
+                  >
+                    <div className="text-xs font-semibold mb-0.5">{template.name}</div>
+                    <div className={`text-[10px] ${
+                      currentScreen.templateId === template.id ? 'text-neutral-300' : 'text-neutral-500'
+                    }`}>
+                      {template.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Background Color - Minimalist */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -696,6 +816,65 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], ai
               </button>
             </div>
           </div>
+
+          {/* Assets Library - NEW */}
+          {(uploadedLogo || uploadedAssets.length > 0) && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-neutral-900">Your Assets</h3>
+              
+              {/* Logo */}
+              {uploadedLogo && (
+                <div>
+                  <p className="text-[10px] text-neutral-500 mb-2">App Logo</p>
+                  <div 
+                    className="relative group cursor-pointer"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('asset-type', 'logo')
+                      e.dataTransfer.setData('asset-url', uploadedLogo)
+                    }}
+                  >
+                    <img 
+                      src={uploadedLogo} 
+                      alt="App Logo"
+                      className="w-16 h-16 object-cover rounded-lg border-2 border-neutral-200 bg-white hover:border-neutral-900 transition-all"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all flex items-center justify-center">
+                      <span className="text-[8px] text-white opacity-0 group-hover:opacity-100 font-medium bg-black px-2 py-1 rounded">Drag to canvas</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Brand Assets */}
+              {uploadedAssets.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-neutral-500 mb-2">Brand Assets</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {uploadedAssets.map((asset, idx) => (
+                      <div 
+                        key={idx}
+                        className="relative group cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('asset-type', 'image')
+                          e.dataTransfer.setData('asset-url', asset)
+                        }}
+                      >
+                        <img 
+                          src={asset} 
+                          alt={`Asset ${idx + 1}`}
+                          className="w-full h-16 object-cover rounded-lg border border-neutral-200 bg-white hover:border-neutral-900 transition-all"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-neutral-400 mt-2">💡 Drag assets to canvas to add them</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Layers List - Minimalist */}
           <div className="space-y-3">

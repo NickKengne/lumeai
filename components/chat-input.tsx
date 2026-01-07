@@ -518,7 +518,7 @@ Ready to upload your app screenshots?`
         className="shrink-0 relative z-50 bg-zinc-50 border-t border-neutral-100"
       >
         <div className={`w-full mx-auto px-2 sm:px-4 py-4 ${isPanelOpen ? 'max-w-2xl' : 'max-w-3xl'}`}>
-          <div className="relative rounded-2xl border border-neutral-200 bg-white shadow-xl hover:shadow-md transition-shadow">
+          <div className="relative rounded-2xl border border-neutral-200 bg-white">
         {/* Top bar - Mention & Add context */}
         <div className="flex items-center gap-2 px-3 sm:px-4 pt-2 sm:pt-3 pb-2"> 
           <button className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-700 transition-colors">
