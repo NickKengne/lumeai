@@ -202,6 +202,71 @@ async function retryWithBackoff<T>(
 }
 
 /**
+ * Convert AI-detected font names to CSS font-family strings
+ */
+function convertFontNameToCSSFontFamily(fontName: string): string {
+  const fontMap: { [key: string]: string } = {
+    // iOS/Apple fonts
+    'san francisco': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif',
+    'sf pro': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif',
+    'sf': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif',
+    'helvetica': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    'helvetica neue': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    
+    // Android fonts
+    'roboto': '"Roboto", -apple-system, BlinkMacSystemFont, sans-serif',
+    'google sans': '"Google Sans", "Roboto", sans-serif',
+    'product sans': '"Product Sans", "Roboto", sans-serif',
+    
+    // Popular web fonts
+    'inter': '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+    'poppins': '"Poppins", -apple-system, BlinkMacSystemFont, sans-serif',
+    'montserrat': '"Montserrat", -apple-system, BlinkMacSystemFont, sans-serif',
+    'open sans': '"Open Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+    'lato': '"Lato", -apple-system, BlinkMacSystemFont, sans-serif',
+    'raleway': '"Raleway", -apple-system, BlinkMacSystemFont, sans-serif',
+    'nunito': '"Nunito", -apple-system, BlinkMacSystemFont, sans-serif',
+    'work sans': '"Work Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+    'dm sans': '"DM Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+    'plus jakarta sans': '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+    'space grotesk': '"Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif',
+    'manrope': '"Manrope", -apple-system, BlinkMacSystemFont, sans-serif',
+    
+    // Style-based fonts
+    'rounded': '"Nunito", "Quicksand", -apple-system, BlinkMacSystemFont, sans-serif',
+    'geometric': '"Montserrat", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif',
+    'modern': '"Inter", "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+    'elegant': '"Playfair Display", "Merriweather", Georgia, serif',
+    'classic': '"Georgia", "Times New Roman", serif',
+    'playful': '"Quicksand", "Nunito", -apple-system, BlinkMacSystemFont, sans-serif',
+    'minimal': '"Inter", "Helvetica Neue", -apple-system, BlinkMacSystemFont, sans-serif',
+    'bold': '"Montserrat", "Oswald", -apple-system, BlinkMacSystemFont, sans-serif',
+    
+    // Generic fallbacks
+    'sans-serif': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    'serif': 'Georgia, "Times New Roman", Times, serif',
+    'monospace': '"Courier New", Courier, monospace',
+  }
+  
+  const lowerFont = fontName.toLowerCase().trim()
+  
+  // Check for exact matches
+  if (fontMap[lowerFont]) {
+    return fontMap[lowerFont]
+  }
+  
+  // Check for partial matches
+  for (const [key, value] of Object.entries(fontMap)) {
+    if (lowerFont.includes(key) || key.includes(lowerFont)) {
+      return value
+    }
+  }
+  
+  // If no match found, return the original with fallbacks
+  return `"${fontName}", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+}
+
+/**
  * Analyze screenshot using Google Gemini Vision API
  * Detects fonts, colors, typography, and design characteristics
  * Includes rate limiting and retry logic
@@ -239,7 +304,8 @@ IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks, no explanations.
 
 Extract and identify:
 1. **Typography & Fonts**:
-   - What font family/style does this app use? (e.g., "San Francisco", "Roboto", "Inter", "Custom Sans-serif", "Rounded", "Geometric")
+   - What font family/style does this app use? Be SPECIFIC. Examples: "San Francisco", "SF Pro", "Roboto", "Inter", "Poppins", "Montserrat", "Rounded", "Geometric"
+   - If you can't identify the exact font, describe its characteristics: "Modern Sans-serif", "Rounded Sans-serif", "Geometric Sans-serif", "Classic Serif"
    - Font characteristics: modern, classic, playful, minimal, bold, elegant
    - Headline/title sizes: large, medium, small
    - Text hierarchy: clear, subtle, minimal
@@ -268,7 +334,7 @@ Return as JSON:
   "suggestedBackgrounds": ["#hex1", "#hex2", "#hex3", "#hex4"],
   "mood": "vibrant|calm|professional|playful|minimal",
   "typography": {
-    "primaryFont": "Font name or style",
+    "primaryFont": "Specific font name (e.g. 'SF Pro', 'Roboto', 'Inter')",
     "secondaryFont": "Font name or style",
     "fontStyle": "modern|classic|playful|minimal|bold",
     "headlineSize": "large|medium|small",
@@ -299,6 +365,13 @@ Return as JSON:
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const analysis = JSON.parse(cleanText)
 
+    // Convert detected font to CSS font-family
+    let convertedFont: string | undefined = undefined
+    if (analysis.typography?.primaryFont) {
+      convertedFont = convertFontNameToCSSFontFamily(analysis.typography.primaryFont)
+      console.log(`🔤 Detected font: "${analysis.typography.primaryFont}" → CSS: "${convertedFont}"`)
+    }
+
     // Validate and normalize the response
     const normalized: ScreenshotAnalysisResult = {
       dominantColors: Array.isArray(analysis.dominantColors) 
@@ -311,7 +384,10 @@ Return as JSON:
         ? analysis.mood
         : 'minimal',
       suggestedTemplates: suggestTemplatesForMood(analysis.mood || 'minimal'),
-      typography: analysis.typography,
+      typography: {
+        ...analysis.typography,
+        primaryFont: convertedFont || analysis.typography?.primaryFont
+      },
       designStyle: analysis.designStyle
     }
 

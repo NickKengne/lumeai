@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video } from "lucide-react"
+import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video, Download, Share2 } from "lucide-react"
 import { VideoGenerator } from "./video-generator"
 
 import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
@@ -77,6 +77,9 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const [isGeneratingBackground, setIsGeneratingBackground] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
   const [showVideoGenerator, setShowVideoGenerator] = React.useState(false)
+  const [showShareModal, setShowShareModal] = React.useState(false)
+  const [shareLink, setShareLink] = React.useState("")
+  const [isExporting, setIsExporting] = React.useState(false)
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const rafRef = React.useRef<number | null>(null)
   const dragPositionRef = React.useRef({ x: 0, y: 0 })
@@ -445,12 +448,16 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     setCurrentScreenId(newScreen.id)
   }
 
-  const updateScreenBackground = (color: string) => {
+  const updateScreenBackground = (color: string, applyToAll: boolean = false) => {
     setScreens(prev => prev.map(screen => 
-      screen.id === currentScreenId 
+      (applyToAll || screen.id === currentScreenId)
         ? { ...screen, backgroundColor: color }
         : screen
     ))
+  }
+
+  const applyBackgroundToAllScreens = (color: string) => {
+    updateScreenBackground(color, true)
   }
 
   const changeTemplate = (templateId: string) => {
@@ -533,6 +540,218 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
   const selectedLayerData = layers.find(l => l.id === selectedLayer)
 
+  // Export screenshot as PNG
+  const exportScreenshotAsPNG = async (screen: Screen) => {
+    setIsExporting(true)
+    try {
+      // Create a temporary canvas element
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('Failed to get canvas context')
+      }
+
+      // Set canvas dimensions (iPhone X size)
+      canvas.width = 375
+      canvas.height = 812
+
+      // Fill background
+      ctx.fillStyle = screen.backgroundColor
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Render each layer
+      for (const layer of screen.layers) {
+        if (layer.type === 'text') {
+          // Render text layer
+          ctx.save()
+          ctx.font = `${layer.italic ? 'italic ' : ''}${layer.bold ? 'bold ' : ''}${layer.fontSize || 20}px ${layer.fontFamily || 'sans-serif'}`
+          ctx.fillStyle = layer.color || '#000000'
+          ctx.textAlign = (layer.align || 'left') as CanvasTextAlign
+          
+          const x = layer.align === 'center' ? layer.x + layer.width / 2 : 
+                    layer.align === 'right' ? layer.x + layer.width : 
+                    layer.x + 8
+          const y = layer.y + (layer.fontSize || 20)
+          
+          ctx.fillText(layer.content, x, y)
+          
+          if (layer.underline) {
+            const metrics = ctx.measureText(layer.content)
+            ctx.strokeStyle = layer.color || '#000000'
+            ctx.lineWidth = 1
+            ctx.beginPath()
+            ctx.moveTo(x, y + 2)
+            ctx.lineTo(x + metrics.width, y + 2)
+            ctx.stroke()
+          }
+          ctx.restore()
+        } else if (layer.type === 'image' || layer.type === 'mockup') {
+          // Render image layer
+          await new Promise<void>((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => {
+              ctx.drawImage(img, layer.x, layer.y, layer.width, layer.height)
+              resolve()
+            }
+            img.onerror = () => {
+              console.warn('Failed to load image:', layer.content)
+              resolve() // Continue even if image fails
+            }
+            img.src = layer.content
+          })
+        } else if (layer.type === 'decoration') {
+          // Render decoration layer
+          ctx.fillStyle = layer.backgroundColor || 'rgba(255,255,255,0.1)'
+          ctx.fillRect(layer.x, layer.y, layer.width, layer.height)
+        }
+      }
+
+      // Convert canvas to blob
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${screen.name.replace(/\s+/g, '_')}_${Date.now()}.png`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }
+        setIsExporting(false)
+      }, 'image/png')
+    } catch (error) {
+      console.error('Export failed:', error)
+      setIsExporting(false)
+      alert('Failed to export screenshot. Please try again.')
+    }
+  }
+
+  // Export all screenshots
+  const exportAllScreenshots = async () => {
+    for (const screen of screens) {
+      await exportScreenshotAsPNG(screen)
+      // Add a small delay between exports
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+  }
+
+  // Share screenshot (generate shareable link)
+  const shareScreenshot = async (screen: Screen) => {
+    try {
+      // Create a temporary canvas element
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('Failed to get canvas context')
+      }
+
+      // Set canvas dimensions
+      canvas.width = 375
+      canvas.height = 812
+
+      // Fill background
+      ctx.fillStyle = screen.backgroundColor
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Render each layer (same as export)
+      for (const layer of screen.layers) {
+        if (layer.type === 'text') {
+          ctx.save()
+          ctx.font = `${layer.italic ? 'italic ' : ''}${layer.bold ? 'bold ' : ''}${layer.fontSize || 20}px ${layer.fontFamily || 'sans-serif'}`
+          ctx.fillStyle = layer.color || '#000000'
+          ctx.textAlign = (layer.align || 'left') as CanvasTextAlign
+          
+          const x = layer.align === 'center' ? layer.x + layer.width / 2 : 
+                    layer.align === 'right' ? layer.x + layer.width : 
+                    layer.x + 8
+          const y = layer.y + (layer.fontSize || 20)
+          
+          ctx.fillText(layer.content, x, y)
+          
+          if (layer.underline) {
+            const metrics = ctx.measureText(layer.content)
+            ctx.strokeStyle = layer.color || '#000000'
+            ctx.lineWidth = 1
+            ctx.beginPath()
+            ctx.moveTo(x, y + 2)
+            ctx.lineTo(x + metrics.width, y + 2)
+            ctx.stroke()
+          }
+          ctx.restore()
+        } else if (layer.type === 'image' || layer.type === 'mockup') {
+          await new Promise<void>((resolve) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => {
+              ctx.drawImage(img, layer.x, layer.y, layer.width, layer.height)
+              resolve()
+            }
+            img.onerror = () => {
+              console.warn('Failed to load image:', layer.content)
+              resolve()
+            }
+            img.src = layer.content
+          })
+        } else if (layer.type === 'decoration') {
+          ctx.fillStyle = layer.backgroundColor || 'rgba(255,255,255,0.1)'
+          ctx.fillRect(layer.x, layer.y, layer.width, layer.height)
+        }
+      }
+
+      // Convert canvas to data URL
+      const dataUrl = canvas.toDataURL('image/png')
+      
+      // In a real app, you would upload this to a server and get a shareable link
+      // For now, we'll create a shareable data URL
+      setShareLink(dataUrl)
+      setShowShareModal(true)
+    } catch (error) {
+      console.error('Share failed:', error)
+      alert('Failed to generate shareable link. Please try again.')
+    }
+  }
+
+  // Copy share link to clipboard
+  const copyShareLink = async () => {
+    try {
+      // If the browser supports clipboard API
+      if (navigator.clipboard && shareLink.startsWith('data:')) {
+        // For data URLs, we need to convert to blob first
+        const response = await fetch(shareLink)
+        const blob = await response.blob()
+        const item = new ClipboardItem({ 'image/png': blob })
+        await navigator.clipboard.write([item])
+        alert('Image copied to clipboard! You can paste it anywhere.')
+      } else {
+        // Fallback: just copy the data URL as text
+        await navigator.clipboard.writeText(shareLink)
+        alert('Link copied to clipboard!')
+      }
+    } catch (error) {
+      console.error('Copy failed:', error)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = shareLink
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      alert('Link copied to clipboard!')
+    }
+  }
+
+  // Download from share modal
+  const downloadFromShare = () => {
+    const a = document.createElement('a')
+    a.href = shareLink
+    a.download = `screenshot_${Date.now()}.png`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
   return (
     <div className="w-full bg-neutral-50 overflow-hidden shrink-0 h-full flex flex-col">
       {/* Loading State */}
@@ -602,8 +821,32 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             <Video className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Video</span>
           </button>
-          <button className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900">
-            Export
+          <button 
+            onClick={() => {
+              // TODO: Implement community sharing with link generation
+              alert('Community sharing coming soon! This will generate a shareable link to your canvas.')
+            }}
+            className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 flex items-center gap-1.5 border border-neutral-200"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+          <button 
+            onClick={() => currentScreen && exportScreenshotAsPNG(currentScreen)}
+            className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900 flex items-center gap-1.5"
+            disabled={!currentScreen || isExporting}
+          >
+            {isExporting ? (
+              <>
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <span className="hidden sm:inline">Exporting...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Export</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -771,6 +1014,30 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 </p>
               </div>
               
+              {/* Screenshot Analysis - Font Detection */}
+              {/* Temporarily disabled - font detection not working properly
+              {screenshotAnalysis?.typography?.primaryFont && (
+                <div className="bg-neutral-50 p-3 border border-neutral-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Type className="h-4 w-4 text-neutral-400" />
+                    <h4 className="text-xs font-light text-neutral-900">Detected Font</h4>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div 
+                      className="px-3 py-2 bg-neutral-100 border border-neutral-200 font-light text-neutral-900"
+                      style={{ fontFamily: screenshotAnalysis.typography.primaryFont }}
+                    >
+                      {screenshotAnalysis.typography.primaryFont.split(',')[0].replace(/['"]/g, '')}
+                    </div>
+                    <p className="text-[9px] font-light text-neutral-500">
+                      This font is automatically applied to all text in your screenshots
+                    </p>
+                  </div>
+                </div>
+              )}
+              */}
+              
+              {/* Smart Analysis - Commented out
               {promptAnalysis && (
                 <div className="bg-neutral-50 p-3 border border-neutral-200">
                   <div className="flex items-center gap-2 mb-3">
@@ -806,13 +1073,14 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   </div>
                 </div>
               )}
+              */}
             </div>
           )}
 
           {/* Screens - Minimalist */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-light text-neutral-900">Screens</h3>
+              <h3 className="text-xs font-light text-neutral-900">Screens ({screens.length})</h3>
               <button
                 onClick={addScreen}
                 className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
@@ -820,12 +1088,12 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 <Plus className="h-4 w-4 text-neutral-500" />
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="space-y-2">
               {screens.map(screen => (
                 <button
                   key={screen.id}
                   onClick={() => setCurrentScreenId(screen.id)}
-                  className={`shrink-0 px-3 py-2 text-xs font-light transition-all duration-200 border ${
+                  className={`w-full px-3 py-2.5 text-xs font-light transition-all duration-200 border ${
                     currentScreenId === screen.id 
                       ? 'bg-neutral-900 text-white border-neutral-900' 
                       : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100 border-neutral-200'
@@ -837,7 +1105,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </div>
           </div>
 
-          {/* Template Switcher - NEW */}
+          {/* Template Switcher - Temporarily disabled
           {currentScreen && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -866,6 +1134,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
               </div>
             </div>
           )}
+          */}
 
           {/* Background Color - Minimalist */}
           <div className="space-y-3">
@@ -895,23 +1164,34 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                     {screenshotAnalysis.suggestedBackgrounds.slice(0, 5).map((color, idx) => (
                       <button
                         key={color + idx}
-                        onClick={() => updateScreenBackground(color)}
+                        onClick={(e) => {
+                          if (e.shiftKey) {
+                            applyBackgroundToAllScreens(color)
+                          } else {
+                            updateScreenBackground(color)
+                          }
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          applyBackgroundToAllScreens(color)
+                        }}
                         className={`w-full aspect-square border transition-all duration-200 relative group ${
                           currentScreen.backgroundColor === color 
                             ? 'border-neutral-900 scale-105 ring-2 ring-neutral-900' 
                             : 'border-neutral-200 hover:border-neutral-400'
                         }`}
                         style={{ backgroundColor: color }}
-                        title={color}
+                        title={`${color}\nShift+Click or Right-click to apply to all screens`}
                       >
                         {currentScreen.backgroundColor === color && (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Check className="h-3 w-3 text-white" />
+                            <Check className="h-3 w-3 text-white drop-shadow-lg" />
                           </div>
                         )}
                       </button>
                     ))}
                   </div>
+                  <p className="text-[9px] font-light text-neutral-500 italic">Shift+Click or Right-click any color to apply to all screens</p>
                 </div>
               )}
               
@@ -932,17 +1212,39 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   ].map(color => (
                     <button
                       key={color}
-                      onClick={() => updateScreenBackground(color)}
+                      onClick={(e) => {
+                        if (e.shiftKey) {
+                          applyBackgroundToAllScreens(color)
+                        } else {
+                          updateScreenBackground(color)
+                        }
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        applyBackgroundToAllScreens(color)
+                      }}
                       className={`w-full aspect-square border transition-all duration-200 ${
                         currentScreen.backgroundColor === color 
                           ? 'border-neutral-900 scale-105' 
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                       style={{ backgroundColor: color }}
+                      title={`${color}\nShift+Click or Right-click to apply to all screens`}
                     />
                   ))}
                 </div>
               </div>
+              
+              {/* Apply to All Screens Button */}
+              {screens.length > 1 && (
+                <button
+                  onClick={() => applyBackgroundToAllScreens(currentScreen.backgroundColor)}
+                  className="w-full py-2 px-3 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
+                >
+                  <Layers className="h-3.5 w-3.5" />
+                  Apply Current Background to All {screens.length} Screens
+                </button>
+              )}
             </div>
           </div>
 
@@ -1019,7 +1321,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       </div>
                     ))}
                   </div>
-                  <p className="text-[9px] text-neutral-400 mt-2 font-light">💡 Drag assets to canvas to add them</p>
+                  <p className="text-[9px] text-neutral-400 mt-2 font-light">Drag assets to canvas to add them</p>
                 </div>
               )}
             </div>
@@ -1293,6 +1595,71 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             prompt={userPrompt}
             onClose={() => setShowVideoGenerator(false)}
           />
+        </div>
+      </div>
+    )}
+
+    {/* Share Modal */}
+    {showShareModal && (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4"
+        onClick={() => setShowShareModal(false)}
+      >
+        <div 
+          className="relative w-full max-w-lg bg-white p-6 border border-neutral-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close Button */}
+          <button
+            onClick={() => setShowShareModal(false)}
+            className="absolute top-4 right-4 p-1.5 hover:bg-neutral-100 transition-all duration-200"
+          >
+            <X className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
+          </button>
+
+          {/* Modal Header */}
+          <div className="mb-6">
+            <h3 className="text-lg font-light text-neutral-900 mb-2">Share Screenshot</h3>
+            <p className="text-sm font-light text-neutral-500">
+              Your screenshot is ready to share. Copy the image to clipboard or download it.
+            </p>
+          </div>
+
+          {/* Screenshot Preview */}
+          <div className="mb-6 flex justify-center">
+            <div className="relative w-48 h-auto border border-neutral-200 overflow-hidden">
+              <img 
+                src={shareLink} 
+                alt="Screenshot preview" 
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={copyShareLink}
+              className="w-full px-4 py-3 text-sm font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900 flex items-center justify-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Image to Clipboard
+            </button>
+            <button
+              onClick={downloadFromShare}
+              className="w-full px-4 py-3 text-sm font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download as PNG
+            </button>
+          </div>
+
+          {/* Additional Info */}
+          <div className="mt-6 pt-4 border-t border-neutral-200">
+            <p className="text-xs font-light text-neutral-400 text-center">
+              Your screenshot has been copied and is ready to share
+            </p>
+          </div>
         </div>
       </div>
     )}
