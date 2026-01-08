@@ -13,6 +13,7 @@ import {
   Settings2,
   Sparkles,
   Trash2,
+  Video,
 } from "lucide-react"
 
 import { NavFavorites } from "@/components/nav-favorites"
@@ -185,14 +186,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={defaultData.teams} />
-        <Button 
-          onClick={handleNewChat}
-          className="bg-neutral-800 text-white rounded-xl p-0" 
-          variant={"default"}
-        >
-          <Plus className="size-4" />
-          New Chat
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleNewChat}
+            className="flex-1 bg-neutral-800 text-white rounded-xl p-0" 
+            variant={"default"}
+          >
+            <Plus className="size-4" />
+            New Chat
+          </Button>
+          <Button 
+            onClick={() => router.push('/dashboard/video')}
+            className="bg-neutral-200 hover:bg-neutral-200 rounded-xl px-3" 
+            variant={"default"}
+          >
+            <Video className="size-4 text-neutral-800" />
+          </Button>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavWorkspaces workspaces={workspaces} />

@@ -515,7 +515,7 @@ Ready to upload your app screenshots?`
           width: isPanelOpen ? `calc(100% - ${panelWidth})` : "100%"
         }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="shrink-0 relative z-50 bg-zinc-50 border-t border-neutral-100"
+        className="shrink-0 relative z-50"
       >
         <div className={`w-full mx-auto px-2 sm:px-4 py-4 ${isPanelOpen ? 'max-w-2xl' : 'max-w-3xl'}`}>
           <div className="relative rounded-2xl border border-neutral-200 bg-white">

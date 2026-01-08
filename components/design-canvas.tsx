@@ -1,11 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout } from "lucide-react"
+import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video } from "lucide-react"
+import { VideoGenerator } from "./video-generator"
 
 import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
 import { AVAILABLE_TEMPLATES, applyTemplate, type TemplateLayer } from "@/lib/template-library"
 import { IphoneMockup } from "./iphone-mockup"
+import { type ScreenshotAnalysisResult } from "@/lib/screenshot-analyzer"
 
 interface Layer {
   id: string
@@ -53,12 +55,7 @@ interface DesignCanvasProps {
   uploadedScreenshots?: string[]
   uploadedLogo?: string
   uploadedAssets?: string[]
-  screenshotAnalysis?: {
-    dominantColors: string[]
-    suggestedBackgrounds: string[]
-    mood: string
-    suggestedTemplates: string[]
-  } | null
+  screenshotAnalysis?: ScreenshotAnalysisResult | null
   aiStructure?: AIResponse // AI-generated structure
   promptAnalysis?: PromptAnalysis // Enhanced prompt analysis from Gemini
 }
@@ -69,6 +66,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)
   const [dragging, setDragging] = React.useState<string | null>(null)
   const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 })
+  const [resizing, setResizing] = React.useState<string | null>(null)
+  const [resizeStart, setResizeStart] = React.useState({ x: 0, y: 0, width: 0, height: 0 })
   const [zoom, setZoom] = React.useState(1)
   const [isPanning, setIsPanning] = React.useState(false)
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 })
@@ -77,9 +76,11 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const [isGenerating, setIsGenerating] = React.useState(false)
   const [isGeneratingBackground, setIsGeneratingBackground] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
+  const [showVideoGenerator, setShowVideoGenerator] = React.useState(false)
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const rafRef = React.useRef<number | null>(null)
   const dragPositionRef = React.useRef({ x: 0, y: 0 })
+  const resizeDimensions = React.useRef({ width: 0, height: 0 })
   const isDraggingRef = React.useRef(false)
 
   // Generate screens from uploaded screenshots + AI structure
@@ -110,14 +111,16 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           const headline = screenSpec.headline || generateContextualHeadline(index, extractAppContext(userPrompt || ''))
           const subtitle = screenSpec.subheadline || generateContextualSubtitle(index, extractAppContext(userPrompt || ''))
           
-          // Apply template
+          // Apply template with background from suggested backgrounds and detected font
+          const detectedFont = screenshotAnalysis?.typography?.primaryFont
           const templateLayers = applyTemplate(
             templateId,
             screenshot,
             headline,
             subtitle,
-            screenSpec.background || getRandomBackground(),
-            uploadedLogo
+            screenSpec.background || getRandomBackground(index),
+            uploadedLogo,
+            detectedFont
           )
           
           return {
@@ -134,16 +137,18 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           const templateId = templates[index % templates.length]
           const headline = generateContextualHeadline(index, extractAppContext(userPrompt || ''))
           const subtitle = generateContextualSubtitle(index, extractAppContext(userPrompt || ''))
-          const bgColor = getRandomBackground()
+          const bgColor = getRandomBackground(index)
           
-          // Apply template
+          // Apply template with detected font
+          const detectedFont = screenshotAnalysis?.typography?.primaryFont
           const templateLayers = applyTemplate(
             templateId,
             screenshot,
             headline,
             subtitle,
             bgColor,
-            uploadedLogo
+            uploadedLogo,
+            detectedFont
           )
           
           return {
@@ -209,18 +214,18 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     return generateContextualSubtitle(index, 'general')
   }
 
-  const getRandomBackground = (): string => {
+  const getRandomBackground = (index: number = 0): string => {
     // Priority 1: Use colors from screenshot analysis (extracted from actual app)
     if (screenshotAnalysis?.suggestedBackgrounds?.length) {
-      return screenshotAnalysis.suggestedBackgrounds[Math.floor(Math.random() * screenshotAnalysis.suggestedBackgrounds.length)]
+      return screenshotAnalysis.suggestedBackgrounds[index % screenshotAnalysis.suggestedBackgrounds.length]
     }
     // Priority 2: Use colors from prompt analysis
     if (promptAnalysis?.visualStyle?.colorScheme) {
-      return promptAnalysis.visualStyle.colorScheme[0] || '#F0F4FF'
+      return promptAnalysis.visualStyle.colorScheme[index % promptAnalysis.visualStyle.colorScheme.length] || '#F0F4FF'
     }
     // Fallback: Default palette
     const backgrounds = ['#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBEB', '#FEF2F2', '#F0FDFA']
-    return backgrounds[Math.floor(Math.random() * backgrounds.length)]
+    return backgrounds[index % backgrounds.length]
   }
 
   const generateAIBackground = async () => {
@@ -358,6 +363,33 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       return
     }
     
+    if (resizing && !spacePressed) {
+      const deltaX = (e.clientX - resizeStart.x) / zoom
+      const deltaY = (e.clientY - resizeStart.y) / zoom
+      
+      resizeDimensions.current = {
+        width: Math.max(50, resizeStart.width + deltaX),
+        height: Math.max(50, resizeStart.height + deltaY)
+      }
+      
+      if (rafRef.current !== null) return
+      rafRef.current = requestAnimationFrame(() => {
+        if (resizing) {
+          updateLayers(prev => prev.map(layer => 
+            layer.id === resizing 
+              ? { 
+                  ...layer, 
+                  width: resizeDimensions.current.width, 
+                  height: resizeDimensions.current.height 
+                }
+              : layer
+          ))
+        }
+        rafRef.current = null
+      })
+      return
+    }
+    
     if (dragging && !spacePressed) {
       dragPositionRef.current = {
         x: (e.clientX - dragStart.x) / zoom,
@@ -376,7 +408,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         rafRef.current = null
       })
     }
-  }, [isPanning, spacePressed, dragging, panStart, dragStart, zoom, updateLayers])
+  }, [isPanning, spacePressed, dragging, resizing, panStart, dragStart, resizeStart, zoom, updateLayers])
 
   const handleMouseUp = React.useCallback(() => {
     if (rafRef.current !== null) {
@@ -385,6 +417,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     }
     isDraggingRef.current = false
     setDragging(null)
+    setResizing(null)
     setIsPanning(false)
   }, [])
 
@@ -434,14 +467,16 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       return
     }
     
-    // Apply new template with existing content
+    // Apply new template with existing content and detected font
+    const detectedFont = screenshotAnalysis?.typography?.primaryFont
     const newLayers = applyTemplate(
       templateId,
       currentScreenshot,
       currentHeadline,
       currentSubtitle,
       currentScreen.backgroundColor,
-      uploadedLogo
+      uploadedLogo,
+      detectedFont
     )
     
     // Update screen with new template
@@ -560,6 +595,13 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             <Layers className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
           </button>
           <div className="hidden sm:block h-4 w-px bg-neutral-100" />
+          <button 
+            onClick={() => setShowVideoGenerator(true)}
+            className="px-3 sm:px-4 py-1.5 text-xs font-medium bg-neutral-100 text-neutral-900 hover:bg-neutral-200 rounded-md transition-all duration-200 flex items-center gap-1.5"
+          >
+            <Video className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Video</span>
+          </button>
           <button className="px-3 sm:px-4 py-1.5 text-xs font-medium bg-neutral-900 text-white hover:bg-neutral-800 rounded-md transition-all duration-200">
             Export
           </button>
@@ -591,8 +633,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             {screens.map((screen) => (
               <div 
                 key={screen.id}
-                className={`relative bg-white rounded-2xl transition-shadow duration-200 shadow-sm hover:shadow-md ${
-                  currentScreenId === screen.id ? 'ring-2 ring-neutral-900 shadow-lg' : 'ring-1 ring-neutral-200'
+                className={`relative rounded-2xl transition-shadow overflow-hidden duration-200 ${
+                  currentScreenId === screen.id ? 'ring-2 ring-neutral-400 ring-offset-1' : 'ring-1 ring-neutral-200'
                 }`}
                 style={{ 
                   width: `${375 * zoom}px`, 
@@ -615,11 +657,11 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   return (
                     <div
                       key={layer.id}
-                      className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${
+                      className={`absolute hover:rounded-2xl ${!spacePressed ? 'cursor-move' : ''} ${
                         isDraggingThis ? '' : 'transition-all duration-150'
                       } ${
                         isSelected
-                          ? 'ring-2 ring-neutral-900 ring-offset-2' 
+                          ? 'ring-2 ring-neutral-300 ring-offset-1 rounded-xl' 
                           : 'hover:ring-1 hover:ring-neutral-300'
                       }`}
                       style={{
@@ -663,10 +705,33 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       
                       {/* iPhone Mockup Frame with Screenshot Inside */}
                       {layer.type === "mockup" && (
-                        <IphoneMockup 
-                          src={layer.content}
-                          className="w-full h-full"
-                        />
+                        <>
+                          <IphoneMockup 
+                            src={layer.content}
+                            className="w-full h-full"
+                          />
+                          {/* Resize Handle */}
+                          {isSelected && (
+                            <div
+                              className="absolute bottom-0 right-0 w-4 h-4 bg-neutral-900 rounded-tl-md cursor-nwse-resize hover:scale-110 transition-transform"
+                              onMouseDown={(e) => {
+                                e.stopPropagation()
+                                setResizing(layer.id)
+                                setResizeStart({
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  width: layer.width,
+                                  height: layer.height
+                                })
+                                resizeDimensions.current = { width: layer.width, height: layer.height }
+                              }}
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Move className="h-2.5 w-2.5 text-white rotate-45" />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                       
                       {/* Decoration Layer (colored boxes, shapes) */}
@@ -822,30 +887,61 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
               </button>
             </div>
             <div className="space-y-3">
+              {/* Suggested Backgrounds from AI Analysis */}
+              {screenshotAnalysis?.suggestedBackgrounds && screenshotAnalysis.suggestedBackgrounds.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-medium text-neutral-500">From Your App</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {screenshotAnalysis.suggestedBackgrounds.slice(0, 5).map((color, idx) => (
+                      <button
+                        key={color + idx}
+                        onClick={() => updateScreenBackground(color)}
+                        className={`w-full aspect-square rounded-md border-2 transition-all duration-200 relative group ${
+                          currentScreen.backgroundColor === color 
+                            ? 'border-neutral-900 scale-105 shadow-sm ring-2 ring-neutral-900 ring-offset-1' 
+                            : 'border-neutral-300 hover:border-neutral-400'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      >
+                        {currentScreen.backgroundColor === color && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white drop-shadow-md" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <input
                 type="color"
                 value={currentScreen.backgroundColor.startsWith('#') ? currentScreen.backgroundColor : '#F0F4FF'}
                 onChange={(e) => updateScreenBackground(e.target.value)}
                 className="w-full h-10 rounded-md border border-neutral-200 cursor-pointer"
               />
-              <div className="grid grid-cols-6 gap-2">
-                {[
-                  '#FFFFFF', '#F5F5F5', '#000000',
-                  '#F0F4FF', '#FFF0F5', '#F0FFF4',
-                  '#FFFBEB', '#FEF2F2', '#F0FDFA',
-                  '#FAF5FF', '#FDF4FF', '#ECFEFF'
-                ].map(color => (
-                  <button
-                    key={color}
-                    onClick={() => updateScreenBackground(color)}
-                    className={`w-full aspect-square rounded-md border-2 transition-all duration-200 ${
-                      currentScreen.backgroundColor === color 
-                        ? 'border-neutral-900 scale-105 shadow-sm' 
-                        : 'border-neutral-200 hover:border-neutral-300'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
+              <div className="space-y-2">
+                <p className="text-[10px] font-medium text-neutral-500">Presets</p>
+                <div className="grid grid-cols-6 gap-2">
+                  {[
+                    '#FFFFFF', '#F5F5F5', '#000000',
+                    '#F0F4FF', '#FFF0F5', '#F0FFF4',
+                    '#FFFBEB', '#FEF2F2', '#F0FDFA',
+                    '#FAF5FF', '#FDF4FF', '#ECFEFF'
+                  ].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => updateScreenBackground(color)}
+                      className={`w-full aspect-square rounded-md border-2 transition-all duration-200 ${
+                        currentScreen.backgroundColor === color 
+                          ? 'border-neutral-900 scale-105 shadow-sm' 
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -1181,6 +1277,19 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         </div>
       </div>
     </div>
+
+    {/* Video Generator Modal */}
+    {showVideoGenerator && (
+      <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden">
+          <VideoGenerator 
+            screenshots={uploadedScreenshots}
+            prompt={userPrompt}
+            onClose={() => setShowVideoGenerator(false)}
+          />
+        </div>
+      </div>
+    )}
     </div>
   )
 }

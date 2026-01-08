@@ -579,20 +579,38 @@ export function applyTemplate(
   headline: string,
   subtitle: string,
   bgColor?: string,
-  logo?: string
+  logo?: string,
+  detectedFont?: string
 ): TemplateLayer[] {
   const template = getTemplate(templateId)
   if (!template) {
     throw new Error(`Template ${templateId} not found`)
   }
 
+  let layers: TemplateLayer[]
   if (bgColor && logo) {
-    return template.generator(screenshot, headline, subtitle, bgColor, logo)
+    layers = template.generator(screenshot, headline, subtitle, bgColor, logo)
   } else if (bgColor) {
-    return template.generator(screenshot, headline, subtitle, bgColor)
+    layers = template.generator(screenshot, headline, subtitle, bgColor)
   } else if (logo) {
-    return template.generator(screenshot, headline, subtitle, undefined, logo)
+    layers = template.generator(screenshot, headline, subtitle, undefined, logo)
+  } else {
+    layers = template.generator(screenshot, headline, subtitle)
   }
-  return template.generator(screenshot, headline, subtitle)
+
+  // Apply detected font from AI analysis to text layers
+  if (detectedFont) {
+    layers = layers.map(layer => {
+      if (layer.type === 'text') {
+        return {
+          ...layer,
+          fontFamily: detectedFont
+        }
+      }
+      return layer
+    })
+  }
+
+  return layers
 }
 

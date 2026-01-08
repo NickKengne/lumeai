@@ -1,10 +1,38 @@
 /**
  * Screenshot Analysis Functions
- * Extracts colors, mood, and generates backgrounds from uploaded screenshots
+ * Extracts colors, fonts, typography, and design characteristics from uploaded screenshots
+ * Uses AI vision for accurate analysis
  */
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 /**
- * Extract dominant colors from an image using Canvas API
+ * Enhanced screenshot analysis result with fonts and typography
+ */
+export interface ScreenshotAnalysisResult {
+  dominantColors: string[]
+  suggestedBackgrounds: string[]
+  mood: 'vibrant' | 'calm' | 'professional' | 'playful' | 'minimal'
+  suggestedTemplates: string[]
+  // Enhanced font and typography analysis
+  typography?: {
+    primaryFont?: string
+    secondaryFont?: string
+    fontStyle?: 'modern' | 'classic' | 'playful' | 'minimal' | 'bold'
+    headlineSize?: 'large' | 'medium' | 'small'
+    textHierarchy?: string
+  }
+  // Enhanced design characteristics
+  designStyle?: {
+    layout?: 'centered' | 'left-aligned' | 'asymmetric' | 'grid'
+    spacing?: 'tight' | 'comfortable' | 'spacious'
+    cornerRadius?: 'sharp' | 'rounded' | 'very-rounded'
+    shadows?: 'none' | 'subtle' | 'prominent'
+  }
+}
+
+/**
+ * Extract dominant colors from an image using Canvas API (fallback method)
  */
 export async function extractColorsFromScreenshot(imageDataUrl: string): Promise<string[]> {
   return new Promise((resolve) => {
@@ -21,7 +49,7 @@ export async function extractColorsFromScreenshot(imageDataUrl: string): Promise
       }
 
       // Scale down for faster processing
-      const scaledWidth = 50
+      const scaledWidth = 100
       const scaledHeight = Math.floor(img.height * (scaledWidth / img.width))
       canvas.width = scaledWidth
       canvas.height = scaledHeight
@@ -33,7 +61,7 @@ export async function extractColorsFromScreenshot(imageDataUrl: string): Promise
       const imageData = ctx.getImageData(0, 0, scaledWidth, scaledHeight)
       const pixels = imageData.data
 
-      // Count color frequencies
+      // Count color frequencies (exclude backgrounds)
       const colorMap: { [key: string]: number } = {}
       
       for (let i = 0; i < pixels.length; i += 4) {
@@ -42,15 +70,19 @@ export async function extractColorsFromScreenshot(imageDataUrl: string): Promise
         const b = pixels[i + 2]
         const a = pixels[i + 3]
 
-        // Skip transparent or near-white/black pixels
+        // Skip transparent pixels
         if (a < 128) continue
-        if (r > 240 && g > 240 && b > 240) continue
-        if (r < 15 && g < 15 && b < 15) continue
+        
+        // Skip very light colors (likely background)
+        if (r > 245 && g > 245 && b > 245) continue
+        
+        // Skip very dark colors (likely text)
+        if (r < 20 && g < 20 && b < 20) continue
 
         // Round to reduce color variations
-        const roundedR = Math.round(r / 20) * 20
-        const roundedG = Math.round(g / 20) * 20
-        const roundedB = Math.round(b / 20) * 20
+        const roundedR = Math.round(r / 15) * 15
+        const roundedG = Math.round(g / 15) * 15
+        const roundedB = Math.round(b / 15) * 15
 
         const colorKey = `${roundedR},${roundedG},${roundedB}`
         colorMap[colorKey] = (colorMap[colorKey] || 0) + 1
@@ -59,7 +91,7 @@ export async function extractColorsFromScreenshot(imageDataUrl: string): Promise
       // Sort by frequency
       const sortedColors = Object.entries(colorMap)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5) // Top 5 colors
+        .slice(0, 8) // Top 8 colors
 
       // Convert to hex
       const hexColors = sortedColors.map(([rgb]) => {
@@ -89,34 +121,222 @@ function rgbToHex(r: number, g: number, b: number): string {
 }
 
 /**
- * Analyze multiple screenshots and get color palette
+ * Analyze screenshots using AI Vision for comprehensive analysis
  */
-export async function analyzeScreenshots(screenshots: string[]): Promise<{
-  dominantColors: string[]
-  suggestedBackgrounds: string[]
-  mood: 'vibrant' | 'calm' | 'professional' | 'playful' | 'minimal'
-}> {
+export async function analyzeScreenshots(screenshots: string[]): Promise<ScreenshotAnalysisResult> {
   if (screenshots.length === 0) {
     return {
       dominantColors: ['#F0F4FF'],
       suggestedBackgrounds: ['#F0F4FF', '#FFF0F5', '#F0FFF4'],
-      mood: 'minimal'
+      mood: 'minimal',
+      suggestedTemplates: ['minimal', 'centered_bold', 'gradient']
     }
   }
 
-  // Extract colors from first screenshot (most representative)
+  try {
+    // Try AI-powered analysis first
+    const aiAnalysis = await analyzeScreenshotWithAI(screenshots[0])
+    if (aiAnalysis) {
+      return aiAnalysis
+    }
+  } catch (error) {
+    console.error('AI analysis failed, falling back to basic analysis:', error)
+  }
+
+  // Fallback to basic color extraction
   const colors = await extractColorsFromScreenshot(screenshots[0])
-  
-  // Determine mood based on colors
   const mood = determineMood(colors)
-  
-  // Generate suggested backgrounds based on extracted colors
   const backgrounds = generateBackgroundSuggestions(colors, mood)
+  const templates = suggestTemplatesForMood(mood)
 
   return {
     dominantColors: colors,
     suggestedBackgrounds: backgrounds,
-    mood
+    mood,
+    suggestedTemplates: templates
+  }
+}
+
+/**
+ * Rate limiter to prevent hitting API limits
+ */
+let lastAPICall = 0
+const MIN_API_INTERVAL = 2000 // 2 seconds between calls
+
+async function waitForRateLimit() {
+  const now = Date.now()
+  const timeSinceLastCall = now - lastAPICall
+  if (timeSinceLastCall < MIN_API_INTERVAL) {
+    const waitTime = MIN_API_INTERVAL - timeSinceLastCall
+    await new Promise(resolve => setTimeout(resolve, waitTime))
+  }
+  lastAPICall = Date.now()
+}
+
+/**
+ * Retry logic with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  initialDelay = 1000
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error: any) {
+      const isRateLimitError = error?.message?.includes('429') || error?.status === 429
+      const isLastAttempt = i === maxRetries - 1
+      
+      if (isRateLimitError && !isLastAttempt) {
+        const delay = initialDelay * Math.pow(2, i)
+        console.log(`Rate limit hit, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+      
+      throw error
+    }
+  }
+  throw new Error('Max retries exceeded')
+}
+
+/**
+ * Analyze screenshot using Google Gemini Vision API
+ * Detects fonts, colors, typography, and design characteristics
+ * Includes rate limiting and retry logic
+ */
+async function analyzeScreenshotWithAI(screenshotDataUrl: string): Promise<ScreenshotAnalysisResult | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  if (!apiKey) {
+    console.warn('Gemini API key not found, falling back to basic analysis')
+    return null
+  }
+
+  try {
+    // Wait for rate limit
+    await waitForRateLimit()
+
+    // Wrap API call with retry logic
+    return await retryWithBackoff(async () => {
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.4,
+          topK: 32,
+          topP: 1,
+          maxOutputTokens: 2048,
+        }
+      })
+
+      // Remove data URL prefix to get base64
+      const base64Data = screenshotDataUrl.replace(/^data:image\/\w+;base64,/, '')
+
+      const prompt = `Analyze this mobile app screenshot in detail and provide a comprehensive design analysis.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks, no explanations.
+
+Extract and identify:
+1. **Typography & Fonts**:
+   - What font family/style does this app use? (e.g., "San Francisco", "Roboto", "Inter", "Custom Sans-serif", "Rounded", "Geometric")
+   - Font characteristics: modern, classic, playful, minimal, bold, elegant
+   - Headline/title sizes: large, medium, small
+   - Text hierarchy: clear, subtle, minimal
+
+2. **Color Palette** (CRITICAL - Be precise):
+   - Dominant UI colors (buttons, accents, important elements) - provide HEX codes
+   - Background colors used in the app - provide HEX codes
+   - Text colors - provide HEX codes
+   - Accent/highlight colors - provide HEX codes
+   - List 5-8 most prominent colors as HEX codes (e.g., #FF6B6B)
+
+3. **Design Style**:
+   - Layout: centered, left-aligned, asymmetric, grid
+   - Spacing: tight, comfortable, spacious
+   - Corner radius: sharp, rounded, very-rounded
+   - Shadows: none, subtle, prominent
+   - Overall mood: vibrant, calm, professional, playful, minimal
+
+4. **Background Suggestions**:
+   - Based on the app's color palette, suggest 4-5 background colors (HEX) that would complement this app for App Store screenshots
+   - These should be lighter, softer versions of the dominant colors or complementary colors
+
+Return as JSON:
+{
+  "dominantColors": ["#hex1", "#hex2", "#hex3", "#hex4", "#hex5"],
+  "suggestedBackgrounds": ["#hex1", "#hex2", "#hex3", "#hex4"],
+  "mood": "vibrant|calm|professional|playful|minimal",
+  "typography": {
+    "primaryFont": "Font name or style",
+    "secondaryFont": "Font name or style",
+    "fontStyle": "modern|classic|playful|minimal|bold",
+    "headlineSize": "large|medium|small",
+    "textHierarchy": "description"
+  },
+  "designStyle": {
+    "layout": "centered|left-aligned|asymmetric|grid",
+    "spacing": "tight|comfortable|spacious",
+    "cornerRadius": "sharp|rounded|very-rounded",
+    "shadows": "none|subtle|prominent"
+  }
+}`
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: 'image/png'
+        }
+      },
+      prompt
+    ])
+
+    const response = await result.response
+    const text = response.text()
+    
+    // Parse JSON response
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const analysis = JSON.parse(cleanText)
+
+    // Validate and normalize the response
+    const normalized: ScreenshotAnalysisResult = {
+      dominantColors: Array.isArray(analysis.dominantColors) 
+        ? analysis.dominantColors.filter((c: string) => c.startsWith('#'))
+        : ['#F0F4FF', '#E0EAFF', '#D0E0FF'],
+      suggestedBackgrounds: Array.isArray(analysis.suggestedBackgrounds)
+        ? analysis.suggestedBackgrounds.filter((c: string) => c.startsWith('#'))
+        : ['#F0F4FF', '#FFF0F5', '#F0FFF4'],
+      mood: ['vibrant', 'calm', 'professional', 'playful', 'minimal'].includes(analysis.mood)
+        ? analysis.mood
+        : 'minimal',
+      suggestedTemplates: suggestTemplatesForMood(analysis.mood || 'minimal'),
+      typography: analysis.typography,
+      designStyle: analysis.designStyle
+    }
+
+    // Fallback to color extraction if AI didn't provide enough colors
+    if (normalized.dominantColors.length < 3) {
+      const fallbackColors = await extractColorsFromScreenshot(screenshotDataUrl)
+      normalized.dominantColors = [...normalized.dominantColors, ...fallbackColors].slice(0, 8)
+    }
+
+    if (normalized.suggestedBackgrounds.length < 3) {
+      const fallbackBgs = generateBackgroundSuggestions(normalized.dominantColors, normalized.mood)
+      normalized.suggestedBackgrounds = [...normalized.suggestedBackgrounds, ...fallbackBgs].slice(0, 5)
+    }
+
+      return normalized
+    }, 3, 2000) // 3 retries, starting with 2 second delay
+  } catch (error: any) {
+    // Log specific error types
+    if (error?.message?.includes('429') || error?.status === 429) {
+      console.error('⚠️ Rate limit exceeded for Gemini API. Using fallback analysis.')
+      console.error('💡 Tip: Wait a few minutes before analyzing more screenshots, or upgrade your API plan.')
+    } else {
+      console.error('AI screenshot analysis error:', error)
+    }
+    return null
   }
 }
 

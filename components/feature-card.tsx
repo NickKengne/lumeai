@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Upload, Sparkles, FileText, Mic } from "lucide-react";
+import { Upload, Sparkles, FileText, Mic, Video, Play } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface FeatureCardProps {
   icon: React.ReactNode;
@@ -131,23 +132,26 @@ export function FeatureGrid() {
     />
   </div>
 
-  {/* Card 4 — One-Click Flow */}
+  {/* Card 4 — Video Generation */}
   <div className="col-span-12 md:col-span-2">
-    <FeatureCard
-      icon={
-        <div className="relative flex items-center justify-center">
-          <Image
-          src="/images/cloud-check.png"
-          alt="AI generation"
-          width={100}
-          height={10}
-          className="w-full h-full object-cover rounded-md"
-        />
-        </div>
-      }
-      title="Done in one minute"
-      description="One click. One minute. No design tools, no manual work. Just upload and generate."
-    />
+    <Link href="/dashboard/video">
+      <FeatureCard
+        icon={
+          <div className="relative flex items-center justify-center">
+            <div className="w-24 h-24 rounded-2xl bg-neutral-900 flex items-center justify-center">
+              <div className="relative">
+                <Video className="h-10 w-10 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-purple-500 flex items-center justify-center">
+                  <Play className="h-3 w-3 text-white ml-0.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+        title="Create Promo Videos"
+        description="Transform screenshots into stunning promotional videos with AI-powered animations."
+      />
+    </Link>
   </div>
 
 </div>
