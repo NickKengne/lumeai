@@ -17,16 +17,16 @@ function FeatureCard({ icon, title, description, onClick, className = "" }: Feat
   return (
     <button
       onClick={onClick}
-      className={`w-full p-4 text-left bg-zinc-50 rounded-2xl border border-dashed border-neutral-200 hover:border-neutral-300 transition-colors cursor-pointer ${className}`}
+      className={`w-full p-10 text-left bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-colors cursor-pointer ${className}`}
     >
       {/* Icon/Illustration area */}
       <div className="mb-6 h-32 flex items-center justify-center">{icon}</div>
 
       {/* Title */}
-      <h3 className="text-xl font-semibold text-neutral-600">{title}</h3>
+      <h3 className="text-xl font-light text-neutral-900 mb-3">{title}</h3>
 
       {/* Description */}
-      <p className="text-neutral-500 text-sm leading-relaxed">{description}</p>
+      <p className="text-neutral-500 text-sm leading-relaxed font-light">{description}</p>
     </button>
   );
 }
@@ -134,14 +134,14 @@ export function FeatureGrid() {
 
   {/* Card 4 — Video Generation */}
   <div className="col-span-12 md:col-span-2">
-    <Link href="/dashboard/video">
+      <Link href="/dashboard/video">
       <FeatureCard
         icon={
           <div className="relative flex items-center justify-center">
-            <div className="w-24 h-24 rounded-2xl bg-neutral-900 flex items-center justify-center">
+            <div className="w-24 h-24 bg-neutral-900 flex items-center justify-center">
               <div className="relative">
                 <Video className="h-10 w-10 text-white" />
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-purple-500 flex items-center justify-center">
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-neutral-600 flex items-center justify-center">
                   <Play className="h-3 w-3 text-white ml-0.5" />
                 </div>
               </div>

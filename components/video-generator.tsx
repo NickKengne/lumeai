@@ -68,20 +68,20 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+    <div className="bg-neutral-50 border border-neutral-200 overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-neutral-900 flex items-center justify-center">
+          <div className="h-10 w-10 bg-neutral-900 flex items-center justify-center">
             <Video className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-neutral-900">Create Video</h3>
-            <p className="text-sm text-neutral-500">Generate promotional video from screenshots</p>
+            <h3 className="text-lg font-light text-neutral-900">Create Video</h3>
+            <p className="text-sm text-neutral-500 font-light">Generate promotional video from screenshots</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-2 py-1 bg-neutral-200 text-neutral-800 text-xs font-medium rounded-full">
+          <span className="px-2 py-1 bg-neutral-200 text-neutral-900 text-xs font-light">
             Powered by Sora
           </span>
         </div>
@@ -91,7 +91,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
         {/* Preview Area */}
         <div className="mb-6">
           {generatedVideo ? (
-            <div className="relative aspect-video bg-neutral-900 rounded-xl overflow-hidden">
+            <div className="relative aspect-video bg-neutral-900 overflow-hidden">
               <video
                 ref={videoRef}
                 src={generatedVideo.videoUrl}
@@ -111,18 +111,18 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
               </button>
             </div>
           ) : (
-            <div className="aspect-video bg-neutral-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-neutral-300">
+            <div className="aspect-video bg-neutral-100 flex flex-col items-center justify-center border border-dashed border-neutral-200">
               {isGenerating ? (
                 <div className="text-center">
-                  <div className="h-12 w-12 mx-auto mb-4 rounded-full border-4 border-neutral-900 border-t-transparent animate-spin" />
-                  <p className="text-sm font-medium text-neutral-900">Generating your video...</p>
-                  <p className="text-xs text-neutral-500 mt-1">This may take a few minutes</p>
+                  <div className="h-12 w-12 mx-auto mb-4 border-4 border-neutral-900 border-t-transparent animate-spin" />
+                  <p className="text-sm font-light text-neutral-900">Generating your video...</p>
+                  <p className="text-xs text-neutral-500 mt-1 font-light">This may take a few minutes</p>
                 </div>
               ) : (
                 <>
                   <Video className="h-12 w-12 text-neutral-400 mb-3" />
-                  <p className="text-sm text-neutral-600">Your video will appear here</p>
-                  <p className="text-xs text-neutral-400 mt-1">{screenshots.length} screenshots selected</p>
+                  <p className="text-sm text-neutral-500 font-light">Your video will appear here</p>
+                  <p className="text-xs text-neutral-400 mt-1 font-light">{screenshots.length} screenshots selected</p>
                 </>
               )}
             </div>
@@ -131,7 +131,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
 
         {/* Video Prompt */}
         <div className="mb-6">
-          <p className="text-xs font-medium text-neutral-500 mb-3 flex items-center gap-2">
+          <p className="text-xs font-light text-neutral-500 mb-3 flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5" />
             Describe your video
           </p>
@@ -139,7 +139,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
             value={videoPrompt}
             onChange={(e) => setVideoPrompt(e.target.value)}
             placeholder="E.g., Create a smooth promotional video showing app features with modern transitions..."
-            className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent resize-none bg-white"
+            className="w-full px-4 py-3 text-sm border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent resize-none bg-neutral-50 font-light"
             rows={3}
           />
         </div>
@@ -147,15 +147,15 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
         {/* Screenshots Preview */}
         {screenshots.length > 0 && (
           <div className="mb-6">
-            <p className="text-xs font-medium text-neutral-500 mb-3">Screenshots to animate</p>
+            <p className="text-xs font-light text-neutral-500 mb-3">Screenshots to animate</p>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {screenshots.slice(0, 5).map((url, idx) => (
-                <div key={idx} className="shrink-0 w-16 h-28 rounded-lg overflow-hidden border border-neutral-200">
+                <div key={idx} className="shrink-0 w-16 h-28 overflow-hidden border border-neutral-200">
                   <img src={url} alt={`Screenshot ${idx + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
               {screenshots.length > 5 && (
-                <div className="shrink-0 w-16 h-28 rounded-lg bg-neutral-100 flex items-center justify-center text-sm text-neutral-600 font-medium">
+                <div className="shrink-0 w-16 h-28 bg-neutral-100 flex items-center justify-center text-sm text-neutral-600 font-light border border-neutral-200">
                   +{screenshots.length - 5}
                 </div>
               )}
@@ -165,7 +165,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
 
         {/* Style Selection */}
         <div className="mb-6">
-          <p className="text-xs font-medium text-neutral-500 mb-3 flex items-center gap-2">
+          <p className="text-xs font-light text-neutral-500 mb-3 flex items-center gap-2">
             <Wand2 className="h-3.5 w-3.5" />
             Video Style
           </p>
@@ -174,14 +174,14 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
               <button
                 key={style.id}
                 onClick={() => setSelectedStyle(style.id)}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 border text-left transition-all ${
                   selectedStyle === style.id
                     ? 'bg-neutral-900 text-white border-neutral-900'
-                    : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-300'
+                    : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                 }`}
               >
-                <p className="text-xs font-semibold">{style.name}</p>
-                <p className={`text-[10px] mt-0.5 ${selectedStyle === style.id ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                <p className="text-xs font-light">{style.name}</p>
+                <p className={`text-[10px] mt-0.5 font-light ${selectedStyle === style.id ? 'text-neutral-400' : 'text-neutral-500'}`}>
                   {style.description}
                 </p>
               </button>
@@ -191,7 +191,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
 
         {/* Duration Selection */}
         <div className="mb-6">
-          <p className="text-xs font-medium text-neutral-500 mb-3 flex items-center gap-2">
+          <p className="text-xs font-light text-neutral-500 mb-3 flex items-center gap-2">
             <Clock className="h-3.5 w-3.5" />
             Duration
           </p>
@@ -200,14 +200,14 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
               <button
                 key={dur.seconds}
                 onClick={() => setSelectedDuration(dur.seconds as 5 | 10 | 15 | 30)}
-                className={`flex-1 py-3 px-4 rounded-xl border text-center transition-all ${
+                className={`flex-1 py-3 px-4 border text-center transition-all ${
                   selectedDuration === dur.seconds
                     ? 'bg-neutral-900 text-white border-neutral-900'
-                    : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-300'
+                    : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                 }`}
               >
-                <p className="text-sm font-semibold">{dur.label}</p>
-                <p className={`text-[10px] ${selectedDuration === dur.seconds ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                <p className="text-sm font-light">{dur.label}</p>
+                <p className={`text-[10px] font-light ${selectedDuration === dur.seconds ? 'text-neutral-400' : 'text-neutral-500'}`}>
                   {dur.description}
                 </p>
               </button>
@@ -217,7 +217,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
 
         {/* Music Selection */}
         <div className="mb-6">
-          <p className="text-xs font-medium text-neutral-500 mb-3 flex items-center gap-2">
+          <p className="text-xs font-light text-neutral-500 mb-3 flex items-center gap-2">
             <Music className="h-3.5 w-3.5" />
             Background Music
           </p>
@@ -226,14 +226,14 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
               <button
                 key={music.id}
                 onClick={() => setSelectedMusic(music.id as any)}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 border text-left transition-all ${
                   selectedMusic === music.id
                     ? 'bg-neutral-900 text-white border-neutral-900'
-                    : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-300'
+                    : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                 }`}
               >
-                <p className="text-xs font-semibold">{music.name}</p>
-                <p className={`text-[10px] mt-0.5 ${selectedMusic === music.id ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                <p className="text-xs font-light">{music.name}</p>
+                <p className={`text-[10px] mt-0.5 font-light ${selectedMusic === music.id ? 'text-neutral-400' : 'text-neutral-500'}`}>
                   {music.description}
                 </p>
               </button>
@@ -247,13 +247,13 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
             <>
               <button
                 onClick={handleGenerate}
-                className="flex-1 py-3 px-4 bg-neutral-100 text-neutral-900 rounded-xl font-medium hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-neutral-50 text-neutral-900 font-light hover:bg-neutral-100 transition-colors flex items-center justify-center gap-2 border border-neutral-200"
               >
                 <Sparkles className="h-4 w-4" />
                 Regenerate
               </button>
               <button
-                className="flex-1 py-3 px-4 bg-neutral-900 text-white rounded-xl font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-neutral-900 text-white font-light hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 border border-neutral-900"
               >
                 <Download className="h-4 w-4" />
                 Download Video
@@ -263,11 +263,11 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
             <button
               onClick={handleGenerate}
               disabled={isGenerating || (screenshots.length === 0 && !videoPrompt.trim())}
-              className="w-full py-3 px-4 bg-neutral-900 text-white rounded-xl font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 bg-neutral-900 text-white font-light hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
             >
               {isGenerating ? (
                 <>
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent animate-spin" />
                   Generating...
                 </>
               ) : (

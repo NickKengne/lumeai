@@ -4,6 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { Partners } from "@/components/partners";
 import { FeatureGrid } from "@/components/feature-card";
 import { ChatInput } from "@/components/chat-input";
+import { Check } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -145,27 +146,325 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="flex min-h-screen flex-col bg-white font-sans">
-        <main className="flex flex-1 min-h-screen max-w-7xl mx-auto flex-col items-center justify-center py-32 px-16 bg-neutral-50">
+      <div className="flex min-h-screen flex-col bg-neutral-50 font-sans">
+        <main className="flex flex-1 flex-col bg-neutral-50">
           <Navbar />
 
-          <div className="flex flex-col items-center gap-4 max-w-4xl">
-            <h1 className="text-5xl font-semibold text-center tracking-tight">
-              The foundation for your App Store
-            </h1>
-            <div className="flex flex-col items-center gap-2 w-[90%]">
-              <p className="text-lg text-center mt-1 mb-4">
-                Turn your app into a store-ready experience. AI-generated
-                screenshots, copy, and layouts you can shape, refine, and perfect.
-                Start simple, make it yours, launch effortlessly.
-              </p>
+          {/* Hero Section */}
+          <section className="max-w-7xl mx-auto w-full px-6 py-32">
+            <div className="flex flex-col items-center gap-6 max-w-4xl mx-auto">
+              <h1 className="text-6xl md:text-7xl font-light text-center tracking-tight text-neutral-900">
+                App Store visuals,<br />generated in <span className="text-neutral-400"> under a minute</span>
+              </h1>
+              <div className="flex flex-col items-center gap-3 w-full">
+                <p className="text-xl text-center text-neutral-500 font-light max-w-2xl">
+                  Transform raw screenshots into polished App Store assets with AI. 
+                  No design skills required—just upload, customize, and export.
+                </p>
+                <p className="text-base text-center text-neutral-400 font-light">
+                  Trusted by indie developers and startups worldwide
+                </p>
+              </div>
+              <div className="w-full max-w-2xl mt-4">
+                <ChatInput/>
+              </div>
+              <Partners />
             </div>
-            <ChatInput/>
-            <Partners />
-            <div className="max-w-4xl mx-auto px-6">
+          </section>
+
+          {/* Features Section */}
+          <section className="max-w-7xl mx-auto w-full px-6 py-20">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-light tracking-tight text-neutral-900 mb-4">
+                  Everything you need to launch
+                </h2>
+                <p className="text-lg text-neutral-500 font-light max-w-2xl mx-auto">
+                  From screenshot upload to App Store submission—complete your visuals in minutes, not days.
+                </p>
+              </div>
               <FeatureGrid />
             </div>
-          </div>
+          </section>
+
+          {/* Pricing Section */}
+          <section className="max-w-7xl mx-auto w-full px-6 py-20 border-t border-neutral-200">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-light tracking-tight text-neutral-900 mb-4">
+                  Simple, transparent pricing
+                </h2>
+                <p className="text-lg text-neutral-500 font-light">
+                  Start for free. Upgrade when you're ready.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-px bg-neutral-200">
+                {/* Free Plan */}
+                <div className="bg-neutral-50 p-10">
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                        Free
+                      </h3>
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-5xl font-light text-neutral-900">$0</span>
+                        <span className="text-neutral-400 font-light">/month</span>
+                      </div>
+                      <p className="text-sm text-neutral-500 font-light">
+                        Perfect to get started
+                      </p>
+                    </div>
+
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>3 screenshot generations</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>AI analysis & suggestions</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Basic templates</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Standard export</span>
+                      </li>
+                    </ul>
+
+                    <Link href="/dashboard">
+                      <button className="w-full py-3 px-6 border border-neutral-200 text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                        Get Started
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Pro Plan */}
+                <div className="bg-neutral-900 p-10 relative">
+                  <div className="absolute top-4 right-4">
+                    <span className="text-xs uppercase tracking-widest text-neutral-400 font-light">
+                      Popular
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                        Pro
+                      </h3>
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-5xl font-light text-white">$29</span>
+                        <span className="text-neutral-400 font-light">/month</span>
+                      </div>
+                      <p className="text-sm text-neutral-400 font-light">
+                        For serious developers
+                      </p>
+                    </div>
+
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Unlimited screenshots</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Advanced AI analysis</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>All templates</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Priority support</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>10 videos/month (30s)</span>
+                      </li>
+                    </ul>
+
+                    <Link href="/dashboard">
+                      <button className="w-full py-3 px-6 bg-white text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                        Start Pro Trial
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Enterprise Plan */}
+                <div className="bg-neutral-50 p-10">
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                        Enterprise
+                      </h3>
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-5xl font-light text-neutral-900">Custom</span>
+                      </div>
+                      <p className="text-sm text-neutral-500 font-light">
+                        For teams & agencies
+                      </p>
+                    </div>
+
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Everything in Pro</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Team collaboration</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Custom templates</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>Unlimited videos</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                        <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
+                        <span>API access</span>
+                      </li>
+                    </ul>
+
+                    <Link href="/pricing">
+                      <button className="w-full py-3 px-6 border border-neutral-200 text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                        Contact Sales
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center mt-12">
+                <Link href="/pricing" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                  View full pricing details →
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Call-to-Action Section */}
+          <section className="max-w-7xl mx-auto w-full px-6 py-20 border-t border-neutral-200">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-4xl md:text-5xl font-light tracking-tight text-neutral-900 mb-6">
+                Ready to transform your app visuals?
+              </h2>
+              <p className="text-xl text-neutral-500 font-light mb-10 max-w-2xl mx-auto">
+                Join thousands of developers creating stunning App Store assets with AI. 
+                Start free, no credit card required.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Link href="/dashboard">
+                  <button className="px-8 py-3 bg-neutral-900 text-white text-sm font-light tracking-wide hover:bg-neutral-800 transition-colors border border-neutral-900">
+                    Get Started Free
+                  </button>
+                </Link>
+                <Link href="/pricing">
+                  <button className="px-8 py-3 border border-neutral-200 text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                    View Pricing
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="border-t border-neutral-200 mt-20">
+            <div className="max-w-7xl mx-auto px-6 py-16">
+              <div className="grid md:grid-cols-4 gap-12 mb-12">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <img src="/images/logo.png" alt="LumeAI" width={30} height={30} />
+                    <span className="text-lg font-light text-neutral-900">Lume AI</span>
+                  </div>
+                  <p className="text-sm text-neutral-500 font-light">
+                    AI-powered App Store screenshot generator for developers and designers.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                    Product
+                  </h4>
+                  <ul className="space-y-2">
+                    <li>
+                      <Link href="/dashboard" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        Dashboard
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/pricing" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        Pricing
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/features" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        Features
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                    Company
+                  </h4>
+                  <ul className="space-y-2">
+                    <li>
+                      <Link href="/about" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        About
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/docs" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        Documentation
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                    Legal
+                  </h4>
+                  <ul className="space-y-2">
+                    <li>
+                      <Link href="/privacy" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        Privacy Policy
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/terms" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                        Terms of Service
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-neutral-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p className="text-sm text-neutral-400 font-light">
+                  © {new Date().getFullYear()} Lume AI. All rights reserved.
+                </p>
+                <div className="flex items-center gap-6">
+                  <a href="https://twitter.com/lumeai" className="text-sm text-neutral-400 font-light hover:text-neutral-900 transition-colors">
+                    Twitter
+                  </a>
+                  <a href="https://github.com/lumeai" className="text-sm text-neutral-400 font-light hover:text-neutral-900 transition-colors">
+                    GitHub
+                  </a>
+                </div>
+              </div>
+            </div>
+          </footer>
         </main>
       </div>
     </>

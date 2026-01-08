@@ -71,7 +71,7 @@ export default function ChatPage() {
   if (isLoading) {
     return (
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 bg-zinc-50">
+        <header className="flex h-14 shrink-0 items-center gap-2 bg-neutral-50 border-b border-neutral-200">
           <div className="flex flex-1 items-center gap-2 px-3">
             <SidebarTrigger />
             <Separator
@@ -92,8 +92,8 @@ export default function ChatPage() {
             <NavActions />
           </div>
         </header>
-        <div className="bg-zinc-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
-          <p className="text-gray-400">Loading...</p>
+        <div className="bg-neutral-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
+          <p className="text-neutral-400 font-light">Loading...</p>
         </div>
       </SidebarInset>
     )
@@ -101,7 +101,7 @@ export default function ChatPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 bg-zinc-50 border-b border-zinc-200">
+        <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 bg-neutral-50 border-b border-neutral-200">
         <div className="flex flex-1 items-center gap-1 sm:gap-2 px-2 sm:px-3">
           <SidebarTrigger />
           <Separator
@@ -122,7 +122,7 @@ export default function ChatPage() {
           <NavActions />
         </div>
       </header>
-      <div className="bg-zinc-50 flex-1 flex flex-col overflow-hidden">
+      <div className="bg-neutral-50 flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 w-full overflow-hidden">
           <ChatInput 
             chatId={chatId} 

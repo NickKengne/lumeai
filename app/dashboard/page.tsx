@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <SidebarInset>
-      <header className="flex h-14 shrink-0 items-center gap-2 bg-zinc-50">
+      <header className="flex h-14 shrink-0 items-center gap-2 bg-neutral-50 border-b border-neutral-200">
         <div className="flex flex-1 items-center gap-2 px-3">
           <SidebarTrigger />
           <Separator
@@ -41,12 +41,12 @@ export default function Page() {
           <NavActions />
         </div>
       </header>
-      <div className="bg-zinc-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
+      <div className="bg-neutral-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
         <div className="max-w-3xl">
-          <h1 className="text-5xl font-semibold tracking-tight text-neutral-700">
+          <h1 className="text-5xl font-light tracking-tight text-neutral-900">
             Hi , Dibrilain !
           </h1>
-            <p className="text-3xl text-neutral-400 mb-4 mt-2">
+            <p className="text-3xl text-neutral-500 mb-4 mt-2 font-light">
               How can I help your with your screens ?
             </p>
         <FeatureGrid />

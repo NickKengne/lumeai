@@ -406,7 +406,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
           >
             <div
               className={cn(
-                "rounded-2xl px-3 sm:px-4 py-3 max-w-[90%] sm:max-w-[85%]",
+                "px-3 sm:px-4 py-3 max-w-[90%] sm:max-w-[85%]",
                 message.role === "user"
                   ? "bg-neutral-100 text-neutral-600"
                   : "text-neutral-600"
@@ -430,7 +430,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                   {uploadedScreenshots.length === 0 && !showUploader && (
                     <button
                       onClick={() => setShowUploader(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center"
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors w-full justify-center border border-neutral-900"
                     >
                       <Upload className="h-4 w-4" />
                       Upload App Screenshots
@@ -438,7 +438,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                   )}
                   
                   {showUploader && (
-                    <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+                    <div className="border border-neutral-200 p-6 text-center hover:bg-neutral-100 transition-colors cursor-pointer">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -467,11 +467,11 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                             <img 
                               src={url} 
                               alt={`Screenshot ${idx + 1}`}
-                              className="w-full h-24 object-cover rounded-lg border border-neutral-200"
+                              className="w-full h-24 object-cover border border-neutral-200"
                             />
                             <button
                               onClick={() => handleRemoveScreenshot(idx)}
-                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 p-1 bg-neutral-900 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -493,7 +493,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         )}
 
                         {showLogoUploader && (
-                          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+                          <div className="border border-neutral-200 p-4 text-center hover:bg-neutral-100 transition-colors cursor-pointer">
                             <input
                               ref={logoInputRef}
                               type="file"
@@ -517,11 +517,11 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                             <img 
                               src={uploadedLogo} 
                               alt="App Logo"
-                              className="w-20 h-20 object-cover rounded-lg border border-neutral-200 bg-white"
+                              className="w-20 h-20 object-cover border border-neutral-200 bg-neutral-50"
                             />
                             <button
                               onClick={handleRemoveLogo}
-                              className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute -top-1 -right-1 p-1 bg-neutral-900 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -537,7 +537,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         {!showAssetsUploader && (
                           <button
                             onClick={() => setShowAssetsUploader(true)}
-                            className="flex items-center gap-2 px-3 py-2 bg-white border border-neutral-300 text-neutral-700 text-xs rounded-lg hover:bg-neutral-50 transition-colors w-full justify-center"
+                            className="flex items-center gap-2 px-3 py-2 bg-neutral-50 border border-neutral-200 text-neutral-900 text-xs font-light hover:bg-neutral-100 transition-colors w-full justify-center"
                           >
                             <Upload className="h-3.5 w-3.5" />
                             Upload Assets
@@ -545,7 +545,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         )}
 
                         {showAssetsUploader && (
-                          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+                          <div className="border border-neutral-200 p-4 text-center hover:bg-neutral-100 transition-colors cursor-pointer">
                             <input
                               ref={assetsInputRef}
                               type="file"
@@ -572,11 +572,11 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                                 <img 
                                   src={url} 
                                   alt={`Asset ${idx + 1}`}
-                                  className="w-full h-16 object-cover rounded-lg border border-neutral-200 bg-white"
+                                  className="w-full h-16 object-cover border border-neutral-200 bg-neutral-50"
                                 />
                                 <button
                                   onClick={() => handleRemoveAsset(idx)}
-                                  className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="absolute -top-1 -right-1 p-0.5 bg-neutral-900 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   <X className="h-2.5 w-2.5" />
                                 </button>
@@ -590,7 +590,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         <button
                           onClick={handleAnalyzeAndSuggest}
                           disabled={isAnalyzingScreenshots}
-                          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors w-full justify-center mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors w-full justify-center mt-3 disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
                         >
                           <Sparkles className="h-4 w-4" />
                           {isAnalyzingScreenshots ? 'Analyzing...' : 'Analyze & Suggest Layouts'}
@@ -598,9 +598,9 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                       ) : (
                         <div className="mt-3 space-y-3">
                           {/* AI Analysis Results */}
-                          <div className="bg-linear-to-br from-neutral-50 to-neutral-100 rounded-lg p-3 border border-neutral-200">
+                          <div className="bg-neutral-50 p-3 border border-neutral-200">
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="h-6 w-6 rounded-md bg-neutral-900 flex items-center justify-center text-white text-xs font-semibold">
+                              <div className="h-6 w-6 bg-neutral-900 flex items-center justify-center text-white text-xs font-light">
                                 AI
                               </div>
                               <p className="text-xs font-semibold text-neutral-900">Analysis Complete!</p>
@@ -612,25 +612,25 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
 
                             {/* Typography & Fonts */}
                             {screenshotAnalysis?.typography && (
-                              <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                <p className="text-[10px] font-semibold text-blue-900 mb-2">🔤 Typography & Fonts</p>
+                              <div className="mb-3 p-3 bg-neutral-50 border border-neutral-200">
+                                <p className="text-[10px] font-light text-neutral-900 mb-2">🔤 Typography & Fonts</p>
                                 <div className="space-y-1.5">
                                   {screenshotAnalysis.typography.primaryFont && (
                                     <div className="flex justify-between text-[10px]">
-                                      <span className="text-blue-600">Primary Font:</span>
-                                      <span className="font-medium text-blue-900">{screenshotAnalysis.typography.primaryFont}</span>
+                                      <span className="text-neutral-500 font-light">Primary Font:</span>
+                                      <span className="font-light text-neutral-900">{screenshotAnalysis.typography.primaryFont}</span>
                                     </div>
                                   )}
                                   {screenshotAnalysis.typography.fontStyle && (
                                     <div className="flex justify-between text-[10px]">
-                                      <span className="text-blue-600">Style:</span>
-                                      <span className="font-medium text-blue-900 capitalize">{screenshotAnalysis.typography.fontStyle}</span>
+                                      <span className="text-neutral-500 font-light">Style:</span>
+                                      <span className="font-light text-neutral-900 capitalize">{screenshotAnalysis.typography.fontStyle}</span>
                                     </div>
                                   )}
                                   {screenshotAnalysis.typography.headlineSize && (
                                     <div className="flex justify-between text-[10px]">
-                                      <span className="text-blue-600">Headline Size:</span>
-                                      <span className="font-medium text-blue-900 capitalize">{screenshotAnalysis.typography.headlineSize}</span>
+                                      <span className="text-neutral-500 font-light">Headline Size:</span>
+                                      <span className="font-light text-neutral-900 capitalize">{screenshotAnalysis.typography.headlineSize}</span>
                                     </div>
                                   )}
                                 </div>
@@ -644,7 +644,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                                 {screenshotAnalysis?.dominantColors.slice(0, 6).map((color, idx) => (
                                   <div key={idx} className="flex flex-col items-center gap-1">
                                     <div
-                                      className="w-10 h-10 rounded-lg border border-neutral-200"
+                                      className="w-10 h-10 border border-neutral-200"
                                       style={{ backgroundColor: color }}
                                       title={color}
                                     />
@@ -661,7 +661,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                                 {screenshotAnalysis?.suggestedBackgrounds.slice(0, 5).map((color, idx) => (
                                   <div key={idx} className="flex flex-col items-center gap-1">
                                     <div
-                                      className="w-10 h-10 rounded-lg border border-neutral-200"
+                                      className="w-10 h-10 border border-neutral-200"
                                     style={{ backgroundColor: color }}
                                     title={color}
                                   />

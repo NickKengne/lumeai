@@ -428,8 +428,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   // Early return AFTER all hooks
   if (!currentScreen) {
     return (
-      <div className="w-full h-full bg-white flex items-center justify-center">
-        <p className="text-neutral-500">Loading canvas...</p>
+      <div className="w-full h-full bg-neutral-50 flex items-center justify-center">
+        <p className="text-neutral-500 font-light">Loading canvas...</p>
       </div>
     )
   }
@@ -534,48 +534,48 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const selectedLayerData = layers.find(l => l.id === selectedLayer)
 
   return (
-    <div className="w-full bg-white overflow-hidden shrink-0 h-full flex flex-col">
+    <div className="w-full bg-neutral-50 overflow-hidden shrink-0 h-full flex flex-col">
       {/* Loading State */}
       {isGenerating && (
-        <div className="absolute inset-0 bg-white/90 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-neutral-50/90 z-50 flex items-center justify-center">
           <div className="text-center px-4">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-neutral-800 border-r-transparent mb-4"></div>
-            <p className="text-xs sm:text-sm text-neutral-600">Generating your App Store screenshots...</p>
+            <div className="inline-block h-8 w-8 animate-spin border-4 border-solid border-neutral-900 border-r-transparent mb-4"></div>
+            <p className="text-xs sm:text-sm text-neutral-500 font-light">Generating your App Store screenshots...</p>
           </div>
         </div>
       )}
 
       {/* Canvas Header - Minimalist */}
-      <div className="bg-white border-b border-neutral-100 px-3 sm:px-4 py-2.5 flex items-center justify-between shrink-0">
+      <div className="bg-neutral-50 border-b border-neutral-200 px-3 sm:px-4 py-2.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-neutral-50 rounded-md transition-all duration-200"
+            className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
           >
             <X className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
           </button>
-          <div className="hidden sm:block h-4 w-px bg-neutral-100" />
-          <h2 className="text-sm font-semibold text-neutral-900">Canvas Editor</h2>
+          <div className="hidden sm:block h-4 w-px bg-neutral-200" />
+          <h2 className="text-sm font-light text-neutral-900">Canvas Editor</h2>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <div className="hidden lg:flex items-center gap-1 bg-neutral-50 rounded-md px-2 py-1">
+          <div className="hidden lg:flex items-center gap-1 bg-neutral-50 px-2 py-1 border border-neutral-200">
             <button 
               onClick={() => {
                 const newZoom = Math.max(0.5, zoom - 0.1)
                 setZoom(newZoom)
               }}
-              className="p-1 hover:bg-white rounded transition-all duration-200"
+              className="p-1 hover:bg-neutral-100 transition-all duration-200"
               title="Zoom Out"
             >
               <ZoomOut className="h-3.5 w-3.5 text-neutral-500" />
             </button>
-            <span className="text-xs text-neutral-600 min-w-[45px] text-center">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs text-neutral-500 min-w-[45px] text-center font-light">{Math.round(zoom * 100)}%</span>
             <button 
               onClick={() => {
                 const newZoom = Math.min(1.5, zoom + 0.1)
                 setZoom(newZoom)
               }}
-              className="p-1 hover:bg-white rounded transition-all duration-200"
+              className="p-1 hover:bg-neutral-100 transition-all duration-200"
               title="Zoom In"
             >
               <ZoomIn className="h-3.5 w-3.5 text-neutral-500" />
@@ -583,26 +583,26 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           </div>
           <button 
             onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }) }}
-            className="hidden lg:block px-2.5 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 rounded-md transition-all duration-200"
+            className="hidden lg:block px-2.5 py-1.5 text-xs text-neutral-500 hover:bg-neutral-100 transition-all duration-200 font-light"
           >
             Reset
           </button>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 hover:bg-neutral-50 rounded-md transition-all duration-200"
+            className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
             title={sidebarOpen ? "Hide Panel" : "Show Panel"}
           >
             <Layers className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
           </button>
-          <div className="hidden sm:block h-4 w-px bg-neutral-100" />
+          <div className="hidden sm:block h-4 w-px bg-neutral-200" />
           <button 
             onClick={() => setShowVideoGenerator(true)}
-            className="px-3 sm:px-4 py-1.5 text-xs font-medium bg-neutral-100 text-neutral-900 hover:bg-neutral-200 rounded-md transition-all duration-200 flex items-center gap-1.5"
+            className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 flex items-center gap-1.5 border border-neutral-200"
           >
             <Video className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Video</span>
           </button>
-          <button className="px-3 sm:px-4 py-1.5 text-xs font-medium bg-neutral-900 text-white hover:bg-neutral-800 rounded-md transition-all duration-200">
+          <button className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900">
             Export
           </button>
         </div>
@@ -633,8 +633,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             {screens.map((screen) => (
               <div 
                 key={screen.id}
-                className={`relative rounded-2xl transition-shadow overflow-hidden duration-200 ${
-                  currentScreenId === screen.id ? 'ring-2 ring-neutral-400 ring-offset-1' : 'ring-1 ring-neutral-200'
+                className={`relative overflow-hidden duration-200 ${
+                  currentScreenId === screen.id ? 'ring-2 ring-neutral-600' : 'ring-1 ring-neutral-200'
                 }`}
                 style={{ 
                   width: `${375 * zoom}px`, 
@@ -647,7 +647,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 onClick={() => setCurrentScreenId(screen.id)}
               >
                 {/* Screen Label - Minimalist */}
-                <div className="absolute -top-8 left-0 text-xs font-medium text-neutral-400">{screen.name}</div>
+                <div className="absolute -top-8 left-0 text-xs font-light text-neutral-400">{screen.name}</div>
 
                 {/* Draggable Layers - Minimalist */}
                 {screen.layers.map(layer => {
@@ -657,12 +657,12 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   return (
                     <div
                       key={layer.id}
-                      className={`absolute hover:rounded-2xl ${!spacePressed ? 'cursor-move' : ''} ${
+                      className={`absolute ${!spacePressed ? 'cursor-move' : ''} ${
                         isDraggingThis ? '' : 'transition-all duration-150'
                       } ${
                         isSelected
-                          ? 'ring-2 ring-neutral-300 ring-offset-1 rounded-xl' 
-                          : 'hover:ring-1 hover:ring-neutral-300'
+                          ? 'ring-2 ring-neutral-600' 
+                          : 'hover:ring-1 hover:ring-neutral-400'
                       }`}
                       style={{
                         transform: `translate(${layer.x * zoom}px, ${layer.y * zoom}px)`,
@@ -698,7 +698,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                         <img
                           src={layer.content}
                           alt="App screenshot"
-                          className="w-full h-full rounded-xl shadow-sm"
+                          className="w-full h-full"
                           draggable={false}
                         />
                       )}
@@ -713,7 +713,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                           {/* Resize Handle */}
                           {isSelected && (
                             <div
-                              className="absolute bottom-0 right-0 w-4 h-4 bg-neutral-900 rounded-tl-md cursor-nwse-resize hover:scale-110 transition-transform"
+                              className="absolute bottom-0 right-0 w-4 h-4 bg-neutral-900 cursor-nwse-resize hover:scale-110 transition-transform"
                               onMouseDown={(e) => {
                                 e.stopPropagation()
                                 setResizing(layer.id)
@@ -737,7 +737,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       {/* Decoration Layer (colored boxes, shapes) */}
                       {layer.type === "decoration" && (
                         <div
-                          className="w-full h-full rounded-lg"
+                          className="w-full h-full"
                           style={{
                             backgroundColor: layer.backgroundColor || 'rgba(255,255,255,0.1)',
                           }}
@@ -753,7 +753,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
         {/* Tools Sidebar - Animated & Collapsible - Minimalist */}
         <div 
-          className={`bg-white border-l border-neutral-100 overflow-y-auto shrink-0 transition-all duration-300 ease-in-out ${
+          className={`bg-neutral-50 border-l border-neutral-200 overflow-y-auto shrink-0 transition-all duration-300 ease-in-out ${
             sidebarOpen ? 'w-[320px]' : 'w-0 border-l-0'
           }`}
           style={{
@@ -765,43 +765,43 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           {/* User Prompt & AI Analysis - Minimalist */}
           {userPrompt && (
             <div className="space-y-3">
-              <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-100">
-                <p className="text-xs text-neutral-600 leading-relaxed">
+              <div className="bg-neutral-50 p-3 border border-neutral-200">
+                <p className="text-xs text-neutral-500 leading-relaxed font-light">
                   "{userPrompt.length > 80 ? userPrompt.slice(0, 80) + '...' : userPrompt}"
                 </p>
               </div>
               
               {promptAnalysis && (
-                <div className="bg-linear-to-br from-neutral-50 to-neutral-100/50 rounded-lg p-3 border border-neutral-200">
+                <div className="bg-neutral-50 p-3 border border-neutral-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-md bg-neutral-900 flex items-center justify-center text-white text-xs font-semibold">
+                    <div className="h-6 w-6 bg-neutral-900 flex items-center justify-center text-white text-xs font-light">
                       AI
                     </div>
-                    <h4 className="text-xs font-semibold text-neutral-900">Smart Analysis</h4>
+                    <h4 className="text-xs font-light text-neutral-900">Smart Analysis</h4>
                   </div>
                   
-                  <div className="space-y-2.5 text-xs text-neutral-600">
+                  <div className="space-y-2.5 text-xs text-neutral-500">
                     <div className="flex items-center justify-between">
-                      <span className="text-neutral-500">Category</span>
-                      <span className="font-medium text-neutral-900">{promptAnalysis.appCategory}</span>
+                      <span className="text-neutral-400 font-light">Category</span>
+                      <span className="font-light text-neutral-900">{promptAnalysis.appCategory}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-neutral-500">Audience</span>
-                      <span className="font-medium text-neutral-900">{promptAnalysis.targetAudience}</span>
+                      <span className="text-neutral-400 font-light">Audience</span>
+                      <span className="font-light text-neutral-900">{promptAnalysis.targetAudience}</span>
                     </div>
                     <div>
-                      <span className="text-neutral-500 block mb-1.5">Key Features</span>
+                      <span className="text-neutral-400 block mb-1.5 font-light">Key Features</span>
                       <div className="flex flex-wrap gap-1.5">
                         {promptAnalysis.keyFeatures.slice(0, 3).map((feature, i) => (
-                          <span key={i} className="px-2 py-1 bg-white rounded-md text-[10px] font-medium text-neutral-700 border border-neutral-200">
+                          <span key={i} className="px-2 py-1 bg-neutral-50 text-[10px] font-light text-neutral-600 border border-neutral-200">
                             {feature}
                           </span>
                         ))}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-neutral-500">Design Style</span>
-                      <span className="font-medium text-neutral-900">{promptAnalysis.visualStyle.mood}</span>
+                      <span className="text-neutral-400 font-light">Design Style</span>
+                      <span className="font-light text-neutral-900">{promptAnalysis.visualStyle.mood}</span>
                     </div>
                   </div>
                 </div>
@@ -812,10 +812,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           {/* Screens - Minimalist */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-neutral-900">Screens</h3>
+              <h3 className="text-xs font-light text-neutral-900">Screens</h3>
               <button
                 onClick={addScreen}
-                className="p-1.5 hover:bg-neutral-100 rounded-md transition-all duration-200"
+                className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
               >
                 <Plus className="h-4 w-4 text-neutral-500" />
               </button>
@@ -825,10 +825,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 <button
                   key={screen.id}
                   onClick={() => setCurrentScreenId(screen.id)}
-                  className={`shrink-0 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200 ${
+                  className={`shrink-0 px-3 py-2 text-xs font-light transition-all duration-200 border ${
                     currentScreenId === screen.id 
-                      ? 'bg-neutral-900 text-white shadow-sm' 
-                      : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
+                      ? 'bg-neutral-900 text-white border-neutral-900' 
+                      : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100 border-neutral-200'
                   }`}
                 >
                   {screen.name}
@@ -841,7 +841,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           {currentScreen && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-neutral-900">Layout Template</h3>
+                <h3 className="text-xs font-light text-neutral-900">Layout Template</h3>
                 <Layout className="h-4 w-4 text-neutral-400" />
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -849,15 +849,15 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   <button
                     key={template.id}
                     onClick={() => changeTemplate(template.id)}
-                    className={`p-3 rounded-md border text-left transition-all duration-200 ${
+                    className={`p-3 border text-left transition-all duration-200 ${
                       currentScreen.templateId === template.id
-                        ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
-                        : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                        ? 'bg-neutral-900 text-white border-neutral-900'
+                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                     }`}
                   >
-                    <div className="text-xs font-semibold mb-0.5">{template.name}</div>
-                    <div className={`text-[10px] ${
-                      currentScreen.templateId === template.id ? 'text-neutral-300' : 'text-neutral-500'
+                    <div className="text-xs font-light mb-0.5">{template.name}</div>
+                    <div className={`text-[10px] font-light ${
+                      currentScreen.templateId === template.id ? 'text-neutral-400' : 'text-neutral-500'
                     }`}>
                       {template.description}
                     </div>
@@ -870,11 +870,11 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           {/* Background Color - Minimalist */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-neutral-900">Background</h3>
+              <h3 className="text-xs font-light text-neutral-900">Background</h3>
               <button
                 onClick={generateAIBackground}
                 disabled={isGeneratingBackground}
-                className="px-2.5 py-1.5 text-xs font-medium bg-neutral-900 text-white rounded-md hover:bg-neutral-800 transition-all duration-200 disabled:opacity-50 flex items-center gap-1.5"
+                className="px-2.5 py-1.5 text-xs font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 disabled:opacity-50 flex items-center gap-1.5 border border-neutral-900"
               >
                 {isGeneratingBackground ? (
                   <>
@@ -890,23 +890,23 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
               {/* Suggested Backgrounds from AI Analysis */}
               {screenshotAnalysis?.suggestedBackgrounds && screenshotAnalysis.suggestedBackgrounds.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-medium text-neutral-500">From Your App</p>
+                  <p className="text-[10px] font-light text-neutral-400">From Your App</p>
                   <div className="grid grid-cols-5 gap-2">
                     {screenshotAnalysis.suggestedBackgrounds.slice(0, 5).map((color, idx) => (
                       <button
                         key={color + idx}
                         onClick={() => updateScreenBackground(color)}
-                        className={`w-full aspect-square rounded-md border-2 transition-all duration-200 relative group ${
+                        className={`w-full aspect-square border transition-all duration-200 relative group ${
                           currentScreen.backgroundColor === color 
-                            ? 'border-neutral-900 scale-105 shadow-sm ring-2 ring-neutral-900 ring-offset-1' 
-                            : 'border-neutral-300 hover:border-neutral-400'
+                            ? 'border-neutral-900 scale-105 ring-2 ring-neutral-900' 
+                            : 'border-neutral-200 hover:border-neutral-400'
                         }`}
                         style={{ backgroundColor: color }}
                         title={color}
                       >
                         {currentScreen.backgroundColor === color && (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Check className="h-3 w-3 text-white drop-shadow-md" />
+                            <Check className="h-3 w-3 text-white" />
                           </div>
                         )}
                       </button>
@@ -919,10 +919,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 type="color"
                 value={currentScreen.backgroundColor.startsWith('#') ? currentScreen.backgroundColor : '#F0F4FF'}
                 onChange={(e) => updateScreenBackground(e.target.value)}
-                className="w-full h-10 rounded-md border border-neutral-200 cursor-pointer"
+                className="w-full h-10 border border-neutral-200 cursor-pointer"
               />
               <div className="space-y-2">
-                <p className="text-[10px] font-medium text-neutral-500">Presets</p>
+                <p className="text-[10px] font-light text-neutral-400">Presets</p>
                 <div className="grid grid-cols-6 gap-2">
                   {[
                     '#FFFFFF', '#F5F5F5', '#000000',
@@ -933,9 +933,9 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                     <button
                       key={color}
                       onClick={() => updateScreenBackground(color)}
-                      className={`w-full aspect-square rounded-md border-2 transition-all duration-200 ${
+                      className={`w-full aspect-square border transition-all duration-200 ${
                         currentScreen.backgroundColor === color 
-                          ? 'border-neutral-900 scale-105 shadow-sm' 
+                          ? 'border-neutral-900 scale-105' 
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                       style={{ backgroundColor: color }}
@@ -948,20 +948,20 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
           {/* Add Tools - Minimalist */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-neutral-900">Add Elements</h3>
+            <h3 className="text-xs font-light text-neutral-900">Add Elements</h3>
             <div className="grid grid-cols-2 gap-2">
               <button 
                 onClick={addTextLayer}
-                className="p-3 rounded-md border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 transition-all duration-200 flex flex-col items-center gap-2 group"
+                className="p-3 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100 transition-all duration-200 flex flex-col items-center gap-2 group"
               >
                 <Type className="h-5 w-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-                <span className="text-xs font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Text</span>
+                <span className="text-xs font-light text-neutral-500 group-hover:text-neutral-900 transition-colors">Text</span>
               </button>
               <button 
-                className="p-3 rounded-md border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 transition-all duration-200 flex flex-col items-center gap-2 group"
+                className="p-3 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100 transition-all duration-200 flex flex-col items-center gap-2 group"
               >
                 <ImageIcon className="h-5 w-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-                <span className="text-xs font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Image</span>
+                <span className="text-xs font-light text-neutral-500 group-hover:text-neutral-900 transition-colors">Image</span>
               </button>
             </div>
           </div>
@@ -969,12 +969,12 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           {/* Assets Library - NEW */}
           {(uploadedLogo || uploadedAssets.length > 0) && (
             <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-neutral-900">Your Assets</h3>
+              <h3 className="text-xs font-light text-neutral-900">Your Assets</h3>
               
               {/* Logo */}
               {uploadedLogo && (
                 <div>
-                  <p className="text-[10px] text-neutral-500 mb-2">App Logo</p>
+                  <p className="text-[10px] text-neutral-400 mb-2 font-light">App Logo</p>
                   <div 
                     className="relative group cursor-pointer"
                     draggable
@@ -986,10 +986,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                     <img 
                       src={uploadedLogo} 
                       alt="App Logo"
-                      className="w-16 h-16 object-cover rounded-lg border-2 border-neutral-200 bg-white hover:border-neutral-900 transition-all"
+                      className="w-16 h-16 object-cover border border-neutral-200 bg-neutral-50 hover:border-neutral-900 transition-all"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all flex items-center justify-center">
-                      <span className="text-[8px] text-white opacity-0 group-hover:opacity-100 font-medium bg-black px-2 py-1 rounded">Drag to canvas</span>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
+                      <span className="text-[8px] text-white opacity-0 group-hover:opacity-100 font-light bg-neutral-900 px-2 py-1">Drag to canvas</span>
                     </div>
                   </div>
                 </div>
@@ -998,7 +998,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
               {/* Brand Assets */}
               {uploadedAssets.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-neutral-500 mb-2">Brand Assets</p>
+                  <p className="text-[10px] text-neutral-400 mb-2 font-light">Brand Assets</p>
                   <div className="grid grid-cols-3 gap-2">
                     {uploadedAssets.map((asset, idx) => (
                       <div 
@@ -1013,13 +1013,13 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                         <img 
                           src={asset} 
                           alt={`Asset ${idx + 1}`}
-                          className="w-full h-16 object-cover rounded-lg border border-neutral-200 bg-white hover:border-neutral-900 transition-all"
+                          className="w-full h-16 object-cover border border-neutral-200 bg-neutral-50 hover:border-neutral-900 transition-all"
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all" />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all" />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[9px] text-neutral-400 mt-2">💡 Drag assets to canvas to add them</p>
+                  <p className="text-[9px] text-neutral-400 mt-2 font-light">💡 Drag assets to canvas to add them</p>
                 </div>
               )}
             </div>
@@ -1027,16 +1027,16 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
           {/* Layers List - Minimalist */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-neutral-900">Layers</h3>
+            <h3 className="text-xs font-light text-neutral-900">Layers</h3>
             <div className="space-y-1.5">
               {layers.map(layer => (
                 <div
                   key={layer.id}
                   onClick={() => setSelectedLayer(layer.id)}
-                  className={`px-3 py-2.5 rounded-md cursor-pointer flex items-center justify-between group transition-all duration-200 ${
+                  className={`px-3 py-2.5 cursor-pointer flex items-center justify-between group transition-all duration-200 border ${
                     selectedLayer === layer.id 
-                      ? 'bg-neutral-900 text-white shadow-sm' 
-                      : 'bg-neutral-50 hover:bg-neutral-100 border border-neutral-200'
+                      ? 'bg-neutral-900 text-white border-neutral-900' 
+                      : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -1045,8 +1045,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                     ) : (
                       <ImageIcon className={`h-4 w-4 ${selectedLayer === layer.id ? 'text-white' : 'text-neutral-400'}`} />
                     )}
-                    <span className={`text-xs font-medium truncate max-w-[150px] ${
-                      selectedLayer === layer.id ? 'text-white' : 'text-neutral-700'
+                    <span className={`text-xs font-light truncate max-w-[150px] ${
+                      selectedLayer === layer.id ? 'text-white' : 'text-neutral-600'
                     }`}>
                       {layer.content.length > 20 ? layer.content.slice(0, 20) + '...' : layer.content}
                     </span>
@@ -1056,12 +1056,12 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       e.stopPropagation()
                       deleteLayer(layer.id)
                     }}
-                    className={`p-1 hover:bg-red-100 rounded-md transition-colors ${
+                    className={`p-1 hover:bg-neutral-800 transition-colors ${
                       selectedLayer === layer.id ? 'opacity-0 group-hover:opacity-100' : ''
                     }`}
                   >
                     <Trash2 className={`h-3.5 w-3.5 ${
-                      selectedLayer === layer.id ? 'text-white hover:text-red-500' : 'text-neutral-400 hover:text-red-600'
+                      selectedLayer === layer.id ? 'text-white hover:text-neutral-300' : 'text-neutral-400 hover:text-neutral-600'
                     }`} />
                   </button>
                 </div>
@@ -1071,17 +1071,17 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
           {/* Properties - Minimalist */}
           {selectedLayerData && (
-            <div className="space-y-4 pt-4 border-t border-neutral-100">
-              <h3 className="text-xs font-semibold text-neutral-900">Properties</h3>
+            <div className="space-y-4 pt-4 border-t border-neutral-200">
+              <h3 className="text-xs font-light text-neutral-900">Properties</h3>
               
               {selectedLayerData.type === "text" && (
                 <>
                   <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Content</label>
+                    <label className="text-xs font-light text-neutral-400 mb-2 block">Content</label>
                     <textarea
                       value={selectedLayerData.content}
                       onChange={(e) => updateLayerContent(selectedLayerData.id, e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent resize-none bg-white"
+                      className="w-full px-3 py-2 text-xs border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent resize-none bg-neutral-50"
                       rows={2}
                       placeholder="Enter text..."
                     />
@@ -1089,34 +1089,34 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
                   {/* Text Formatting - Minimalist */}
                   <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Style</label>
+                    <label className="text-xs font-light text-neutral-400 mb-2 block">Style</label>
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { bold: !selectedLayerData.bold })}
-                        className={`flex-1 p-2 rounded-md border transition-all duration-200 ${
+                        className={`flex-1 p-2 border transition-all duration-200 ${
                           selectedLayerData.bold 
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
-                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                       >
                         <Bold className="h-4 w-4 mx-auto" />
                       </button>
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { italic: !selectedLayerData.italic })}
-                        className={`flex-1 p-2 rounded-md border transition-all duration-200 ${
+                        className={`flex-1 p-2 border transition-all duration-200 ${
                           selectedLayerData.italic 
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
-                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                       >
                         <Italic className="h-4 w-4 mx-auto" />
                       </button>
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { underline: !selectedLayerData.underline })}
-                        className={`flex-1 p-2 rounded-md border transition-all duration-200 ${
+                        className={`flex-1 p-2 border transition-all duration-200 ${
                           selectedLayerData.underline 
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
-                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                       >
                         <Underline className="h-4 w-4 mx-auto" />
@@ -1126,34 +1126,34 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
                   {/* Text Alignment - Minimalist */}
                   <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Alignment</label>
+                    <label className="text-xs font-light text-neutral-400 mb-2 block">Alignment</label>
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'left' })}
-                        className={`flex-1 p-2 rounded-md border transition-all duration-200 ${
+                        className={`flex-1 p-2 border transition-all duration-200 ${
                           selectedLayerData.align === 'left' 
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
-                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                       >
                         <AlignLeft className="h-4 w-4 mx-auto" />
                       </button>
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'center' })}
-                        className={`flex-1 p-2 rounded-md border transition-all duration-200 ${
+                        className={`flex-1 p-2 border transition-all duration-200 ${
                           selectedLayerData.align === 'center' 
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
-                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                       >
                         <AlignCenter className="h-4 w-4 mx-auto" />
                       </button>
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'right' })}
-                        className={`flex-1 p-2 rounded-md border transition-all duration-200 ${
+                        className={`flex-1 p-2 border transition-all duration-200 ${
                           selectedLayerData.align === 'right' 
-                            ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
-                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                       >
                         <AlignRight className="h-4 w-4 mx-auto" />
@@ -1163,11 +1163,11 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
                   {/* Font Family - Minimalist */}
                   <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Font</label>
+                    <label className="text-xs font-light text-neutral-400 mb-2 block">Font</label>
                     <select
                       value={selectedLayerData.fontFamily || 'inherit'}
                       onChange={(e) => updateLayerStyle(selectedLayerData.id, { fontFamily: e.target.value })}
-                      className="w-full px-3 py-2 text-xs border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent bg-white"
+                      className="w-full px-3 py-2 text-xs border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent bg-neutral-50"
                     >
                       <option value="inherit">Default (System)</option>
                       <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">SF Pro (iOS)</option>
@@ -1213,8 +1213,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   {/* Font Size - Minimalist */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-medium text-neutral-500">Size</label>
-                      <span className="text-xs font-semibold text-neutral-900">{selectedLayerData.fontSize || 20}px</span>
+                      <label className="text-xs font-light text-neutral-400">Size</label>
+                      <span className="text-xs font-light text-neutral-900">{selectedLayerData.fontSize || 20}px</span>
                     </div>
                     <input
                       type="range"
@@ -1222,27 +1222,27 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       max="72"
                       value={selectedLayerData.fontSize || 20}
                       onChange={(e) => updateLayerStyle(selectedLayerData.id, { fontSize: parseInt(e.target.value) })}
-                      className="w-full h-2 bg-neutral-100 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neutral-900 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110"
+                      className="w-full h-2 bg-neutral-200 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-neutral-900 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110"
                     />
                   </div>
                   
                   <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Color</label>
+                    <label className="text-xs font-light text-neutral-400 mb-2 block">Color</label>
                     <div className="space-y-3">
                       <input
                         type="color"
                         value={selectedLayerData.color}
                         onChange={(e) => updateLayerStyle(selectedLayerData.id, { color: e.target.value })}
-                        className="w-full h-10 rounded-md border border-neutral-200 cursor-pointer"
+                        className="w-full h-10 border border-neutral-200 cursor-pointer"
                       />
                       <div className="grid grid-cols-4 gap-2">
                         {['#000000', '#FFFFFF', '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'].map(color => (
                           <button
                             key={color}
                             onClick={() => updateLayerStyle(selectedLayerData.id, { color })}
-                            className={`w-full aspect-square rounded-md border-2 transition-all duration-200 ${
+                            className={`w-full aspect-square border transition-all duration-200 ${
                               selectedLayerData.color === color 
-                                ? 'border-neutral-900 scale-105 shadow-sm' 
+                                ? 'border-neutral-900 scale-105' 
                                 : 'border-neutral-200 hover:border-neutral-300'
                             }`}
                             style={{ backgroundColor: color }}
@@ -1257,19 +1257,19 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           )}
 
           {/* Tips - Minimalist */}
-          <div className="space-y-3 pt-4 border-t border-neutral-100">
-            <h3 className="text-xs font-semibold text-neutral-900">Quick Tips</h3>
+          <div className="space-y-3 pt-4 border-t border-neutral-200">
+            <h3 className="text-xs font-light text-neutral-900">Quick Tips</h3>
             <div className="space-y-2">
-              <div className="flex items-start gap-2 text-xs text-neutral-600">
-                <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 mt-1.5 shrink-0"></div>
+              <div className="flex items-start gap-2 text-xs text-neutral-500 font-light">
+                <div className="w-1.5 h-1.5 bg-neutral-400 mt-1.5 shrink-0"></div>
                 <p>Drag elements to reposition</p>
               </div>
-              <div className="flex items-start gap-2 text-xs text-neutral-600">
-                <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 mt-1.5 shrink-0"></div>
-                <p>Hold <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded text-[10px] font-medium border border-neutral-200">Space</kbd> + drag to pan</p>
+              <div className="flex items-start gap-2 text-xs text-neutral-500 font-light">
+                <div className="w-1.5 h-1.5 bg-neutral-400 mt-1.5 shrink-0"></div>
+                <p>Hold <kbd className="px-1.5 py-0.5 bg-neutral-50 text-[10px] font-light border border-neutral-200">Space</kbd> + drag to pan</p>
               </div>
-              <div className="flex items-start gap-2 text-xs text-neutral-600">
-                <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 mt-1.5 shrink-0"></div>
+              <div className="flex items-start gap-2 text-xs text-neutral-500 font-light">
+                <div className="w-1.5 h-1.5 bg-neutral-400 mt-1.5 shrink-0"></div>
                 <p>Use zoom to scale canvas</p>
               </div>
             </div>
@@ -1280,7 +1280,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
     {/* Video Generator Modal */}
     {showVideoGenerator && (
-      <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="fixed inset-0 z-100 flex items-center justify-center bg-neutral-900/50">
         <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden">
           <VideoGenerator 
             screenshots={uploadedScreenshots}

@@ -46,7 +46,7 @@ export default function VideoPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-14 shrink-0 items-center gap-2 bg-zinc-50">
+      <header className="flex h-14 shrink-0 items-center gap-2 bg-neutral-50 border-b border-neutral-200">
         <div className="flex flex-1 items-center gap-2 px-3">
           <SidebarTrigger />
           <Separator
@@ -72,25 +72,25 @@ export default function VideoPage() {
         </div>
       </header>
       
-      <div className="bg-zinc-50 min-h-screen p-6">
+      <div className="bg-neutral-50 min-h-screen flex flex-col items-center justify-center p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-neutral-900 mb-4">
+            <div className="inline-flex items-center justify-center h-16 w-16 bg-neutral-900 mb-4">
               <Video className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-semibold text-neutral-900 mb-2">
+            <h1 className="text-3xl font-light text-neutral-900 mb-2">
               Create Promotional Video
             </h1>
-            <p className="text-neutral-600">
+            <p className="text-neutral-500 font-light">
               Transform your app screenshots into stunning promotional videos with AI
             </p>
           </div>
 
           {/* Upload Section */}
           {screenshots.length === 0 && (
-            <div className="bg-white rounded-2xl border border-neutral-200 p-8">
-              <div className="border-2 border-dashed border-neutral-300 rounded-xl p-12 text-center hover:border-neutral-400 transition-colors cursor-pointer">
+            <div className="bg-neutral-50 border border-neutral-200 p-8">
+              <div className="border border-neutral-200 p-12 text-center hover:bg-neutral-100 transition-colors cursor-pointer">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -104,13 +104,13 @@ export default function VideoPage() {
                   className="w-full"
                 >
                   <Upload className="h-12 w-12 mx-auto mb-4 text-neutral-400" />
-                  <p className="text-lg font-medium text-neutral-900 mb-2">
+                  <p className="text-lg font-light text-neutral-900 mb-2">
                     Upload App Screenshots
                   </p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-neutral-500 font-light">
                     Select multiple screenshots to create your video
                   </p>
-                  <p className="text-xs text-neutral-400 mt-2">
+                  <p className="text-xs text-neutral-400 mt-2 font-light">
                     PNG, JPG up to 10MB each
                   </p>
                 </button>
@@ -120,14 +120,14 @@ export default function VideoPage() {
 
           {/* Screenshots Preview */}
           {screenshots.length > 0 && (
-            <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+            <div className="bg-neutral-50 border border-neutral-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-medium text-neutral-900">
+                <p className="text-sm font-light text-neutral-900">
                   Screenshots ({screenshots.length})
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-xs text-neutral-600 hover:text-neutral-900"
+                  className="text-xs text-neutral-500 hover:text-neutral-900 font-light"
                 >
                   + Add more
                 </button>
@@ -152,7 +152,7 @@ export default function VideoPage() {
                     </div>
                     <button
                       onClick={() => removeScreenshot(idx)}
-                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -right-2 p-1 bg-neutral-900 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-3 w-3" />
                     </button>

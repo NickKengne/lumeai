@@ -518,7 +518,7 @@ Ready to upload your app screenshots?`
         className="shrink-0 relative z-50"
       >
         <div className={`w-full mx-auto px-2 sm:px-4 py-4 ${isPanelOpen ? 'max-w-2xl' : 'max-w-3xl'}`}>
-          <div className="relative rounded-2xl border border-neutral-200 bg-white">
+          <div className="relative border border-neutral-200 bg-neutral-50">
         {/* Top bar - Mention & Add context */}
         <div className="flex items-center gap-2 px-3 sm:px-4 pt-2 sm:pt-3 pb-2"> 
           <button className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-700 transition-colors">
@@ -542,19 +542,19 @@ Ready to upload your app screenshots?`
         </div>
 
         {/* Bottom bar - Actions */}
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-t border-zinc-100">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-t border-neutral-200">
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-            <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+            <button className="p-1.5 sm:p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
               <Paperclip className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
-            <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+            <button className="p-1.5 sm:p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
               <Image className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
-            <button className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors">
+            <button className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors font-light">
               <Library className="h-4 w-4" />
               <span>Prompt Library</span>
             </button>
-            <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors">
+            <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors font-light">
               <Wand2 className="h-4 w-4" />
               <span>Improve Prompt</span>
             </button>
@@ -563,10 +563,10 @@ Ready to upload your app screenshots?`
           <button
             onClick={handleSubmit}
             disabled={!value.trim()}
-            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+            className={`h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center transition-all shrink-0 border ${
               value.trim()
-                ? "bg-black text-white cursor-pointer hover:bg-gray-800"
-                : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                ? "bg-neutral-900 text-white cursor-pointer hover:bg-neutral-800 border-neutral-900"
+                : "bg-neutral-200 text-neutral-400 cursor-not-allowed border-neutral-200"
             }`}
           >
             <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />

@@ -8,7 +8,7 @@ export function Partners() {
     <div className="w-full py-8 mt-8">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col items-center gap-1">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium tracking-wide">
+          <p className="text-xs uppercase tracking-widest text-neutral-400 font-light">
             TRUSTED BY LEADING COMPANIES
           </p>
           <div className="flex items-center justify-center gap-12 flex-wrap">
@@ -20,7 +20,7 @@ export function Partners() {
                 height="24"
                 viewBox="0 0 272 92"
                 fill="none"
-                className="text-zinc-900 cursor-pointer"
+                className="text-neutral-900 cursor-pointer"
               >
                 <path d="M115.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18C71.25 34.32 81.24 25 93.5 25s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44S80.99 39.2 80.99 47.18c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z" fill="currentColor"/>
                 <path d="M163.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18c0-12.85 9.99-22.18 22.25-22.18s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44s-12.51 5.46-12.51 13.44c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z" fill="currentColor"/>
