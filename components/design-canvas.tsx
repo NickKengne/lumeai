@@ -647,7 +647,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 onClick={() => setCurrentScreenId(screen.id)}
               >
                 {/* Screen Label - Minimalist */}
-                <div className="absolute -top-8 left-0 text-xs font-light text-neutral-400">{screen.name}</div>
+                <div className="absolute -top-8 left-0 text-xs font-light text-neutral-700">{screen.name}</div>
 
                 {/* Draggable Layers - Minimalist */}
                 {screen.layers.map(layer => {
@@ -1280,8 +1280,14 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
     {/* Video Generator Modal */}
     {showVideoGenerator && (
-      <div className="fixed inset-0 z-100 flex items-center justify-center bg-neutral-900/50">
-        <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4"
+        onClick={() => setShowVideoGenerator(false)}
+      >
+        <div 
+          className="relative w-full max-w-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           <VideoGenerator 
             screenshots={uploadedScreenshots}
             prompt={userPrompt}

@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Play, Pause, Download, Sparkles, Video, Music, Clock, Wand2 } from "lucide-react"
+import { Play, Pause, Download, Sparkles, Video, Music, Clock, Wand2, X } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { 
   generateVideoWithSora, 
+  checkVideoStatus,
   VIDEO_STYLES, 
   VIDEO_DURATIONS, 
   VIDEO_MUSIC,
@@ -21,7 +22,7 @@ interface VideoGeneratorProps {
 
 export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorProps) {
   const [selectedStyle, setSelectedStyle] = React.useState<'smooth' | 'dynamic' | 'minimal' | 'cinematic'>('smooth')
-  const [selectedDuration, setSelectedDuration] = React.useState<5 | 10 | 15 | 30>(10)
+  const [selectedDuration, setSelectedDuration] = React.useState<4 | 8 | 12>(8)
   const [selectedMusic, setSelectedMusic] = React.useState<'none' | 'upbeat' | 'calm' | 'corporate'>('upbeat')
   const [videoPrompt, setVideoPrompt] = React.useState(prompt || '')
   const [isGenerating, setIsGenerating] = React.useState(false)
@@ -33,6 +34,14 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
   const [generatedVideo, setGeneratedVideo] = React.useState<VideoGenerationResult | null>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const videoRef = React.useRef<HTMLVideoElement>(null)
+
+  // Prevent body scroll when modal is open
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [])
 
   const handleGenerate = async () => {
     if (screenshots.length === 0 && !videoPrompt) return
@@ -49,12 +58,48 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
       }
       
       const result = await generateVideoWithSora(request)
-      setGeneratedVideo(result)
+      
+      // If video is still processing, poll for status
+      if (result.status === 'processing' && result.videoId) {
+        await pollVideoStatus(result.videoId)
+      } else {
+        setGeneratedVideo(result)
+        setIsGenerating(false)
+      }
     } catch (error) {
       console.error('Video generation failed:', error)
-    } finally {
       setIsGenerating(false)
     }
+  }
+
+  const pollVideoStatus = async (videoId: string) => {
+    const maxAttempts = 30 // Poll for up to 5 minutes (10s intervals)
+    let attempts = 0
+
+    const poll = async () => {
+      try {
+        const status = await checkVideoStatus(videoId)
+        
+        if (status.status === 'completed') {
+          setGeneratedVideo(status)
+          setIsGenerating(false)
+        } else if (status.status === 'failed') {
+          console.error('Video generation failed')
+          setIsGenerating(false)
+        } else if (attempts < maxAttempts) {
+          attempts++
+          setTimeout(poll, 10000) // Poll every 10 seconds
+        } else {
+          console.error('Video generation timed out')
+          setIsGenerating(false)
+        }
+      } catch (error) {
+        console.error('Failed to check video status:', error)
+        setIsGenerating(false)
+      }
+    }
+
+    poll()
   }
 
   const togglePlayback = () => {
@@ -69,9 +114,9 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
   }
 
   return (
-    <div className="bg-neutral-50 border border-neutral-200 overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
+    <div className="bg-neutral-50 border border-neutral-200 flex flex-col max-h-[90vh]">
+      {/* Header - Fixed */}
+      <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 bg-neutral-900 flex items-center justify-center">
             <Video className="h-5 w-5 text-white" />
@@ -85,10 +130,20 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
           <span className="px-2 py-1 bg-neutral-200 text-neutral-900 text-xs font-light">
             Powered by Sora
           </span>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-neutral-100 transition-all duration-200 ml-2"
+              aria-label="Close video generator"
+            >
+              <X className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="p-6">
+      {/* Scrollable Content Area */}
+      <div className="p-6 overflow-y-auto flex-1">
         {/* Preview Area */}
         <div className="mb-6">
           {generatedVideo ? (
@@ -200,7 +255,7 @@ export function VideoGenerator({ screenshots, prompt, onClose }: VideoGeneratorP
             {VIDEO_DURATIONS.map((dur) => (
               <button
                 key={dur.seconds}
-                onClick={() => setSelectedDuration(dur.seconds as 5 | 10 | 15 | 30)}
+                onClick={() => setSelectedDuration(dur.seconds as 4 | 8 | 12)}
                 className={`flex-1 py-3 px-4 border text-center transition-all ${
                   selectedDuration === dur.seconds
                     ? 'bg-neutral-900 text-white border-neutral-900'
