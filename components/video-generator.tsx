@@ -11,6 +11,7 @@ import {
   type VideoGenerationRequest,
   type VideoGenerationResult
 } from "@/lib/video-generator"
+import { ScrollArea } from "./ui/scroll-area"
 
 interface VideoGeneratorProps {
   screenshots: string[]

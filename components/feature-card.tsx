@@ -17,7 +17,7 @@ function FeatureCard({ icon, title, description, onClick, className = "" }: Feat
   return (
     <button
       onClick={onClick}
-      className={`w-full p-10 text-left bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-colors cursor-pointer ${className}`}
+      className={`w-full p-10 text-left bg-neutral-50 border border-dashed border-neutral-200 hover:bg-neutral-100 transition-colors cursor-pointer ${className}`}
     >
       {/* Icon/Illustration area */}
       <div className="mb-6 h-32 flex items-center justify-center">{icon}</div>

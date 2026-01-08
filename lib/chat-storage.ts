@@ -81,3 +81,4 @@ export function generateChatTitle(messages: ChatMessage[]): string {
   return content.slice(0, 40) + "..."
 }
 
+
