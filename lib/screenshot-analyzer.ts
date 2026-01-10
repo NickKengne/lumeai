@@ -529,3 +529,123 @@ export function suggestTemplatesForMood(mood: string): string[] {
   }
 }
 
+export interface ScreenAssetLayout {
+  headline: string
+  subtitle?: string
+  headlinePosition: { x: number; y: number }
+  subtitlePosition?: { x: number; y: number }
+  screenshotPosition: { x: number; y: number; width: number; height: number }
+  logoPosition?: { x: number; y: number; width: number; height: number }
+  additionalAssets?: Array<{
+    type: 'icon' | 'decoration' | 'badge'
+    position: { x: number; y: number; width: number; height: number }
+    content?: string
+  }>
+  backgroundColor: string
+  textColor: string
+  fontFamily?: string
+  fontSize?: { headline: number; subtitle: number }
+}
+
+export async function generateLayoutForScreenshot(
+  screenshotDataUrl: string,
+  userPrompt: string,
+  logo?: string,
+  index?: number
+): Promise<ScreenAssetLayout | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  if (!apiKey) {
+    console.warn('Gemini API key not found for layout generation')
+    return null
+  }
+
+  try {
+    await waitForRateLimit()
+
+    return await retryWithBackoff(async () => {
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      })
+
+      const base64Data = screenshotDataUrl.replace(/^data:image\/\w+;base64,/, '')
+
+      const prompt = `Analyze this mobile app screenshot and generate a complete App Store screenshot layout with text and asset positioning.
+
+User Context: "${userPrompt}"
+Screenshot Index: ${index ?? 0}
+
+ANALYZE THE SCREENSHOT:
+1. Identify the main UI elements, key features, and focal points
+2. Understand what this screen is showing (dashboard, profile, settings, etc.)
+3. Extract the color scheme and visual style
+4. Determine the best way to present this screen to App Store users
+
+GENERATE A LAYOUT:
+Based on the screenshot content, create:
+- A compelling headline that describes what users see (max 50 chars)
+- Optional subtitle with more details (max 80 chars)
+- Exact pixel positions for all elements on a 1242x2688 canvas (iPhone 14 Pro Max)
+- Background color that complements the app
+- Text positioning that doesn't overlap with important UI elements
+
+POSITIONING RULES:
+- Canvas size: 1242px wide x 2688px tall
+- Screenshot mockup: typically 500-700px wide, positioned strategically
+- Headline: typically y=200-400, centered or offset based on design
+- Subtitle: 80-120px below headline
+- Logo (if provided): usually top corner or near headline, ~80-120px size
+- Text should have good contrast and breathing room
+- Consider visual balance and hierarchy
+
+Return ONLY valid JSON:
+{
+  "headline": "Feature-focused headline based on what's in the screenshot",
+  "subtitle": "Optional supporting text",
+  "headlinePosition": {"x": 621, "y": 300},
+  "subtitlePosition": {"x": 621, "y": 420},
+  "screenshotPosition": {"x": 371, "y": 800, "width": 500, "height": 1080},
+  "logoPosition": {"x": 80, "y": 120, "width": 100, "height": 100},
+  "additionalAssets": [
+    {
+      "type": "icon",
+      "position": {"x": 100, "y": 500, "width": 60, "height": 60},
+      "content": "checkmark or decorative element description"
+    }
+  ],
+  "backgroundColor": "#F5F7FA",
+  "textColor": "#1A1A1A",
+  "fontFamily": "Inter",
+  "fontSize": {"headline": 72, "subtitle": 36}
+}`
+
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: 'image/png'
+          }
+        },
+        prompt
+      ])
+
+      const response = await result.response
+      const text = response.text()
+      
+      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const layout = JSON.parse(cleanText) as ScreenAssetLayout
+
+      return layout
+    }, 3, 2000)
+  } catch (error: any) {
+    console.error('Layout generation error:', error)
+    return null
+  }
+}
+

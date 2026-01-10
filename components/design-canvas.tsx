@@ -5,9 +5,8 @@ import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignC
 import { VideoGenerator } from "./video-generator"
 
 import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
-import { AVAILABLE_TEMPLATES, applyTemplate, type TemplateLayer } from "@/lib/template-library"
 import { IphoneMockup } from "./iphone-mockup"
-import { type ScreenshotAnalysisResult } from "@/lib/screenshot-analyzer"
+import { type ScreenshotAnalysisResult, generateLayoutForScreenshot, type ScreenAssetLayout } from "@/lib/screenshot-analyzer"
 
 interface Layer {
   id: string
@@ -93,129 +92,213 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     }
   }, [uploadedScreenshots, aiStructure])
 
-  const generateScreensFromAIStructure = () => {
+  const generateScreensFromAIStructure = async () => {
     setIsGenerating(true)
     
-    setTimeout(() => {
-      let generatedScreens: Screen[] = []
+    try {
+      const generatedScreens: Screen[] = []
 
-      // Determine template for each screen - prioritize AI suggested templates
-      const templates = screenshotAnalysis?.suggestedTemplates?.length 
-        ? screenshotAnalysis.suggestedTemplates 
-        : ['centered_bold', 'offset_left', 'offset_right', 'gradient', 'minimal', 'tilted']
-      
-      if (aiStructure && aiStructure.screens) {
-        // Use AI structure to generate screens WITH TEMPLATES
-        generatedScreens = aiStructure.screens.map((screenSpec, index) => {
-          const screenshot = uploadedScreenshots[index] || uploadedScreenshots[0]
-          
-          // Select template (rotate through available templates)
-          const templateId = templates[index % templates.length]
-          const headline = screenSpec.headline || generateContextualHeadline(index, extractAppContext(userPrompt || ''))
-          const subtitle = screenSpec.subheadline || generateContextualSubtitle(index, extractAppContext(userPrompt || ''))
-          
-          // Apply template with background from suggested backgrounds and detected font
-          const detectedFont = screenshotAnalysis?.typography?.primaryFont
-          const templateLayers = applyTemplate(
-            templateId,
-            screenshot,
-            headline,
-            subtitle,
-            screenSpec.background || getRandomBackground(index),
-            uploadedLogo,
-            detectedFont
-          )
-          
-          return {
-            id: screenSpec.id,
-            name: `Screen ${index + 1}`,
-            backgroundColor: templateLayers[0]?.backgroundColor || "#F0F4FF",
-            templateId: templateId,
-            layers: templateLayers as Layer[]
-          }
-        })
-      } else {
-        // Fallback: Use templates with smart generation
-        generatedScreens = uploadedScreenshots.map((screenshot, index) => {
-          const templateId = templates[index % templates.length]
-          const headline = generateContextualHeadline(index, extractAppContext(userPrompt || ''))
-          const subtitle = generateContextualSubtitle(index, extractAppContext(userPrompt || ''))
-          const bgColor = getRandomBackground(index)
-          
-          // Apply template with detected font
-          const detectedFont = screenshotAnalysis?.typography?.primaryFont
-          const templateLayers = applyTemplate(
-            templateId,
-            screenshot,
-            headline,
-            subtitle,
-            bgColor,
-            uploadedLogo,
-            detectedFont
-          )
-          
-          return {
+      for (let index = 0; index < uploadedScreenshots.length; index++) {
+        const screenshot = uploadedScreenshots[index]
+        
+        const aiLayout = await generateLayoutForScreenshot(
+          screenshot,
+          userPrompt || 'mobile app',
+          uploadedLogo,
+          index
+        )
+
+        if (aiLayout) {
+          const layers = createLayersFromAILayout(aiLayout, screenshot, uploadedLogo)
+          generatedScreens.push({
             id: `screen_${index + 1}`,
-            name: `Screenshot ${index + 1}`,
-            backgroundColor: templateLayers[0]?.backgroundColor || bgColor,
-            templateId: templateId,
-            layers: templateLayers as Layer[]
-          }
-        })
+            name: `Screen ${index + 1}`,
+            backgroundColor: aiLayout.backgroundColor,
+            layers
+          })
+        } else {
+          const fallbackLayers = createFallbackLayers(screenshot, index, uploadedLogo)
+          generatedScreens.push({
+            id: `screen_${index + 1}`,
+            name: `Screen ${index + 1}`,
+            backgroundColor: getRandomBackground(index),
+            layers: fallbackLayers
+          })
+        }
       }
 
       setScreens(generatedScreens)
       setCurrentScreenId(generatedScreens[0]?.id || "")
+    } catch (error) {
+      console.error('Failed to generate screens:', error)
+      const fallbackScreens = uploadedScreenshots.map((screenshot, index) => ({
+        id: `screen_${index + 1}`,
+        name: `Screen ${index + 1}`,
+        backgroundColor: getRandomBackground(index),
+        layers: createFallbackLayers(screenshot, index, uploadedLogo)
+      }))
+      setScreens(fallbackScreens)
+      setCurrentScreenId(fallbackScreens[0]?.id || "")
+    } finally {
       setIsGenerating(false)
-    }, 1500)
-  }
-
-  const extractAppContext = (prompt: string): string => {
-    const lower = prompt.toLowerCase()
-    if (lower.includes('finance') || lower.includes('budget') || lower.includes('money')) return 'finance'
-    if (lower.includes('fitness') || lower.includes('health') || lower.includes('workout')) return 'fitness'
-    if (lower.includes('meditation') || lower.includes('mindfulness') || lower.includes('calm')) return 'meditation'
-    if (lower.includes('social') || lower.includes('chat') || lower.includes('message')) return 'social'
-    if (lower.includes('food') || lower.includes('recipe') || lower.includes('cooking')) return 'food'
-    if (lower.includes('travel') || lower.includes('trip')) return 'travel'
-    return 'general'
-  }
-
-  const generateContextualHeadline = (index: number, context: string): string => {
-    const headlines: Record<string, string[]> = {
-      finance: ["Track Every Expense", "Budget Smarter", "Reach Your Goals", "Control Your Money", "Save More Today"],
-      fitness: ["Achieve Your Goals", "Track Your Progress", "Stay Motivated", "Transform Your Body", "Get Stronger"],
-      meditation: ["Find Your Peace", "Breathe & Relax", "Mindful Moments", "Reduce Stress", "Inner Calm"],
-      social: ["Stay Connected", "Share Your Story", "Build Community", "Connect & Engage", "Join The Conversation"],
-      food: ["Cook Like A Pro", "Delicious Recipes", "Meal Planning Made Easy", "Healthy & Tasty", "Your Kitchen Companion"],
-      travel: ["Explore The World", "Plan Your Journey", "Discover New Places", "Travel Smarter", "Adventure Awaits"],
-      general: ["Transform Your Experience", "Built For You", "Simple. Powerful.", "Everything You Need", "Start Today"]
     }
-    const contextHeadlines = headlines[context] || headlines.general
-    return contextHeadlines[index % contextHeadlines.length]
   }
 
-  const generateContextualSubtitle = (index: number, context: string): string => {
-    const subtitles: Record<string, string[]> = {
-      finance: ["Smart insights for your money", "Reach your savings goals faster", "Budget with confidence", "Financial freedom starts here", "Your money, simplified"],
-      fitness: ["Personalized workouts for your goals", "Track progress & stay consistent", "Join thousands getting results", "Your fitness journey begins", "Transform your lifestyle"],
-      meditation: ["Guided sessions for peace of mind", "Reduce stress in minutes", "Your daily moment of calm", "Find balance & clarity", "Breathe. Relax. Reset."],
-      social: ["Connect with people who matter", "Share moments that count", "Build meaningful relationships", "Your community awaits", "Express yourself freely"],
-      food: ["Hundreds of delicious recipes", "Plan meals in seconds", "Healthy eating made simple", "Cook with confidence", "Discover new favorites"],
-      travel: ["Plan trips with ease", "Discover hidden gems", "Travel guides at your fingertips", "Make memories everywhere", "Your next adventure starts here"],
-      general: ["Features that work for you", "Designed with your needs in mind", "Simple, intuitive, powerful", "Join thousands of happy users", "Experience the difference"]
+  const createLayersFromAILayout = (layout: ScreenAssetLayout, screenshot: string, logo?: string): Layer[] => {
+    const layers: Layer[] = []
+
+    layers.push({
+      id: `bg_${Date.now()}`,
+      type: "background",
+      content: "",
+      x: 0,
+      y: 0,
+      width: 1242,
+      height: 2688,
+      backgroundColor: layout.backgroundColor
+    })
+
+    layers.push({
+      id: `mockup_${Date.now()}`,
+      type: "mockup",
+      content: screenshot,
+      x: layout.screenshotPosition.x,
+      y: layout.screenshotPosition.y,
+      width: layout.screenshotPosition.width,
+      height: layout.screenshotPosition.height,
+      mockupFrame: {
+        x: 0,
+        y: 0,
+        width: layout.screenshotPosition.width,
+        height: layout.screenshotPosition.height,
+        borderRadius: 40
+      }
+    })
+
+    layers.push({
+      id: `headline_${Date.now()}`,
+      type: "text",
+      content: layout.headline,
+      x: layout.headlinePosition.x,
+      y: layout.headlinePosition.y,
+      width: 1000,
+      height: 100,
+      fontSize: layout.fontSize?.headline || 72,
+      fontFamily: layout.fontFamily || screenshotAnalysis?.typography?.primaryFont || 'Inter',
+      color: layout.textColor,
+      bold: true,
+      align: "center"
+    })
+
+    if (layout.subtitle && layout.subtitlePosition) {
+      layers.push({
+        id: `subtitle_${Date.now()}`,
+        type: "text",
+        content: layout.subtitle,
+        x: layout.subtitlePosition.x,
+        y: layout.subtitlePosition.y,
+        width: 900,
+        height: 60,
+        fontSize: layout.fontSize?.subtitle || 36,
+        fontFamily: layout.fontFamily || screenshotAnalysis?.typography?.primaryFont || 'Inter',
+        color: layout.textColor,
+        align: "center"
+      })
     }
-    const contextSubtitles = subtitles[context] || subtitles.general
-    return contextSubtitles[index % contextSubtitles.length]
+
+    if (logo && layout.logoPosition) {
+      layers.push({
+        id: `logo_${Date.now()}`,
+        type: "image",
+        content: logo,
+        x: layout.logoPosition.x,
+        y: layout.logoPosition.y,
+        width: layout.logoPosition.width,
+        height: layout.logoPosition.height
+      })
+    }
+
+    if (layout.additionalAssets) {
+      layout.additionalAssets.forEach((asset, idx) => {
+        if (uploadedAssets[idx]) {
+          layers.push({
+            id: `asset_${Date.now()}_${idx}`,
+            type: "decoration",
+            content: uploadedAssets[idx],
+            x: asset.position.x,
+            y: asset.position.y,
+            width: asset.position.width,
+            height: asset.position.height
+          })
+        }
+      })
+    }
+
+    return layers
   }
 
-  const generateHeadline = (index: number): string => {
-    return generateContextualHeadline(index, 'general')
+  const createFallbackLayers = (screenshot: string, index: number, logo?: string): Layer[] => {
+    const layers: Layer[] = []
+    const bgColor = getRandomBackground(index)
+
+    layers.push({
+      id: `bg_${Date.now()}`,
+      type: "background",
+      content: "",
+      x: 0,
+      y: 0,
+      width: 1242,
+      height: 2688,
+      backgroundColor: bgColor
+    })
+
+    layers.push({
+      id: `mockup_${Date.now()}`,
+      type: "mockup",
+      content: screenshot,
+      x: 371,
+      y: 900,
+      width: 500,
+      height: 1080,
+      mockupFrame: {
+        x: 0,
+        y: 0,
+        width: 500,
+        height: 1080,
+        borderRadius: 40
+      }
+    })
+
+    layers.push({
+      id: `headline_${Date.now()}`,
+      type: "text",
+      content: `Feature ${index + 1}`,
+      x: 621,
+      y: 400,
+      width: 1000,
+      height: 100,
+      fontSize: 72,
+      fontFamily: screenshotAnalysis?.typography?.primaryFont || 'Inter',
+      color: "#1A1A1A",
+      bold: true,
+      align: "center"
+    })
+
+    if (logo) {
+      layers.push({
+        id: `logo_${Date.now()}`,
+        type: "image",
+        content: logo,
+        x: 80,
+        y: 120,
+        width: 100,
+        height: 100
+      })
+    }
+
+    return layers
   }
 
-  const generateSubtitle = (index: number): string => {
-    return generateContextualSubtitle(index, 'general')
-  }
 
   const getRandomBackground = (index: number = 0): string => {
     // Priority 1: Use colors from screenshot analysis (extracted from actual app)
@@ -460,43 +543,42 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     updateScreenBackground(color, true)
   }
 
-  const changeTemplate = (templateId: string) => {
+  const regenerateCurrentScreen = async () => {
     if (!currentScreen) return
     
-    // Extract current content from layers
-    const currentScreenshot = currentScreen.layers.find(l => l.type === "mockup" || l.type === "image")?.content || ""
-    const currentHeadline = currentScreen.layers.find(l => l.type === "text" && l.fontSize && l.fontSize > 20)?.content || "Your App Feature"
-    const currentSubtitle = currentScreen.layers.find(l => l.type === "text" && l.fontSize && l.fontSize <= 16)?.content || "Discover amazing features"
-    
-    // If no screenshot found, can't change template
+    const currentScreenshot = currentScreen.layers.find(l => l.type === "mockup" || l.type === "image")?.content
     if (!currentScreenshot) {
       console.warn("No screenshot found in current screen")
       return
     }
-    
-    // Apply new template with existing content and detected font
-    const detectedFont = screenshotAnalysis?.typography?.primaryFont
-    const newLayers = applyTemplate(
-      templateId,
-      currentScreenshot,
-      currentHeadline,
-      currentSubtitle,
-      currentScreen.backgroundColor,
-      uploadedLogo,
-      detectedFont
-    )
-    
-    // Update screen with new template
-    setScreens(prev => prev.map(screen => 
-      screen.id === currentScreenId 
-        ? { 
-            ...screen, 
-            templateId: templateId,
-            backgroundColor: newLayers[0]?.backgroundColor || screen.backgroundColor,
-            layers: newLayers as Layer[]
-          }
-        : screen
-    ))
+
+    setIsGenerating(true)
+    try {
+      const screenIndex = screens.findIndex(s => s.id === currentScreenId)
+      const aiLayout = await generateLayoutForScreenshot(
+        currentScreenshot,
+        userPrompt || 'mobile app',
+        uploadedLogo,
+        screenIndex
+      )
+
+      if (aiLayout) {
+        const newLayers = createLayersFromAILayout(aiLayout, currentScreenshot, uploadedLogo)
+        setScreens(prev => prev.map(screen => 
+          screen.id === currentScreenId 
+            ? { 
+                ...screen, 
+                backgroundColor: aiLayout.backgroundColor,
+                layers: newLayers
+              }
+            : screen
+        ))
+      }
+    } catch (error) {
+      console.error('Failed to regenerate screen:', error)
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const addTextLayer = () => {
@@ -1105,36 +1187,32 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </div>
           </div>
 
-          {/* Template Switcher - Temporarily disabled
           {currentScreen && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-light text-neutral-900">Layout Template</h3>
+                <h3 className="text-xs font-light text-neutral-900">AI Layout</h3>
                 <Layout className="h-4 w-4 text-neutral-400" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {AVAILABLE_TEMPLATES.map(template => (
-                  <button
-                    key={template.id}
-                    onClick={() => changeTemplate(template.id)}
-                    className={`p-3 border text-left transition-all duration-200 ${
-                      currentScreen.templateId === template.id
-                        ? 'bg-neutral-900 text-white border-neutral-900'
-                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <div className="text-xs font-light mb-0.5">{template.name}</div>
-                    <div className={`text-[10px] font-light ${
-                      currentScreen.templateId === template.id ? 'text-neutral-400' : 'text-neutral-500'
-                    }`}>
-                      {template.description}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={regenerateCurrentScreen}
+                disabled={isGenerating}
+                className="w-full p-3 border border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent"></div>
+                    <span className="text-xs font-light text-neutral-600">Regenerating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Layout className="h-4 w-4 text-neutral-600" />
+                    <span className="text-xs font-light text-neutral-900">Regenerate with AI</span>
+                  </>
+                )}
+              </button>
+              <p className="text-[9px] font-light text-neutral-500">AI will analyze your screenshot and create a new layout with contextual text and positioning</p>
             </div>
           )}
-          */}
 
           {/* Background Color - Minimalist */}
           <div className="space-y-3">
