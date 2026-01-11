@@ -545,6 +545,53 @@ export interface ScreenAssetLayout {
   textColor: string
   fontFamily?: string
   fontSize?: { headline: number; subtitle: number }
+  layoutType?: 'centered' | 'top-text' | 'bottom-text' | 'side-by-side'
+}
+
+/**
+ * Layout template presets with different arrangements
+ */
+export const LAYOUT_TEMPLATES = {
+  centered: {
+    name: 'Centered Layout',
+    description: 'Text above, phone in center',
+    screenshotPosition: { x: 371, y: 900, width: 500, height: 1080 },
+    headlinePosition: { x: 621, y: 300 },
+    subtitlePosition: { x: 621, y: 420 },
+    logoPosition: { x: 80, y: 120, width: 100, height: 100 }
+  },
+  topText: {
+    name: 'Top Text Layout',
+    description: 'Text at top, large phone below',
+    screenshotPosition: { x: 321, y: 1100, width: 600, height: 1300 },
+    headlinePosition: { x: 621, y: 200 },
+    subtitlePosition: { x: 621, y: 340 },
+    logoPosition: { x: 571, y: 500, width: 100, height: 100 }
+  },
+  bottomText: {
+    name: 'Bottom Text Layout',
+    description: 'Large phone at top, text below',
+    screenshotPosition: { x: 321, y: 300, width: 600, height: 1300 },
+    headlinePosition: { x: 621, y: 1750 },
+    subtitlePosition: { x: 621, y: 1900 },
+    logoPosition: { x: 571, y: 2100, width: 100, height: 100 }
+  },
+  sideBySide: {
+    name: 'Side by Side Layout',
+    description: 'Phone on one side, text on other',
+    screenshotPosition: { x: 100, y: 800, width: 450, height: 970 },
+    headlinePosition: { x: 750, y: 1100 },
+    subtitlePosition: { x: 750, y: 1240 },
+    logoPosition: { x: 750, y: 900, width: 100, height: 100 }
+  }
+} as const
+
+/**
+ * Get a predefined layout template based on index
+ */
+export function getLayoutTemplate(index: number): typeof LAYOUT_TEMPLATES[keyof typeof LAYOUT_TEMPLATES] {
+  const templates = Object.values(LAYOUT_TEMPLATES)
+  return templates[index % templates.length]
 }
 
 export async function generateLayoutForScreenshot(
@@ -554,9 +601,19 @@ export async function generateLayoutForScreenshot(
   index?: number
 ): Promise<ScreenAssetLayout | null> {
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  
+  // Use template-based layouts as fallback or default
+  const templateIndex = index ?? 0
+  const template = getLayoutTemplate(templateIndex)
+  
+  // Determine layout type based on index
+  const layoutTypes: Array<'centered' | 'top-text' | 'bottom-text' | 'side-by-side'> = 
+    ['centered', 'top-text', 'bottom-text', 'side-by-side']
+  const layoutType = layoutTypes[templateIndex % layoutTypes.length]
+
   if (!apiKey) {
-    console.warn('Gemini API key not found for layout generation')
-    return null
+    console.warn('Gemini API key not found, using template layouts')
+    return createFallbackLayout(template, userPrompt, templateIndex, layoutType)
   }
 
   try {
@@ -580,6 +637,7 @@ export async function generateLayoutForScreenshot(
 
 User Context: "${userPrompt}"
 Screenshot Index: ${index ?? 0}
+Layout Type: ${layoutType}
 
 ANALYZE THE SCREENSHOT:
 1. Identify the main UI elements, key features, and focal points
@@ -595,12 +653,18 @@ Based on the screenshot content, create:
 - Background color that complements the app
 - Text positioning that doesn't overlap with important UI elements
 
+LAYOUT TYPE GUIDELINES:
+${layoutType === 'centered' ? '- Phone centered, text above' : ''}
+${layoutType === 'top-text' ? '- Text at top, large phone below' : ''}
+${layoutType === 'bottom-text' ? '- Large phone at top, text at bottom' : ''}
+${layoutType === 'side-by-side' ? '- Phone on left, text on right side' : ''}
+
 POSITIONING RULES:
 - Canvas size: 1242px wide x 2688px tall
-- Screenshot mockup: typically 500-700px wide, positioned strategically
-- Headline: typically y=200-400, centered or offset based on design
-- Subtitle: 80-120px below headline
-- Logo (if provided): usually top corner or near headline, ~80-120px size
+- Screenshot mockup: typically 450-600px wide, positioned strategically
+- Headline: typically y=200-400 for top layouts, y=1750+ for bottom layouts
+- Subtitle: 80-140px below headline
+- Logo (if provided): ~80-120px size
 - Text should have good contrast and breathing room
 - Consider visual balance and hierarchy
 
@@ -612,17 +676,11 @@ Return ONLY valid JSON:
   "subtitlePosition": {"x": 621, "y": 420},
   "screenshotPosition": {"x": 371, "y": 800, "width": 500, "height": 1080},
   "logoPosition": {"x": 80, "y": 120, "width": 100, "height": 100},
-  "additionalAssets": [
-    {
-      "type": "icon",
-      "position": {"x": 100, "y": 500, "width": 60, "height": 60},
-      "content": "checkmark or decorative element description"
-    }
-  ],
   "backgroundColor": "#F5F7FA",
   "textColor": "#1A1A1A",
   "fontFamily": "Inter",
-  "fontSize": {"headline": 72, "subtitle": 36}
+  "fontSize": {"headline": 72, "subtitle": 36},
+  "layoutType": "${layoutType}"
 }`
 
       const result = await model.generateContent([
@@ -641,11 +699,49 @@ Return ONLY valid JSON:
       const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const layout = JSON.parse(cleanText) as ScreenAssetLayout
 
-      return layout
+      return { ...layout, layoutType }
     }, 3, 2000)
   } catch (error: any) {
-    console.error('Layout generation error:', error)
-    return null
+    console.error('Layout generation error, using template:', error)
+    return createFallbackLayout(template, userPrompt, templateIndex, layoutType)
+  }
+}
+
+/**
+ * Create a fallback layout using templates
+ */
+function createFallbackLayout(
+  template: typeof LAYOUT_TEMPLATES[keyof typeof LAYOUT_TEMPLATES],
+  userPrompt: string,
+  index: number,
+  layoutType: 'centered' | 'top-text' | 'bottom-text' | 'side-by-side'
+): ScreenAssetLayout {
+  const headlines = [
+    'Discover Amazing Features',
+    'Simplify Your Workflow',
+    'Stay Connected Anywhere',
+    'Track Your Progress'
+  ]
+  
+  const subtitles = [
+    'Everything you need in one place',
+    'Built for speed and simplicity',
+    'Real-time updates that matter',
+    'Achieve your goals faster'
+  ]
+
+  return {
+    headline: headlines[index % headlines.length],
+    subtitle: subtitles[index % subtitles.length],
+    headlinePosition: template.headlinePosition,
+    subtitlePosition: template.subtitlePosition,
+    screenshotPosition: template.screenshotPosition,
+    logoPosition: template.logoPosition,
+    backgroundColor: '#F0F4FF',
+    textColor: '#1A1A1A',
+    fontFamily: 'Inter',
+    fontSize: { headline: 72, subtitle: 36 },
+    layoutType
   }
 }
 

@@ -6,7 +6,8 @@ import { VideoGenerator } from "./video-generator"
 
 import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
 import { IphoneMockup } from "./iphone-mockup"
-import { type ScreenshotAnalysisResult, generateLayoutForScreenshot, type ScreenAssetLayout } from "@/lib/screenshot-analyzer"
+import { IphoneMockupVariant, type IphoneMockupVariant as IphoneMockupVariantType } from "./iphone-mockup-variants"
+import { type ScreenshotAnalysisResult, generateLayoutForScreenshot, type ScreenAssetLayout, LAYOUT_TEMPLATES, getLayoutTemplate } from "@/lib/screenshot-analyzer"
 
 interface Layer {
   id: string
@@ -31,6 +32,7 @@ interface Layer {
     height: number
     borderRadius?: number
   }
+  mockupVariant?: IphoneMockupVariantType // NEW: mockup style variant
   // Background specific
   backgroundColor?: string
   backgroundGradient?: {
@@ -109,7 +111,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         )
 
         if (aiLayout) {
-          const layers = createLayersFromAILayout(aiLayout, screenshot, uploadedLogo)
+          const layers = createLayersFromAILayout(aiLayout, screenshot, uploadedLogo, index)
           generatedScreens.push({
             id: `screen_${index + 1}`,
             name: `Screen ${index + 1}`,
@@ -144,9 +146,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     }
   }
 
-  const createLayersFromAILayout = (layout: ScreenAssetLayout, screenshot: string, logo?: string): Layer[] => {
+  const createLayersFromAILayout = (layout: ScreenAssetLayout, screenshot: string, logo?: string, screenIndex: number = 0): Layer[] => {
     const layers: Layer[] = []
 
+    // Background layer
     layers.push({
       id: `bg_${Date.now()}`,
       type: "background",
@@ -158,10 +161,15 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       backgroundColor: layout.backgroundColor
     })
 
+    // Determine mockup variant based on screen index
+    const mockupVariants: IphoneMockupVariantType[] = ['default', 'black', 'minimal', 'shadow']
+    const mockupVariant = mockupVariants[screenIndex % mockupVariants.length]
+
+    // Mockup layer with screenshot - CRITICAL: ensure screenshot is visible
     layers.push({
       id: `mockup_${Date.now()}`,
       type: "mockup",
-      content: screenshot,
+      content: screenshot, // This is the actual screenshot data URL
       x: layout.screenshotPosition.x,
       y: layout.screenshotPosition.y,
       width: layout.screenshotPosition.width,
@@ -172,7 +180,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         width: layout.screenshotPosition.width,
         height: layout.screenshotPosition.height,
         borderRadius: 40
-      }
+      },
+      mockupVariant // NEW: different phone frame styles
     })
 
     layers.push({
@@ -252,6 +261,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       backgroundColor: bgColor
     })
 
+    // Determine mockup variant based on screen index
+    const mockupVariants: IphoneMockupVariantType[] = ['default', 'black', 'minimal', 'shadow']
+    const mockupVariant = mockupVariants[index % mockupVariants.length]
+
     layers.push({
       id: `mockup_${Date.now()}`,
       type: "mockup",
@@ -266,7 +279,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         width: 500,
         height: 1080,
         borderRadius: 40
-      }
+      },
+      mockupVariant
     })
 
     layers.push({
@@ -543,6 +557,78 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     updateScreenBackground(color, true)
   }
 
+  const updateMockupVariant = (variant: IphoneMockupVariantType) => {
+    if (!currentScreen) return
+    
+    setScreens(prev => prev.map(screen => {
+      if (screen.id !== currentScreenId) return screen
+      
+      const updatedLayers = screen.layers.map(layer => {
+        if (layer.type === 'mockup') {
+          return { ...layer, mockupVariant: variant }
+        }
+        return layer
+      })
+
+      return { ...screen, layers: updatedLayers }
+    }))
+  }
+
+  const applyLayoutTemplate = (templateKey: keyof typeof LAYOUT_TEMPLATES) => {
+    if (!currentScreen) return
+    
+    const template = LAYOUT_TEMPLATES[templateKey]
+    const mockupLayer = currentScreen.layers.find(l => l.type === 'mockup')
+    const headlineLayer = currentScreen.layers.find(l => l.type === 'text' && l.bold)
+    const subtitleLayer = currentScreen.layers.find(l => l.type === 'text' && !l.bold)
+    const logoLayer = currentScreen.layers.find(l => l.type === 'image')
+
+    setScreens(prev => prev.map(screen => {
+      if (screen.id !== currentScreenId) return screen
+      
+      const updatedLayers = screen.layers.map(layer => {
+        if (layer.id === mockupLayer?.id) {
+          return {
+            ...layer,
+            x: template.screenshotPosition.x,
+            y: template.screenshotPosition.y,
+            width: template.screenshotPosition.width,
+            height: template.screenshotPosition.height
+          }
+        }
+        if (layer.id === headlineLayer?.id) {
+          return {
+            ...layer,
+            x: template.headlinePosition.x,
+            y: template.headlinePosition.y
+          }
+        }
+        if (layer.id === subtitleLayer?.id) {
+          return {
+            ...layer,
+            x: template.subtitlePosition.x,
+            y: template.subtitlePosition.y
+          }
+        }
+        if (layer.id === logoLayer?.id && template.logoPosition) {
+          return {
+            ...layer,
+            x: template.logoPosition.x,
+            y: template.logoPosition.y,
+            width: template.logoPosition.width,
+            height: template.logoPosition.height
+          }
+        }
+        return layer
+      })
+
+      return {
+        ...screen,
+        layers: updatedLayers
+      }
+    }))
+  }
+
   const regenerateCurrentScreen = async () => {
     if (!currentScreen) return
     
@@ -563,7 +649,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       )
 
       if (aiLayout) {
-        const newLayers = createLayersFromAILayout(aiLayout, currentScreenshot, uploadedLogo)
+        const newLayers = createLayersFromAILayout(aiLayout, currentScreenshot, uploadedLogo, screenIndex)
         setScreens(prev => prev.map(screen => 
           screen.id === currentScreenId 
             ? { 
@@ -1031,10 +1117,19 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       {/* iPhone Mockup Frame with Screenshot Inside */}
                       {layer.type === "mockup" && (
                         <>
-                          <IphoneMockup 
-                            src={layer.content}
-                            className="w-full h-full"
-                          />
+                          {/* Debug: Show if screenshot content exists */}
+                          {!layer.content && (
+                            <div className="w-full h-full flex items-center justify-center bg-neutral-100 border-2 border-dashed border-neutral-300">
+                              <p className="text-xs text-neutral-400 text-center px-4">No screenshot</p>
+                            </div>
+                          )}
+                          {layer.content && (
+                            <IphoneMockupVariant 
+                              src={layer.content}
+                              variant={layer.mockupVariant || 'default'}
+                              className="w-full h-full"
+                            />
+                          )}
                           {/* Resize Handle */}
                           {isSelected && (
                             <div
@@ -1190,9 +1285,83 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           {currentScreen && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-light text-neutral-900">AI Layout</h3>
+                <h3 className="text-xs font-light text-neutral-900">Layout Templates</h3>
                 <Layout className="h-4 w-4 text-neutral-400" />
               </div>
+              
+              {/* Layout Type Indicator */}
+              {currentScreen.layers.find(l => l.type === "mockup") && (
+                <div className="bg-neutral-50 p-3 border border-neutral-200">
+                  <p className="text-[10px] text-neutral-500 mb-2 font-light">Current Layout Style:</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-neutral-900 flex items-center justify-center text-white text-[10px] font-light">
+                      {screens.findIndex(s => s.id === currentScreenId) % 4 + 1}
+                    </div>
+                    <span className="text-xs font-light text-neutral-900">
+                      {['Centered', 'Top Text', 'Bottom Text', 'Side by Side'][screens.findIndex(s => s.id === currentScreenId) % 4]}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Layout Template Selector with Visual Previews */}
+              <div className="space-y-2">
+                <p className="text-[10px] text-neutral-400 font-light">Choose Layout</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(LAYOUT_TEMPLATES) as Array<keyof typeof LAYOUT_TEMPLATES>).map((key, idx) => {
+                    const template = LAYOUT_TEMPLATES[key]
+                    const icons = ['▭', '▬', '▬', '▭']
+                    const positions = [
+                      'text-top', // centered
+                      'text-top', // top text
+                      'text-bottom', // bottom text
+                      'flex-row' // side by side
+                    ]
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => applyLayoutTemplate(key)}
+                        className="p-3 border border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50 transition-all duration-200"
+                        title={template.description}
+                      >
+                        <div className="flex items-center justify-center mb-2">
+                          <div className={`text-xl ${positions[idx] === 'flex-row' ? 'rotate-0' : ''}`}>
+                            {icons[idx]}
+                          </div>
+                        </div>
+                        <div className="text-[10px] font-light text-neutral-900 text-center">
+                          {template.name.replace(' Layout', '')}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[8px] font-light text-neutral-400 italic">Click to reposition all elements</p>
+              </div>
+
+              {/* Mockup Style Selector */}
+              <div className="space-y-2">
+                <p className="text-[10px] text-neutral-400 font-light">Phone Frame Style</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['default', 'black', 'minimal', 'shadow'] as IphoneMockupVariantType[]).map((variant) => (
+                    <button
+                      key={variant}
+                      onClick={() => updateMockupVariant(variant)}
+                      className={`p-2 border transition-all duration-200 text-center ${
+                        currentScreen.layers.find(l => l.type === 'mockup')?.mockupVariant === variant
+                          ? 'border-neutral-900 bg-neutral-50'
+                          : 'border-neutral-200 hover:border-neutral-400'
+                      }`}
+                      title={variant.charAt(0).toUpperCase() + variant.slice(1)}
+                    >
+                      <div className="text-[9px] font-light text-neutral-900 capitalize">
+                        {variant}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
               <button
                 onClick={regenerateCurrentScreen}
                 disabled={isGenerating}
