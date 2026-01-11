@@ -32,6 +32,49 @@ export interface ScreenshotAnalysisResult {
 }
 
 /**
+ * Screen asset layout for positioning elements
+ */
+export interface ScreenAssetLayout {
+  backgroundColor: string
+  screenshotPosition: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  headline: string
+  headlinePosition: {
+    x: number
+    y: number
+  }
+  subtitle?: string
+  subtitlePosition?: {
+    x: number
+    y: number
+  }
+  logoPosition?: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  textColor: string
+  fontFamily?: string
+  fontSize?: {
+    headline: number
+    subtitle: number
+  }
+  additionalAssets?: Array<{
+    position: {
+      x: number
+      y: number
+      width: number
+      height: number
+    }
+  }>
+}
+
+/**
  * Extract dominant colors from an image using Canvas API (fallback method)
  */
 export async function extractColorsFromScreenshot(imageDataUrl: string): Promise<string[]> {
@@ -202,71 +245,6 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Convert AI-detected font names to CSS font-family strings
- */
-function convertFontNameToCSSFontFamily(fontName: string): string {
-  const fontMap: { [key: string]: string } = {
-    // iOS/Apple fonts
-    'san francisco': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif',
-    'sf pro': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif',
-    'sf': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif',
-    'helvetica': '"Helvetica Neue", Helvetica, Arial, sans-serif',
-    'helvetica neue': '"Helvetica Neue", Helvetica, Arial, sans-serif',
-    
-    // Android fonts
-    'roboto': '"Roboto", -apple-system, BlinkMacSystemFont, sans-serif',
-    'google sans': '"Google Sans", "Roboto", sans-serif',
-    'product sans': '"Product Sans", "Roboto", sans-serif',
-    
-    // Popular web fonts
-    'inter': '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-    'poppins': '"Poppins", -apple-system, BlinkMacSystemFont, sans-serif',
-    'montserrat': '"Montserrat", -apple-system, BlinkMacSystemFont, sans-serif',
-    'open sans': '"Open Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-    'lato': '"Lato", -apple-system, BlinkMacSystemFont, sans-serif',
-    'raleway': '"Raleway", -apple-system, BlinkMacSystemFont, sans-serif',
-    'nunito': '"Nunito", -apple-system, BlinkMacSystemFont, sans-serif',
-    'work sans': '"Work Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-    'dm sans': '"DM Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-    'plus jakarta sans': '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-    'space grotesk': '"Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif',
-    'manrope': '"Manrope", -apple-system, BlinkMacSystemFont, sans-serif',
-    
-    // Style-based fonts
-    'rounded': '"Nunito", "Quicksand", -apple-system, BlinkMacSystemFont, sans-serif',
-    'geometric': '"Montserrat", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif',
-    'modern': '"Inter", "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif',
-    'elegant': '"Playfair Display", "Merriweather", Georgia, serif',
-    'classic': '"Georgia", "Times New Roman", serif',
-    'playful': '"Quicksand", "Nunito", -apple-system, BlinkMacSystemFont, sans-serif',
-    'minimal': '"Inter", "Helvetica Neue", -apple-system, BlinkMacSystemFont, sans-serif',
-    'bold': '"Montserrat", "Oswald", -apple-system, BlinkMacSystemFont, sans-serif',
-    
-    // Generic fallbacks
-    'sans-serif': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    'serif': 'Georgia, "Times New Roman", Times, serif',
-    'monospace': '"Courier New", Courier, monospace',
-  }
-  
-  const lowerFont = fontName.toLowerCase().trim()
-  
-  // Check for exact matches
-  if (fontMap[lowerFont]) {
-    return fontMap[lowerFont]
-  }
-  
-  // Check for partial matches
-  for (const [key, value] of Object.entries(fontMap)) {
-    if (lowerFont.includes(key) || key.includes(lowerFont)) {
-      return value
-    }
-  }
-  
-  // If no match found, return the original with fallbacks
-  return `"${fontName}", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
-}
-
-/**
  * Analyze screenshot using Google Gemini Vision API
  * Detects fonts, colors, typography, and design characteristics
  * Includes rate limiting and retry logic
@@ -304,8 +282,7 @@ IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks, no explanations.
 
 Extract and identify:
 1. **Typography & Fonts**:
-   - What font family/style does this app use? Be SPECIFIC. Examples: "San Francisco", "SF Pro", "Roboto", "Inter", "Poppins", "Montserrat", "Rounded", "Geometric"
-   - If you can't identify the exact font, describe its characteristics: "Modern Sans-serif", "Rounded Sans-serif", "Geometric Sans-serif", "Classic Serif"
+   - What font family/style does this app use? (e.g., "San Francisco", "Roboto", "Inter", "Custom Sans-serif", "Rounded", "Geometric")
    - Font characteristics: modern, classic, playful, minimal, bold, elegant
    - Headline/title sizes: large, medium, small
    - Text hierarchy: clear, subtle, minimal
@@ -334,7 +311,7 @@ Return as JSON:
   "suggestedBackgrounds": ["#hex1", "#hex2", "#hex3", "#hex4"],
   "mood": "vibrant|calm|professional|playful|minimal",
   "typography": {
-    "primaryFont": "Specific font name (e.g. 'SF Pro', 'Roboto', 'Inter')",
+    "primaryFont": "Font name or style",
     "secondaryFont": "Font name or style",
     "fontStyle": "modern|classic|playful|minimal|bold",
     "headlineSize": "large|medium|small",
@@ -365,13 +342,6 @@ Return as JSON:
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const analysis = JSON.parse(cleanText)
 
-    // Convert detected font to CSS font-family
-    let convertedFont: string | undefined = undefined
-    if (analysis.typography?.primaryFont) {
-      convertedFont = convertFontNameToCSSFontFamily(analysis.typography.primaryFont)
-      console.log(`🔤 Detected font: "${analysis.typography.primaryFont}" → CSS: "${convertedFont}"`)
-    }
-
     // Validate and normalize the response
     const normalized: ScreenshotAnalysisResult = {
       dominantColors: Array.isArray(analysis.dominantColors) 
@@ -384,10 +354,7 @@ Return as JSON:
         ? analysis.mood
         : 'minimal',
       suggestedTemplates: suggestTemplatesForMood(analysis.mood || 'minimal'),
-      typography: {
-        ...analysis.typography,
-        primaryFont: convertedFont || analysis.typography?.primaryFont
-      },
+      typography: analysis.typography,
       designStyle: analysis.designStyle
     }
 
@@ -529,158 +496,86 @@ export function suggestTemplatesForMood(mood: string): string[] {
   }
 }
 
-export interface ScreenAssetLayout {
-  headline: string
-  subtitle?: string
-  headlinePosition: { x: number; y: number }
-  subtitlePosition?: { x: number; y: number }
-  screenshotPosition: { x: number; y: number; width: number; height: number }
-  logoPosition?: { x: number; y: number; width: number; height: number }
-  additionalAssets?: Array<{
-    type: 'icon' | 'decoration' | 'badge'
-    position: { x: number; y: number; width: number; height: number }
-    content?: string
-  }>
-  backgroundColor: string
-  textColor: string
-  fontFamily?: string
-  fontSize?: { headline: number; subtitle: number }
-  layoutType?: 'centered' | 'top-text' | 'bottom-text' | 'side-by-side'
-}
-
 /**
- * Layout template presets with different arrangements
+ * Generate layout for a screenshot using AI
  */
-export const LAYOUT_TEMPLATES = {
-  centered: {
-    name: 'Centered Layout',
-    description: 'Text above, phone in center',
-    screenshotPosition: { x: 371, y: 900, width: 500, height: 1080 },
-    headlinePosition: { x: 621, y: 300 },
-    subtitlePosition: { x: 621, y: 420 },
-    logoPosition: { x: 80, y: 120, width: 100, height: 100 }
-  },
-  topText: {
-    name: 'Top Text Layout',
-    description: 'Text at top, large phone below',
-    screenshotPosition: { x: 321, y: 1100, width: 600, height: 1300 },
-    headlinePosition: { x: 621, y: 200 },
-    subtitlePosition: { x: 621, y: 340 },
-    logoPosition: { x: 571, y: 500, width: 100, height: 100 }
-  },
-  bottomText: {
-    name: 'Bottom Text Layout',
-    description: 'Large phone at top, text below',
-    screenshotPosition: { x: 321, y: 300, width: 600, height: 1300 },
-    headlinePosition: { x: 621, y: 1750 },
-    subtitlePosition: { x: 621, y: 1900 },
-    logoPosition: { x: 571, y: 2100, width: 100, height: 100 }
-  },
-  sideBySide: {
-    name: 'Side by Side Layout',
-    description: 'Phone on one side, text on other',
-    screenshotPosition: { x: 100, y: 800, width: 450, height: 970 },
-    headlinePosition: { x: 750, y: 1100 },
-    subtitlePosition: { x: 750, y: 1240 },
-    logoPosition: { x: 750, y: 900, width: 100, height: 100 }
-  }
-} as const
-
-/**
- * Get a predefined layout template based on index
- */
-export function getLayoutTemplate(index: number): typeof LAYOUT_TEMPLATES[keyof typeof LAYOUT_TEMPLATES] {
-  const templates = Object.values(LAYOUT_TEMPLATES)
-  return templates[index % templates.length]
-}
-
 export async function generateLayoutForScreenshot(
-  screenshotDataUrl: string,
+  screenshot: string,
   userPrompt: string,
   logo?: string,
-  index?: number
+  index: number = 0
 ): Promise<ScreenAssetLayout | null> {
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-  
-  // Use template-based layouts as fallback or default
-  const templateIndex = index ?? 0
-  const template = getLayoutTemplate(templateIndex)
-  
-  // Determine layout type based on index
-  const layoutTypes: Array<'centered' | 'top-text' | 'bottom-text' | 'side-by-side'> = 
-    ['centered', 'top-text', 'bottom-text', 'side-by-side']
-  const layoutType = layoutTypes[templateIndex % layoutTypes.length]
-
   if (!apiKey) {
-    console.warn('Gemini API key not found, using template layouts')
-    return createFallbackLayout(template, userPrompt, templateIndex, layoutType)
+    console.warn('Gemini API key not found, using fallback layout')
+    return generateFallbackLayout(index)
   }
 
   try {
+    // Wait for rate limit
     await waitForRateLimit()
 
+    // Wrap API call with retry logic
     return await retryWithBackoff(async () => {
       const genAI = new GoogleGenerativeAI(apiKey)
       const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         generationConfig: {
           temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
+          topK: 32,
+          topP: 1,
           maxOutputTokens: 2048,
         }
       })
 
-      const base64Data = screenshotDataUrl.replace(/^data:image\/\w+;base64,/, '')
+      // Remove data URL prefix to get base64
+      const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, '')
 
-      const prompt = `Analyze this mobile app screenshot and generate a complete App Store screenshot layout with text and asset positioning.
+      const prompt = `Analyze this mobile app screenshot and create an App Store screenshot layout.
 
-User Context: "${userPrompt}"
-Screenshot Index: ${index ?? 0}
-Layout Type: ${layoutType}
+User's app description: "${userPrompt}"
 
-ANALYZE THE SCREENSHOT:
-1. Identify the main UI elements, key features, and focal points
-2. Understand what this screen is showing (dashboard, profile, settings, etc.)
-3. Extract the color scheme and visual style
-4. Determine the best way to present this screen to App Store users
+Based on the screenshot and description, generate a layout for an App Store preview image (1242x2688px).
 
-GENERATE A LAYOUT:
-Based on the screenshot content, create:
-- A compelling headline that describes what users see (max 50 chars)
-- Optional subtitle with more details (max 80 chars)
-- Exact pixel positions for all elements on a 1242x2688 canvas (iPhone 14 Pro Max)
-- Background color that complements the app
-- Text positioning that doesn't overlap with important UI elements
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks, no explanations.
 
-LAYOUT TYPE GUIDELINES:
-${layoutType === 'centered' ? '- Phone centered, text above' : ''}
-${layoutType === 'top-text' ? '- Text at top, large phone below' : ''}
-${layoutType === 'bottom-text' ? '- Large phone at top, text at bottom' : ''}
-${layoutType === 'side-by-side' ? '- Phone on left, text on right side' : ''}
+Provide:
+1. A compelling headline (3-6 words) that highlights the key feature shown in this screenshot
+2. An optional subtitle (if needed for clarity)
+3. Positioning for the screenshot mockup (should be centered or slightly offset)
+4. Text positioning that doesn't overlap with the screenshot
+5. A background color that complements the app's design
+6. Text color with good contrast
+7. Font sizes appropriate for App Store screenshots
 
-POSITIONING RULES:
-- Canvas size: 1242px wide x 2688px tall
-- Screenshot mockup: typically 450-600px wide, positioned strategically
-- Headline: typically y=200-400 for top layouts, y=1750+ for bottom layouts
-- Subtitle: 80-140px below headline
-- Logo (if provided): ~80-120px size
-- Text should have good contrast and breathing room
-- Consider visual balance and hierarchy
+Canvas size: 1242x2688px
+Screenshot mockup should be: ~500px wide, ~1080px tall
 
-Return ONLY valid JSON:
+Return as JSON:
 {
-  "headline": "Feature-focused headline based on what's in the screenshot",
-  "subtitle": "Optional supporting text",
-  "headlinePosition": {"x": 621, "y": 300},
-  "subtitlePosition": {"x": 621, "y": 420},
-  "screenshotPosition": {"x": 371, "y": 800, "width": 500, "height": 1080},
-  "logoPosition": {"x": 80, "y": 120, "width": 100, "height": 100},
-  "backgroundColor": "#F5F7FA",
-  "textColor": "#1A1A1A",
+  "backgroundColor": "#hexcolor",
+  "screenshotPosition": {
+    "x": number,
+    "y": number,
+    "width": 500,
+    "height": 1080
+  },
+  "headline": "Feature Headline",
+  "headlinePosition": {
+    "x": number,
+    "y": number
+  },
+  "subtitle": "Optional subtitle",
+  "subtitlePosition": {
+    "x": number,
+    "y": number
+  },
+  "textColor": "#hexcolor",
   "fontFamily": "Inter",
-  "fontSize": {"headline": 72, "subtitle": 36},
-  "layoutType": "${layoutType}"
+  "fontSize": {
+    "headline": 72,
+    "subtitle": 36
+  }
 }`
 
       const result = await model.generateContent([
@@ -696,52 +591,81 @@ Return ONLY valid JSON:
       const response = await result.response
       const text = response.text()
       
+      // Parse JSON response
       const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      const layout = JSON.parse(cleanText) as ScreenAssetLayout
+      const layout = JSON.parse(cleanText)
 
-      return { ...layout, layoutType }
-    }, 3, 2000)
+      // Validate and normalize the response
+      return {
+        backgroundColor: layout.backgroundColor || '#F0F4FF',
+        screenshotPosition: layout.screenshotPosition || {
+          x: 371,
+          y: 900,
+          width: 500,
+          height: 1080
+        },
+        headline: layout.headline || `Feature ${index + 1}`,
+        headlinePosition: layout.headlinePosition || {
+          x: 621,
+          y: 400
+        },
+        subtitle: layout.subtitle,
+        subtitlePosition: layout.subtitlePosition,
+        logoPosition: logo ? (layout.logoPosition || {
+          x: 80,
+          y: 120,
+          width: 100,
+          height: 100
+        }) : undefined,
+        textColor: layout.textColor || '#1A1A1A',
+        fontFamily: layout.fontFamily || 'Inter',
+        fontSize: layout.fontSize || {
+          headline: 72,
+          subtitle: 36
+        }
+      }
+    }, 3, 2000) // 3 retries, starting with 2 second delay
   } catch (error: any) {
-    console.error('Layout generation error, using template:', error)
-    return createFallbackLayout(template, userPrompt, templateIndex, layoutType)
+    // Log specific error types
+    if (error?.message?.includes('429') || error?.status === 429) {
+      console.error('⚠️ Rate limit exceeded for Gemini API. Using fallback layout.')
+    } else {
+      console.error('AI layout generation error:', error)
+    }
+    return generateFallbackLayout(index)
   }
 }
 
 /**
- * Create a fallback layout using templates
+ * Generate a fallback layout when AI is unavailable
  */
-function createFallbackLayout(
-  template: typeof LAYOUT_TEMPLATES[keyof typeof LAYOUT_TEMPLATES],
-  userPrompt: string,
-  index: number,
-  layoutType: 'centered' | 'top-text' | 'bottom-text' | 'side-by-side'
-): ScreenAssetLayout {
-  const headlines = [
-    'Discover Amazing Features',
-    'Simplify Your Workflow',
-    'Stay Connected Anywhere',
-    'Track Your Progress'
-  ]
+function generateFallbackLayout(index: number): ScreenAssetLayout {
+  const backgrounds = ['#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBEB', '#FEF2F2', '#F0FDFA']
   
-  const subtitles = [
-    'Everything you need in one place',
-    'Built for speed and simplicity',
-    'Real-time updates that matter',
-    'Achieve your goals faster'
-  ]
-
   return {
-    headline: headlines[index % headlines.length],
-    subtitle: subtitles[index % subtitles.length],
-    headlinePosition: template.headlinePosition,
-    subtitlePosition: template.subtitlePosition,
-    screenshotPosition: template.screenshotPosition,
-    logoPosition: template.logoPosition,
-    backgroundColor: '#F0F4FF',
+    backgroundColor: backgrounds[index % backgrounds.length],
+    screenshotPosition: {
+      x: 371,
+      y: 900,
+      width: 500,
+      height: 1080
+    },
+    headline: `Feature ${index + 1}`,
+    headlinePosition: {
+      x: 621,
+      y: 400
+    },
+    subtitle: 'Discover amazing features',
+    subtitlePosition: {
+      x: 621,
+      y: 500
+    },
     textColor: '#1A1A1A',
     fontFamily: 'Inter',
-    fontSize: { headline: 72, subtitle: 36 },
-    layoutType
+    fontSize: {
+      headline: 72,
+      subtitle: 36
+    }
   }
 }
 
