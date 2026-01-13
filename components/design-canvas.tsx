@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video, Download, Share2 } from "lucide-react"
+import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video, Download, Share2, MousePointer2, Hand, Square, Circle, Minus } from "lucide-react"
 import { VideoGenerator } from "./video-generator"
 
 import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
@@ -79,6 +79,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const [showShareModal, setShowShareModal] = React.useState(false)
   const [shareLink, setShareLink] = React.useState("")
   const [isExporting, setIsExporting] = React.useState(false)
+  const [activeTool, setActiveTool] = React.useState<"select" | "hand" | "text" | "rectangle" | "circle" | "line">("select")
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const rafRef = React.useRef<number | null>(null)
   const dragPositionRef = React.useRef({ x: 0, y: 0 })
@@ -88,9 +89,31 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   // Generate screens from uploaded screenshots + AI structure
   React.useEffect(() => {
     if (uploadedScreenshots.length > 0 && screens.length === 0) {
+      console.log('🚀 Initializing screens from', uploadedScreenshots.length, 'uploaded screenshots')
       generateScreensFromAIStructure()
     }
-  }, [uploadedScreenshots, aiStructure])
+  }, [uploadedScreenshots])
+  
+  // Emergency fallback: if we have screenshots but no screens after 2 seconds, force create them
+  React.useEffect(() => {
+    if (uploadedScreenshots.length > 0 && screens.length === 0) {
+      const timeoutId = setTimeout(() => {
+        if (screens.length === 0) {
+          console.warn('⚠️ Emergency fallback: Creating screens directly from screenshots')
+          const fallbackScreens = uploadedScreenshots.map((screenshot, index) => ({
+            id: `screen_${index + 1}`,
+            name: `Screen ${index + 1}`,
+            backgroundColor: getRandomBackground(index),
+            layers: createFallbackLayers(screenshot, index, uploadedLogo)
+          }))
+          setScreens(fallbackScreens)
+          setCurrentScreenId(fallbackScreens[0]?.id || "")
+        }
+      }, 2000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [uploadedScreenshots, screens.length])
 
   const generateScreensFromAIStructure = async () => {
     setIsGenerating(true)
@@ -101,22 +124,35 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       for (let index = 0; index < uploadedScreenshots.length; index++) {
         const screenshot = uploadedScreenshots[index]
         
-        const aiLayout = await generateLayoutForScreenshot(
-          screenshot,
-          userPrompt || 'mobile app',
-          uploadedLogo,
-          index
-        )
+        try {
+          const aiLayout = await generateLayoutForScreenshot(
+            screenshot,
+            userPrompt || 'mobile app',
+            uploadedLogo,
+            index
+          )
 
-        if (aiLayout) {
-          const layers = createLayersFromAILayout(aiLayout, screenshot, uploadedLogo)
-          generatedScreens.push({
-            id: `screen_${index + 1}`,
-            name: `Screen ${index + 1}`,
-            backgroundColor: aiLayout.backgroundColor,
-            layers
-          })
-        } else {
+          if (aiLayout) {
+            const layers = createLayersFromAILayout(aiLayout, screenshot, uploadedLogo)
+            generatedScreens.push({
+              id: `screen_${index + 1}`,
+              name: `Screen ${index + 1}`,
+              backgroundColor: aiLayout.backgroundColor,
+              layers
+            })
+          } else {
+            // Fallback if AI layout returns null
+            const fallbackLayers = createFallbackLayers(screenshot, index, uploadedLogo)
+            generatedScreens.push({
+              id: `screen_${index + 1}`,
+              name: `Screen ${index + 1}`,
+              backgroundColor: getRandomBackground(index),
+              layers: fallbackLayers
+            })
+          }
+        } catch (layoutError) {
+          console.error(`Failed to generate layout for screenshot ${index}:`, layoutError)
+          // Always create a screen even if layout generation fails
           const fallbackLayers = createFallbackLayers(screenshot, index, uploadedLogo)
           generatedScreens.push({
             id: `screen_${index + 1}`,
@@ -127,16 +163,19 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         }
       }
 
+      console.log('Generated screens:', generatedScreens)
       setScreens(generatedScreens)
       setCurrentScreenId(generatedScreens[0]?.id || "")
     } catch (error) {
       console.error('Failed to generate screens:', error)
+      // Ultimate fallback - just map screenshots directly
       const fallbackScreens = uploadedScreenshots.map((screenshot, index) => ({
         id: `screen_${index + 1}`,
         name: `Screen ${index + 1}`,
         backgroundColor: getRandomBackground(index),
         layers: createFallbackLayers(screenshot, index, uploadedLogo)
       }))
+      console.log('Using fallback screens:', fallbackScreens)
       setScreens(fallbackScreens)
       setCurrentScreenId(fallbackScreens[0]?.id || "")
     } finally {
@@ -238,11 +277,13 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   }
 
   const createFallbackLayers = (screenshot: string, index: number, logo?: string): Layer[] => {
+    console.log(`Creating fallback layers for screenshot ${index}:`, screenshot.substring(0, 50) + '...')
     const layers: Layer[] = []
     const bgColor = getRandomBackground(index)
 
+    // Background layer
     layers.push({
-      id: `bg_${Date.now()}`,
+      id: `bg_${Date.now()}_${index}`,
       type: "background",
       content: "",
       x: 0,
@@ -252,8 +293,9 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       backgroundColor: bgColor
     })
 
+    // Screenshot/Mockup layer - THE MAIN CONTENT
     layers.push({
-      id: `mockup_${Date.now()}`,
+      id: `mockup_${Date.now()}_${index}`,
       type: "mockup",
       content: screenshot,
       x: 371,
@@ -269,8 +311,9 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       }
     })
 
+    // Headline text
     layers.push({
-      id: `headline_${Date.now()}`,
+      id: `headline_${Date.now()}_${index}`,
       type: "text",
       content: `Feature ${index + 1}`,
       x: 621,
@@ -284,9 +327,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       align: "center"
     })
 
+    // Logo if provided
     if (logo) {
       layers.push({
-        id: `logo_${Date.now()}`,
+        id: `logo_${Date.now()}_${index}`,
         type: "image",
         content: logo,
         x: 80,
@@ -296,6 +340,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       })
     }
 
+    console.log(`Created ${layers.length} layers for screen ${index}`)
     return layers
   }
 
@@ -510,6 +555,17 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   // Get current screen and layers - AFTER all hooks
   const currentScreen = screens.find(s => s.id === currentScreenId)
   const layers = currentScreen?.layers || []
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log('📊 Design Canvas State:', {
+      totalScreens: screens.length,
+      currentScreenId,
+      currentScreenLayers: layers.length,
+      uploadedScreenshots: uploadedScreenshots.length,
+      mockupLayers: layers.filter(l => l.type === 'mockup').length
+    })
+  }, [screens, currentScreenId, layers, uploadedScreenshots])
 
   // Early return AFTER all hooks
   if (!currentScreen) {
@@ -846,6 +902,121 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         </div>
       )}
 
+      {/* Figma-style Floating Toolbar */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 bg-white border border-neutral-200 shadow-lg px-2 py-2">
+        {/* Selection Tool */}
+        <button
+          onClick={() => setActiveTool("select")}
+          className={`p-2 transition-all duration-200 ${
+            activeTool === "select" 
+              ? "bg-neutral-100 text-neutral-900" 
+              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          }`}
+          title="Select (V)"
+        >
+          <MousePointer2 className="h-4 w-4" />
+        </button>
+
+        {/* Hand Tool */}
+        <button
+          onClick={() => setActiveTool("hand")}
+          className={`p-2 transition-all duration-200 ${
+            activeTool === "hand" 
+              ? "bg-neutral-100 text-neutral-900" 
+              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          }`}
+          title="Hand Tool (H)"
+        >
+          <Hand className="h-4 w-4" />
+        </button>
+
+        <div className="w-px h-6 bg-neutral-200 mx-1" />
+
+        {/* Text Tool */}
+        <button
+          onClick={() => {
+            setActiveTool("text")
+            addTextLayer()
+          }}
+          className={`p-2 transition-all duration-200 ${
+            activeTool === "text" 
+              ? "bg-neutral-100 text-neutral-900" 
+              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          }`}
+          title="Text (T)"
+        >
+          <Type className="h-4 w-4" />
+        </button>
+
+        {/* Rectangle Tool */}
+        <button
+          onClick={() => setActiveTool("rectangle")}
+          className={`p-2 transition-all duration-200 ${
+            activeTool === "rectangle" 
+              ? "bg-neutral-100 text-neutral-900" 
+              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          }`}
+          title="Rectangle (R)"
+        >
+          <Square className="h-4 w-4" />
+        </button>
+
+        {/* Circle Tool */}
+        <button
+          onClick={() => setActiveTool("circle")}
+          className={`p-2 transition-all duration-200 ${
+            activeTool === "circle" 
+              ? "bg-neutral-100 text-neutral-900" 
+              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          }`}
+          title="Ellipse (O)"
+        >
+          <Circle className="h-4 w-4" />
+        </button>
+
+        {/* Line Tool */}
+        <button
+          onClick={() => setActiveTool("line")}
+          className={`p-2 transition-all duration-200 ${
+            activeTool === "line" 
+              ? "bg-neutral-100 text-neutral-900" 
+              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          }`}
+          title="Line (L)"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+
+        <div className="w-px h-6 bg-neutral-200 mx-1" />
+
+        {/* Zoom Controls */}
+        <button 
+          onClick={() => {
+            const newZoom = Math.max(0.5, zoom - 0.1)
+            setZoom(newZoom)
+          }}
+          className="p-2 text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all duration-200"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        
+        <span className="text-xs text-neutral-500 min-w-[45px] text-center font-light select-none">
+          {Math.round(zoom * 100)}%
+        </span>
+        
+        <button 
+          onClick={() => {
+            const newZoom = Math.min(1.5, zoom + 0.1)
+            setZoom(newZoom)
+          }}
+          className="p-2 text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all duration-200"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+      </div>
+
       {/* Canvas Header - Minimalist */}
       <div className="bg-neutral-50 border-b border-neutral-200 px-3 sm:px-4 py-2.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -859,35 +1030,6 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           <h2 className="text-sm font-light text-neutral-900">Canvas Editor</h2>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <div className="hidden lg:flex items-center gap-1 bg-neutral-50 px-2 py-1 border border-neutral-200">
-            <button 
-              onClick={() => {
-                const newZoom = Math.max(0.5, zoom - 0.1)
-                setZoom(newZoom)
-              }}
-              className="p-1 hover:bg-neutral-100 transition-all duration-200"
-              title="Zoom Out"
-            >
-              <ZoomOut className="h-3.5 w-3.5 text-neutral-500" />
-            </button>
-            <span className="text-xs text-neutral-500 min-w-[45px] text-center font-light">{Math.round(zoom * 100)}%</span>
-            <button 
-              onClick={() => {
-                const newZoom = Math.min(1.5, zoom + 0.1)
-                setZoom(newZoom)
-              }}
-              className="p-1 hover:bg-neutral-100 transition-all duration-200"
-              title="Zoom In"
-            >
-              <ZoomIn className="h-3.5 w-3.5 text-neutral-500" />
-            </button>
-          </div>
-          <button 
-            onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }) }}
-            className="hidden lg:block px-2.5 py-1.5 text-xs text-neutral-500 hover:bg-neutral-100 transition-all duration-200 font-light"
-          >
-            Reset
-          </button>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
@@ -1031,6 +1173,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       {/* iPhone Mockup Frame with Screenshot Inside */}
                       {layer.type === "mockup" && (
                         <>
+                          {console.log('Rendering mockup layer:', layer.id, 'with content:', layer.content.substring(0, 50) + '...')}
                           <IphoneMockup 
                             src={layer.content}
                             className="w-full h-full"
@@ -1057,6 +1200,16 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                             </div>
                           )}
                         </>
+                      )}
+                      
+                      {/* Background Layer (full-canvas background) */}
+                      {layer.type === "background" && (
+                        <div
+                          className="w-full h-full pointer-events-none"
+                          style={{
+                            backgroundColor: layer.backgroundColor || '#FFFFFF',
+                          }}
+                        />
                       )}
                       
                       {/* Decoration Layer (colored boxes, shapes) */}

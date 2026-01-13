@@ -39,17 +39,21 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              className="text-sm text-neutral-500 hover:text-neutral-900 font-light"
-            >
-              Log in
-            </Button>
-            <Button 
-              className="text-sm bg-neutral-900 text-white hover:bg-neutral-800 font-light border border-neutral-900"
-            >
-              Sign up
-            </Button>
+            <Link href="/login">
+              <Button 
+                variant="ghost" 
+                className="text-sm text-neutral-500 hover:text-neutral-900 font-light"
+              >
+                Log in
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button 
+                className="text-sm bg-neutral-900 text-white hover:bg-neutral-800 font-light border border-neutral-900"
+              >
+                Sign up
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
