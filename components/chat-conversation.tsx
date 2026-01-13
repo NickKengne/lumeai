@@ -10,8 +10,7 @@ import { FormattedMessage } from "./formatted-message"
 import { generateMockStructure, hasOpenAIKey, generateScreenshotStructure } from "@/lib/openai-stream"
 import type { AIResponse, PromptAnalysis } from "@/lib/ai-helpers"
 import { analyzeUserPrompt } from "@/lib/ai-helpers"
-import { analyzeScreenshots, suggestTemplatesForMood, type ScreenshotAnalysisResult } from "@/lib/screenshot-analyzer"
-import { AVAILABLE_TEMPLATES } from "@/lib/template-library"
+import { LAYOUT_TEMPLATES } from "@/lib/layout-templates"
 import { saveChatToHistory, generateChatTitle, getChatById } from "@/lib/chat-storage"
 import { useParams, useSearchParams } from "next/navigation"
 
@@ -50,8 +49,6 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const [aiStructure, setAiStructure] = React.useState<AIResponse | undefined>(undefined)
   const [promptAnalysis, setPromptAnalysis] = React.useState<PromptAnalysis | undefined>(undefined)
   const [isGeneratingStructure, setIsGeneratingStructure] = React.useState(false)
-  const [isAnalyzingScreenshots, setIsAnalyzingScreenshots] = React.useState(false)
-  const [screenshotAnalysis, setScreenshotAnalysis] = React.useState<ScreenshotAnalysisResult | null>(null)
   const [showLayoutPreview, setShowLayoutPreview] = React.useState(false)
   const [showVideoGenerator, setShowVideoGenerator] = React.useState(false)
   const [panelWidth, setPanelWidth] = React.useState(800)
@@ -327,49 +324,14 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const handleAnalyzeAndSuggest = async () => {
     if (uploadedScreenshots.length === 0) return
 
-    setIsAnalyzingScreenshots(true)
-
+    // Design canvas now handles all AI analysis automatically
+    // Just open the panel
     try {
-      // Analyze screenshots to extract colors and mood
-      const analysis = await analyzeScreenshots(uploadedScreenshots)
-      
-      // Get suggested templates based on mood
-      const suggestedTemplates = suggestTemplatesForMood(analysis.mood)
-      
-      setScreenshotAnalysis({
-        ...analysis,
-        suggestedTemplates
-      })
-
-      // Show layout preview
       setShowLayoutPreview(true)
     } catch (error: any) {
-      console.error('Screenshot analysis failed:', error)
-      
-      // Check if it's a rate limit error
-      const isRateLimitError = error?.message?.includes('429') || error?.message?.includes('Rate limit')
-      
-      // Fallback to basic color analysis (still works without AI)
-      setScreenshotAnalysis({
-        dominantColors: ['#F0F4FF', '#E0EAFF', '#D0E0FF'],
-        suggestedBackgrounds: ['#F0F4FF', '#FFF0F5', '#F0FFF4'],
-        mood: 'minimal',
-        suggestedTemplates: ['centered_bold', 'minimal', 'gradient'],
-        // Add a notice for rate limit errors
-        ...(isRateLimitError && {
-          typography: {
-            primaryFont: 'Analysis limited due to API rate limit',
-            fontStyle: 'modern',
-            headlineSize: 'medium',
-            textHierarchy: 'Using fallback basic analysis'
-          }
-        })
-      })
-      setShowLayoutPreview(true)
-      
-      // Show user-friendly error message
-      if (isRateLimitError) {
-        alert('⚠️ Google AI rate limit reached!\n\n' +
+      console.error('Error opening canvas:', error)
+      if (false) {
+        alert('⚠️ Error!\n\n' +
               'The AI analysis is temporarily unavailable. Using basic color detection instead.\n\n' +
               '💡 Tip: Wait a few minutes before analyzing more screenshots, or consider upgrading your Google AI API plan for higher limits.')
       }
@@ -586,163 +548,23 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         )}
                       </div>
 
-                      {!showLayoutPreview ? (
+                      <div className="mt-3 flex gap-2">
                         <button
-                          onClick={handleAnalyzeAndSuggest}
-                          disabled={isAnalyzingScreenshots}
-                          className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors w-full justify-center mt-3 disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
+                          onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
+                          disabled={isGeneratingStructure}
+                          className="flex-1 flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
                         >
                           <Sparkles className="h-4 w-4" />
-                          {isAnalyzingScreenshots ? 'Analyzing...' : 'Analyze & Suggest Layouts'}
-                        </button>
-                      ) : (
-                        <div className="mt-3 space-y-3">
-                          {/* AI Analysis Results */}
-                          <div className="bg-neutral-50 p-3 border border-neutral-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="h-6 w-6 bg-neutral-900 flex items-center justify-center text-white text-xs font-light">
-                                AI
-                              </div>
-                              <p className="text-xs font-semibold text-neutral-900">Analysis Complete!</p>
-                            </div>
-                            <p className="text-xs text-neutral-600 mb-4">
-                              I've analyzed your screenshots and detected a <span className="font-semibold">{screenshotAnalysis?.mood}</span> mood. 
-                              Here's what I found:
-                            </p>
-
-                            {/* Typography & Fonts */}
-                            {screenshotAnalysis?.typography && (
-                              <div className="mb-3 p-3 bg-neutral-50 border border-neutral-200">
-                                <p className="text-[10px] font-light text-neutral-900 mb-2">🔤 Typography & Fonts</p>
-                                <div className="space-y-1.5">
-                                  {screenshotAnalysis.typography.primaryFont && (
-                                    <div className="flex justify-between text-[10px]">
-                                      <span className="text-neutral-500 font-light">Primary Font:</span>
-                                      <span className="font-light text-neutral-900">{screenshotAnalysis.typography.primaryFont}</span>
-                                    </div>
-                                  )}
-                                  {screenshotAnalysis.typography.fontStyle && (
-                                    <div className="flex justify-between text-[10px]">
-                                      <span className="text-neutral-500 font-light">Style:</span>
-                                      <span className="font-light text-neutral-900 capitalize">{screenshotAnalysis.typography.fontStyle}</span>
-                                    </div>
-                                  )}
-                                  {screenshotAnalysis.typography.headlineSize && (
-                                    <div className="flex justify-between text-[10px]">
-                                      <span className="text-neutral-500 font-light">Headline Size:</span>
-                                      <span className="font-light text-neutral-900 capitalize">{screenshotAnalysis.typography.headlineSize}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Dominant Colors */}
-                            <div className="mb-3">
-                              <p className="text-[10px] text-neutral-500 mb-2">Dominant Colors (from your app)</p>
-                              <div className="flex flex-wrap gap-2">
-                                {screenshotAnalysis?.dominantColors.slice(0, 6).map((color, idx) => (
-                                  <div key={idx} className="flex flex-col items-center gap-1">
-                                    <div
-                                      className="w-10 h-10 border border-neutral-200"
-                                      style={{ backgroundColor: color }}
-                                      title={color}
-                                    />
-                                    <span className="text-[8px] text-neutral-500 font-mono">{color}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Suggested Backgrounds */}
-                            <div className="mb-3">
-                              <p className="text-[10px] text-neutral-500 mb-2">Suggested Backgrounds</p>
-                              <div className="flex flex-wrap gap-2">
-                                {screenshotAnalysis?.suggestedBackgrounds.slice(0, 5).map((color, idx) => (
-                                  <div key={idx} className="flex flex-col items-center gap-1">
-                                    <div
-                                      className="w-10 h-10 border border-neutral-200"
-                                    style={{ backgroundColor: color }}
-                                    title={color}
-                                  />
-                                    <span className="text-[8px] text-neutral-500 font-mono">{color}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Design Characteristics */}
-                            {screenshotAnalysis?.designStyle && (
-                              <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                <p className="text-[10px] font-semibold text-purple-900 mb-2">✨ Design Characteristics</p>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {screenshotAnalysis.designStyle.layout && (
-                                    <div className="text-[10px]">
-                                      <span className="text-purple-600 block">Layout:</span>
-                                      <span className="font-medium text-purple-900 capitalize">{screenshotAnalysis.designStyle.layout}</span>
-                                    </div>
-                                  )}
-                                  {screenshotAnalysis.designStyle.cornerRadius && (
-                                    <div className="text-[10px]">
-                                      <span className="text-purple-600 block">Corners:</span>
-                                      <span className="font-medium text-purple-900 capitalize">{screenshotAnalysis.designStyle.cornerRadius}</span>
-                                    </div>
-                                  )}
-                                  {screenshotAnalysis.designStyle.spacing && (
-                                    <div className="text-[10px]">
-                                      <span className="text-purple-600 block">Spacing:</span>
-                                      <span className="font-medium text-purple-900 capitalize">{screenshotAnalysis.designStyle.spacing}</span>
-                                    </div>
-                                  )}
-                                  {screenshotAnalysis.designStyle.shadows && (
-                                    <div className="text-[10px]">
-                                      <span className="text-purple-600 block">Shadows:</span>
-                                      <span className="font-medium text-purple-900 capitalize">{screenshotAnalysis.designStyle.shadows}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Suggested Templates */}
-                            <div>
-                              <p className="text-[10px] text-neutral-500 mb-2"> Recommended Layouts</p>
-                              <div className="grid grid-cols-3 gap-2">
-                                {screenshotAnalysis?.suggestedTemplates.slice(0, 3).map((templateId) => {
-                                  const template = AVAILABLE_TEMPLATES.find(t => t.id === templateId)
-                                  return template ? (
-                                    <div
-                                      key={templateId}
-                                      className="p-2 bg-white rounded-md border border-neutral-200 text-center"
-                                    >
-                                      <p className="text-[9px] font-semibold text-neutral-900 mb-0.5">{template.name}</p>
-                                      <p className="text-[8px] text-neutral-500">{template.description}</p>
-                                    </div>
-                                  ) : null
-                                })}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
-                              disabled={isGeneratingStructure}
-                              className="flex-1 flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white text-sm rounded-lg hover:bg-neutral-700 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Sparkles className="h-4 w-4" />
-                              {isGeneratingStructure ? 'Generating...' : 'Generate Screenshots'}
+                          {isGeneratingStructure ? 'Generating...' : 'Generate Screenshots'}
                             </button>
                             <button
                               onClick={() => setShowVideoGenerator(true)}
-                              className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-800 text-sm rounded-lg hover:bg-neutral-200 transition-colors justify-center"
+                          className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-900 text-sm font-light hover:bg-neutral-200 transition-colors justify-center border border-neutral-200"
                             >
                               <Video className="h-4 w-4" />
                               Video
                             </button>
                           </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -831,9 +653,6 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
               uploadedScreenshots={uploadedScreenshots}
               uploadedLogo={uploadedLogo}
               uploadedAssets={uploadedAssets}
-              screenshotAnalysis={screenshotAnalysis}
-              aiStructure={aiStructure}
-              promptAnalysis={promptAnalysis}
             />
           </motion.div>
         )}

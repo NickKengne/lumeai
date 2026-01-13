@@ -5,30 +5,24 @@
 
 import { AIResponseSchema, type AIResponse, type ScreenLayout } from './ai-helpers'
 
-// Chat system prompt (clean markdown, no emojis)
-const CHAT_SYSTEM_PROMPT = `You are an expert App Store marketing consultant.
+// Chat system prompt (clean markdown, conversational)
+const CHAT_SYSTEM_PROMPT = `You are a seasoned App Store marketing consultant who's helped hundreds of apps succeed.
 
-Analyze user's app concepts and provide actionable recommendations in clean Markdown.
+Your responses should be:
+- **Conversational** - Talk like a real person, not a template
+- **Specific** - Give actionable advice, not generic platitudes
+- **Strategic** - Think about what actually converts in the App Store
+- **Brief** - Get to the point quickly (200-400 words max)
 
-Structure your response:
+When analyzing an app concept:
+1. Identify the core value prop in one sentence
+2. Name the primary competitor mindset you're fighting
+3. Suggest 3-4 screenshot must-haves
+4. Point out one common mistake to avoid
+5. Ask user to upload their app screenshots so you can design them
 
-## Analysis
-Brief analysis of app type and target audience.
-
-## Visual Recommendations
-Style, colors, and tone recommendations.
-
-## Screenshot Strategy
-Recommend 3-5 screenshots showing key features.
-
-## Next Steps
-Ask user to upload their app screenshots.
-
-Rules:
-- Clean markdown only (no emojis)
-- 300-500 words
-- Focus on benefits not features
-- Professional tone`
+Tone: Professional but human. Strategic but accessible. Confident but not arrogant.
+Format: Use markdown headers (##) and bullet points. No emojis.`
 
 // Structure system prompt (JSON only)
 const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert.
@@ -183,79 +177,119 @@ export async function mockStreamAIResponse(
 function generateMockMarkdownResponse(userInput: string): string {
   const input = userInput.toLowerCase()
   
-  let appType = 'mobile application'
-  let features = ['Intuitive interface', 'Seamless experience', 'User engagement']
-  let colors = 'modern gradients with clean aesthetics'
-  let audience = 'tech-savvy users aged 25-40'
+  // Detect app category
+  let response = ''
   
-  if (input.includes('finance') || input.includes('budget')) {
-    appType = 'finance application'
-    features = ['Real-time expense tracking', 'Budget insights', 'Savings goals']
-    colors = 'professional blues and greens'
-    audience = 'young professionals managing finances'
-  } else if (input.includes('fitness') || input.includes('health')) {
-    appType = 'fitness application'
-    features = ['Personalized workouts', 'Progress tracking', 'Community motivation']
-    colors = 'energetic oranges and blues'
-    audience = 'health-conscious individuals'
-  } else if (input.includes('meditation') || input.includes('mindfulness')) {
-    appType = 'wellness application'
-    features = ['Guided meditation', 'Stress reduction', 'Progress tracking']
-    colors = 'soft gradients with calming tones'
-    audience = 'stressed professionals'
+  if (input.includes('finance') || input.includes('budget') || input.includes('money')) {
+    response = `## Quick Take
+
+You're building a finance app. The bar is high—people trust these apps with their money, so every pixel matters.
+
+**Core Challenge:** Getting someone to link their bank account to a new app requires massive trust. Your screenshots need to scream "secure" and "simple" simultaneously.
+
+## Screenshot Must-Haves
+
+1. **Dashboard view** - Show financial clarity, not complexity
+2. **One key insight** - A graph or stat that makes them go "oh, I need that"
+3. **Security badges** - Bank-level encryption, biometric login
+4. **Social proof** - User count or rating if you have it
+
+**Common Mistake:** Too many numbers and charts. Pick ONE powerful visual per screen.
+
+## Design Direction
+
+**Colors:** Blues/greens for trust. Avoid anything that feels unstable (reds, blacks).
+**Tone:** Professional but not corporate. Approachable but not cute.
+**Layout:** Clean, lots of white space. Let the data breathe.
+
+---
+
+**Next:** Upload your app screenshots. I'll design multiple layout options that actually convert.`
+  } else if (input.includes('fitness') || input.includes('health') || input.includes('workout')) {
+    response = `## Quick Take
+
+Fitness apps live or die on motivation. Your screenshots need to make people feel capable, not guilty.
+
+**Core Challenge:** Everyone's downloaded a fitness app that collected dust. You need to show why THIS time is different.
+
+## Screenshot Must-Haves
+
+1. **Transformation story** - Before/after or progress visualization
+2. **The workout interface** - Prove it's not complicated
+3. **Social/community element** - Nobody wants to suffer alone
+4. **Quick wins** - Show what they'll achieve in week 1
+
+**Common Mistake:** Too intense. Sixpack abs scare away more people than they attract. Show progress, not perfection.
+
+## Design Direction
+
+**Colors:** Energetic but not aggressive. Orange/blue combo works well.
+**Tone:** Motivational but realistic. Coach, not drill sergeant.
+**Layout:** Dynamic angles, movement, energy. Avoid static poses.
+
+---
+
+**Next:** Send me your app screens. I'll create layouts that inspire action, not guilt.`
+  } else if (input.includes('social') || input.includes('dating') || input.includes('chat')) {
+    response = `## Quick Take
+
+Social apps are about belonging. Your screenshots need to show connection, not features.
+
+**Core Challenge:** Empty social apps feel dead. You need to show a thriving community without looking fake.
+
+## Screenshot Must-Haves
+
+1. **Active conversations** - Real-looking chats (blur the content if needed)
+2. **Discovery mechanism** - How do I find my people?
+3. **Privacy controls** - Gen Z cares about this more than you think
+4. **The vibe** - What makes this community special?
+
+**Common Mistake:** Stock photos of models. Use real (or real-looking) diverse people.
+
+## Design Direction
+
+**Colors:** Vibrant but not childish. Think Discord, not Facebook 2010.
+**Tone:** Inclusive and welcoming. No FOMO tactics.
+**Layout:** Show the product in use, not empty screens.
+
+---
+
+**Next:** Upload your screens. I'll design layouts that make people want to join the conversation.`
+  } else {
+    response = `## Quick Take
+
+I'm picking up: "${userInput.slice(0, 60)}${userInput.length > 60 ? '...' : ''}"
+
+Here's what matters for App Store screenshots:
+
+## The Three-Second Rule
+
+Users decide in 3 seconds. Your first screenshot needs to answer:
+1. What does this app do?
+2. Why should I care?
+3. Is it for me?
+
+## Screenshot Blueprint
+
+**Screen 1:** Hero shot - Your main interface with ONE clear benefit headline
+**Screen 2:** The "aha" moment - The feature that makes you different
+**Screen 3:** Social proof - Reviews, user count, or press mentions
+**Screen 4:** CTA - "Start free trial" or similar
+
+**Common Mistake:** Trying to show everything. Pick your 3-4 strongest selling points and hammer them home.
+
+## Next Move
+
+Upload your app screenshots and I'll create professional layouts with:
+- Multiple design templates to choose from
+- Benefit-focused headlines
+- App Store-optimized sizing
+- Fully editable in the canvas
+
+**Ready? Drop those screenshots.**`
   }
-
-  return `## Analysis
-
-Your app is a **${appType}** targeting ${audience}.
-
-This type of application serves users looking for modern, intuitive solutions to improve their daily lives.
-
-### Key Features
-- ${features[0]}
-- ${features[1]}
-- ${features[2]}
-
-### Target Audience
-${audience.charAt(0).toUpperCase() + audience.slice(1)} who value clean, efficient design.
-
----
-
-## Visual Recommendations
-
-**Layout Style:** iPhone-centered with bold headlines and clear visual hierarchy
-
-**Color Scheme:** ${colors}
-
-**Typography:** SF Pro or Helvetica for maximum readability
-
-**Tone:** Clean and professional with emphasis on user benefits
-
----
-
-## Screenshot Strategy
-
-For App Store success, create **3-5 screenshots** that showcase:
-
-1. **Main Interface** - Core functionality and clean design
-2. **Key Features** - What differentiates you from competitors
-3. **User Benefits** - Clear value proposition
-4. **Results** - Social proof or statistics (if applicable)
-5. **Call to Action** - Encourage downloads
-
----
-
-## Next Steps
-
-To create professional App Store screenshots, please upload images of your app's main screens.
-
-I'll generate multiple layout variations optimized for:
-- iPhone 6.7" and 6.5" displays
-- iPad (if needed)
-- App Store best practices
-- Maximum conversion
-
-**Ready to upload your screenshots?**`
+  
+  return response
 }
 
 /**

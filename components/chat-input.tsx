@@ -83,336 +83,81 @@ export function ChatInput({
 
   // AI Response Generator (moved up for use in effects)
   const generateAIResponse = React.useCallback((userInput: string): string => {
+    // Enhanced AI response following the Claude.md workflow
     const input = userInput.toLowerCase()
     
-    // Detect intent more intelligently
-    const intents = detectIntents(input)
+    // Detect if this is an app screenshot request
+    const isScreenshotRequest = 
+      input.includes("screenshot") || 
+      input.includes("app store") || 
+      input.includes("design") ||
+      input.includes("generate") ||
+      input.includes("create app") ||
+      input.includes("visual") ||
+      input.includes("mockup")
     
-    if (intents.isScreenshotRequest) {
+    if (isScreenshotRequest) {
+      // Generate detailed exploration response
       return generateDetailedAnalysis(userInput)
-    } else if (intents.isMarketing) {
-      const marketingResponses = [
-        `Let's build a marketing engine for your app. I'm curious—who's your dream user? The person who'd tell their friends about this?`,
-        `Marketing is storytelling at scale. What's the one thing you want people to *feel* when they see your app?`,
-        `Before we dive into tactics, let's nail the strategy. What problem does your app solve that keeps people up at night?`
-      ]
-      return marketingResponses[Math.floor(Math.random() * marketingResponses.length)]
-    } else if (intents.isCopywriting) {
-      const copyResponses = [
-        `Words sell. Let's make yours irresistible. What's the single most surprising benefit of your app?`,
-        `Good copy isn't about features—it's about transformation. What does your user's life look like *after* using your app?`,
-        `I can write copy that converts, but first: what objection would stop someone from downloading?`
-      ]
-      return copyResponses[Math.floor(Math.random() * copyResponses.length)]
+    } else if (input.includes("marketing") || input.includes("strategy")) {
+      return "I'll help you craft a comprehensive marketing strategy. Let's focus on your target audience, unique value proposition, and channels. What's your app's main benefit to users?"
+    } else if (input.includes("description") || input.includes("copy")) {
+      return "I'll write compelling copy that converts! I can create app descriptions, feature highlights, and promotional text. Would you like me to focus on benefits, features, or a storytelling approach?"
     } else {
-      return generateConversationalResponse(userInput)
+      return `I understand you're interested in "${userInput}". I'm here to help you create amazing app store assets! I can generate screenshots, write descriptions, plan marketing strategies, and much more. What would you like to start with?`
     }
   }, [])
-
-  // Intent detection - smarter pattern matching
-  const detectIntents = (input: string) => {
-    const screenshotKeywords = ['screenshot', 'app store', 'mockup', 'visual', 'design', 'generate', 'create']
-    const marketingKeywords = ['marketing', 'strategy', 'growth', 'acquire', 'user acquisition', 'promote', 'advertise']
-    const copyKeywords = ['description', 'copy', 'write', 'text', 'tagline', 'headline', 'aso']
-    
-    return {
-      isScreenshotRequest: screenshotKeywords.some(k => input.includes(k)),
-      isMarketing: marketingKeywords.some(k => input.includes(k)),
-      isCopywriting: copyKeywords.some(k => input.includes(k))
-    }
-  }
-
-  // Generate natural conversational response for general queries
-  const generateConversationalResponse = (userInput: string): string => {
-    const contextualResponses = [
-      `Interesting. "${userInput.slice(0, 50)}${userInput.length > 50 ? '...' : ''}" — tell me more. What's the end goal here?`,
-      `I can help with that. But first, what would success look like for you?`,
-      `Got it. Let's break this down. What's the most important thing to get right?`,
-      `I'm picking up what you're putting down. Are we talking about something for the App Store, or is this broader?`,
-      `That's a solid starting point. Want me to help turn this into App Store-ready assets, or are you still in the brainstorm phase?`
-    ]
-    return contextualResponses[Math.floor(Math.random() * contextualResponses.length)]
-  }
 
   const generateDetailedAnalysis = React.useCallback((userInput: string): string => {
-    const appInsights = analyzeAppConcept(userInput)
-    const template = getRandomAnalysisTemplate()
-    
-    return template
-      .replace('{{OPENER}}', appInsights.opener)
-      .replace('{{APP_ESSENCE}}', appInsights.essence)
-      .replace('{{AUDIENCE_INSIGHT}}', appInsights.audienceInsight)
-      .replace('{{FEATURE_1}}', appInsights.features[0])
-      .replace('{{FEATURE_2}}', appInsights.features[1])
-      .replace('{{FEATURE_3}}', appInsights.features[2])
-      .replace('{{VISUAL_DIRECTION}}', appInsights.visualDirection)
-      .replace('{{CTA}}', appInsights.cta)
+    // Simulating the "thinking" phase with detailed analysis
+    const analysis = `📊 **Analysis of Your App Concept**
+
+Based on your request, I've analyzed what you're looking to create and here's my understanding:
+
+**App Type & Purpose:**
+Your app appears to be ${extractAppType(userInput)}. This type of application typically serves users who are looking for ${extractUserNeed(userInput)}.
+
+**Target Audience:**
+The ideal users for this app would be ${extractTargetAudience(userInput)}.
+
+**Key Features to Highlight:**
+• ${extractFeature1(userInput)}
+• ${extractFeature2(userInput)}
+• ${extractFeature3(userInput)}
+
+**Recommended Screenshot Strategy:**
+For App Store success, I recommend creating 3-5 screenshots that showcase:
+1. Your app's main interface and core functionality
+2. Key features that differentiate you from competitors
+3. User benefits and value proposition
+4. Social proof or results (if applicable)
+
+**Visual Style Recommendations:**
+• Layout: ${recommendLayout(userInput)}
+• Color Scheme: ${recommendColors(userInput)}
+• Tone: ${recommendTone(userInput)}
+
+---
+
+🎨 **Next Steps:**
+
+To create stunning, App Store-ready screenshots for your app, I need to see what we're working with!
+
+Please upload or share screenshots of your actual app interface. I'll then:
+1. Analyze your app's design and features
+2. Generate multiple professional screenshot variations
+3. Apply App Store best practices for maximum conversion
+4. Create designs in all required sizes (iPhone 6.7", 6.5", etc.)
+
+**What I need from you:**
+• Screenshots of your app's main screens
+• Any specific features you want to highlight
+• Your preferred style (minimal, bold, professional, etc.)
+
+Ready to upload your app screenshots?`
+
+    return analysis
   }, [])
-
-  // Analyze the app concept with more depth
-  const analyzeAppConcept = (input: string) => {
-    const lowerInput = input.toLowerCase()
-    
-    // Detect app category with nuance
-    const category = detectCategory(lowerInput)
-    
-    // Generate contextual insights
-    const openers = [
-      `I see what you're building here.`,
-      `This is interesting—let me break down what I'm seeing.`,
-      `Okay, I've processed this. Here's my take:`,
-      `Right, let's get into it.`,
-      `I've analyzed your concept. Here's the strategic breakdown:`
-    ]
-    
-    const essenceTemplates = {
-      finance: [
-        `You're building trust. Financial apps live or die by perceived security and clarity`,
-        `Money apps need to feel *safe* before they feel clever. Every pixel matters`,
-        `The best finance apps make complexity invisible. That's your north star`
-      ],
-      fitness: [
-        `Fitness apps sell transformation, not features. The screenshots need to show the *after*`,
-        `Your competition is willpower. The app needs to feel motivating at first glance`,
-        `Health apps work when they make users feel capable, not guilty`
-      ],
-      social: [
-        `Social apps are about belonging. Your screenshots need to show connection, not features`,
-        `The best social apps feel alive. Empty states are conversion killers`,
-        `You're selling a community, not a product. That changes everything`
-      ],
-      productivity: [
-        `Productivity apps succeed when they feel lighter than the problem they solve`,
-        `Your enemy is friction. Every screenshot should whisper "this is easy"`,
-        `The best task apps make users feel in control, not overwhelmed`
-      ],
-      ecommerce: [
-        `E-commerce apps sell desire. Your screenshots need to drip with product appeal`,
-        `The checkout flow is everything. Trust signals need to be front and center`,
-        `Shopping apps win on speed and discovery. Show both`
-      ],
-      default: [
-        `Your app solves a problem. The screenshots need to make that problem feel solvable`,
-        `First impressions are brutal in the App Store. We need to nail the hook`,
-        `The best apps feel inevitable. Like, "of course this exists"`
-      ]
-    }
-    
-    const categoryEssences = essenceTemplates[category] || essenceTemplates.default
-    
-    const audienceInsights = generateAudienceInsight(lowerInput, category)
-    const features = generateFeatureHighlights(lowerInput, category)
-    const visualDirection = generateVisualDirection(category)
-    const ctas = [
-      `Drop your app screenshots below and let's make something that converts.`,
-      `Upload your screens—I'll turn them into App Store gold.`,
-      `Ready when you are. Share your app's interface and we'll get to work.`,
-      `Let's see what we're working with. Upload your screenshots and I'll craft something special.`
-    ]
-    
-    return {
-      opener: openers[Math.floor(Math.random() * openers.length)],
-      essence: categoryEssences[Math.floor(Math.random() * categoryEssences.length)],
-      audienceInsight,
-      features,
-      visualDirection,
-      cta: ctas[Math.floor(Math.random() * ctas.length)]
-    }
-  }
-
-  const detectCategory = (input: string): string => {
-    const categories = {
-      finance: ['finance', 'money', 'budget', 'invest', 'bank', 'payment', 'crypto', 'trading', 'expense', 'savings'],
-      fitness: ['fitness', 'health', 'workout', 'gym', 'exercise', 'diet', 'nutrition', 'meditation', 'yoga', 'wellness'],
-      social: ['social', 'chat', 'message', 'dating', 'community', 'network', 'friends', 'share', 'connect'],
-      productivity: ['productivity', 'task', 'todo', 'note', 'calendar', 'schedule', 'organize', 'project', 'time'],
-      ecommerce: ['shop', 'store', 'buy', 'sell', 'ecommerce', 'marketplace', 'retail', 'product', 'cart']
-    }
-    
-    for (const [cat, keywords] of Object.entries(categories)) {
-      if (keywords.some(k => input.includes(k))) return cat
-    }
-    return 'default'
-  }
-
-  const generateAudienceInsight = (input: string, category: string): string => {
-    const insights = {
-      finance: [
-        `Your users are likely stressed about money. The app should feel like a weight lifted.`,
-        `Financial app users range from anxious first-timers to savvy optimizers. Which are you targeting?`,
-        `People downloading finance apps are in "fix this" mode. Meet them there.`
-      ],
-      fitness: [
-        `Your users are motivated but inconsistent. The app needs to be their accountability partner.`,
-        `Fitness app users fall into two camps: beginners seeking guidance and athletes wanting data.`,
-        `People download fitness apps in moments of inspiration. Your job is to sustain that.`
-      ],
-      social: [
-        `Social app users are looking for connection or validation—usually both.`,
-        `Your audience craves belonging. Show them a tribe, not a tool.`,
-        `People trying social apps are taking a risk. Make it feel worth it.`
-      ],
-      productivity: [
-        `Productivity app users are overwhelmed and hopeful. That's a delicate combination.`,
-        `Your users have tried everything. Show them why this time is different.`,
-        `People download productivity apps seeking control. Give them that feeling instantly.`
-      ],
-      ecommerce: [
-        `Your shoppers want discovery and convenience. Nail both in the first screenshot.`,
-        `E-commerce users are impatient. Every tap better be worth it.`,
-        `Trust and taste—that's what shopping app users judge in 3 seconds.`
-      ],
-      default: [
-        `Understanding your user's mindset is everything. What state are they in when they find you?`,
-        `Your audience has a problem and limited patience. Lead with the solution.`,
-        `Users decide in seconds. What do they need to believe to download?`
-      ]
-    }
-    
-    const categoryInsights = insights[category] || insights.default
-    return categoryInsights[Math.floor(Math.random() * categoryInsights.length)]
-  }
-
-  const generateFeatureHighlights = (input: string, category: string): string[] => {
-    const featureSets = {
-      finance: [
-        [`Smart expense tracking that categorizes automatically`, `Visual breakdowns that make sense of spending`, `Goal-setting that actually works`],
-        [`One-tap insights into your financial health`, `Secure sync with all your accounts`, `Predictive budgeting based on your patterns`],
-        [`Real-time notifications that prevent overspending`, `Beautiful reports you'll actually read`, `Export-ready data for tax season`]
-      ],
-      fitness: [
-        [`Personalized workouts that adapt to progress`, `Visual progress tracking that motivates`, `Rest day reminders that prevent burnout`],
-        [`AI-powered form correction`, `Social challenges with friends`, `Integration with wearables`],
-        [`Meal planning that fits your goals`, `Achievement system that hooks you`, `Offline mode for gym sessions`]
-      ],
-      social: [
-        [`Discovery features that feel serendipitous`, `Privacy controls that build trust`, `Engagement hooks that don't feel manipulative`],
-        [`Smart matching algorithms`, `Content creation tools built-in`, `Community moderation that works`],
-        [`Stories and ephemeral content`, `Group features that scale`, `DMs that feel secure`]
-      ],
-      productivity: [
-        [`Quick capture that takes seconds`, `Smart organization that thinks ahead`, `Cross-device sync that just works`],
-        [`Templates for every workflow`, `Collaboration features built-in`, `Focus modes that block distractions`],
-        [`Calendar integration that maps your day`, `Recurring tasks without the setup`, `Progress visualization that motivates`]
-      ],
-      ecommerce: [
-        [`Visual search that finds what you imagine`, `Personalized recommendations that nail it`, `Checkout in 3 taps or less`],
-        [`AR try-before-you-buy`, `Wishlist sharing for gift hints`, `Price drop alerts that convert`],
-        [`Curated collections that inspire`, `Review system users trust`, `Seamless returns process`]
-      ],
-      default: [
-        [`Intuitive onboarding that respects time`, `Core feature that delivers immediately`, `Delightful details that surprise`],
-        [`Fast, responsive interface`, `Smart defaults that just work`, `Offline capability when needed`],
-        [`Personalization that feels helpful`, `Sharing features built-in`, `Support that's actually reachable`]
-      ]
-    }
-    
-    const sets = featureSets[category] || featureSets.default
-    return sets[Math.floor(Math.random() * sets.length)]
-  }
-
-  const generateVisualDirection = (category: string): string => {
-    const directions = {
-      finance: [
-        `Clean whites and deep blues. Trust-building gradients. Numbers should be legible and proud.`,
-        `Dark mode friendly with pops of green for growth. Minimal chrome, maximum clarity.`,
-        `Premium feel—think private banking, not spreadsheet software.`
-      ],
-      fitness: [
-        `High energy colors—oranges, electric blues. Dynamic angles that suggest movement.`,
-        `Dark backgrounds with neon accents. The gym aesthetic, elevated.`,
-        `Warm, encouraging tones. Approachable but aspirational.`
-      ],
-      social: [
-        `Vibrant, youthful palette. Lots of real faces and genuine moments.`,
-        `Purple-to-pink gradients are played out—consider something unexpected.`,
-        `Warmth matters more than cool. Show connection, not features.`
-      ],
-      productivity: [
-        `Minimal, almost invisible design. Let the content breathe.`,
-        `Soft neutrals with one accent color. Professional but not corporate.`,
-        `Paper-like textures and clean typography. Calm, not busy.`
-      ],
-      ecommerce: [
-        `Product-first layouts. Big, beautiful imagery. Price should feel fair, not hidden.`,
-        `Aspirational lifestyle shots mixed with clean product grids.`,
-        `Luxurious feeling without being exclusive. Accessible premium.`
-      ],
-      default: [
-        `Modern and clean with purposeful color accents. Every element earns its place.`,
-        `Start with the content, design around it. No decoration for decoration's sake.`,
-        `Consistency is confidence. Pick a style and commit.`
-      ]
-    }
-    
-    const categoryDirections = directions[category] || directions.default
-    return categoryDirections[Math.floor(Math.random() * categoryDirections.length)]
-  }
-
-  const getRandomAnalysisTemplate = (): string => {
-    const templates = [
-      `{{OPENER}}
-
-**The Core Insight**
-{{APP_ESSENCE}}
-
-**Your Audience**  
-{{AUDIENCE_INSIGHT}}
-
-**What to Showcase**
-→ {{FEATURE_1}}
-→ {{FEATURE_2}}
-→ {{FEATURE_3}}
-
-**Visual Direction**
-{{VISUAL_DIRECTION}}
-
----
-
-{{CTA}}`,
-
-      `{{OPENER}}
-
-{{APP_ESSENCE}}
-
-**Who's Downloading This?**
-{{AUDIENCE_INSIGHT}}
-
-**The Screenshots Should Highlight:**
-• {{FEATURE_1}}
-• {{FEATURE_2}}  
-• {{FEATURE_3}}
-
-**On the Visuals:**
-{{VISUAL_DIRECTION}}
-
----
-
-{{CTA}}`,
-
-      `{{OPENER}}
-
-Here's what matters:
-
-**1. The Essence**
-{{APP_ESSENCE}}
-
-**2. The Audience**
-{{AUDIENCE_INSIGHT}}
-
-**3. The Features Worth Showing**
-{{FEATURE_1}}. {{FEATURE_2}}. {{FEATURE_3}}.
-
-**4. The Look**
-{{VISUAL_DIRECTION}}
-
----
-
-{{CTA}}`
-    ]
-    
-    return templates[Math.floor(Math.random() * templates.length)]
-  }
 
   // Sync with initialMessages prop changes
   React.useEffect(() => {
@@ -696,6 +441,60 @@ Here's what matters:
     return '📱' // Default app emoji
   }
 
+  // Helper functions for AI analysis (defined inline to avoid duplication)
+  const extractAppType = (input: string): string => {
+    if (input.includes("finance") || input.includes("budget") || input.includes("money")) return "a finance/budgeting application"
+    if (input.includes("fitness") || input.includes("health") || input.includes("workout")) return "a fitness and health tracking application"
+    if (input.includes("social") || input.includes("chat") || input.includes("message")) return "a social networking application"
+    if (input.includes("productivity") || input.includes("task") || input.includes("todo")) return "a productivity and task management application"
+    if (input.includes("education") || input.includes("learn") || input.includes("course")) return "an educational application"
+    return "a mobile application"
+  }
+
+  const extractUserNeed = (input: string): string => {
+    if (input.includes("finance")) return "better control over their finances and spending habits"
+    if (input.includes("fitness")) return "tracking their health goals and maintaining consistent workout routines"
+    if (input.includes("social")) return "connecting with others and sharing experiences"
+    if (input.includes("productivity")) return "organizing their tasks and boosting their daily efficiency"
+    return "solving specific problems in their daily lives"
+  }
+
+  const extractTargetAudience = (input: string): string => {
+    return "young professionals aged 25-40 who are tech-savvy and looking for modern, intuitive solutions"
+  }
+
+  const extractFeature1 = (input: string): string => {
+    if (input.includes("finance")) return "Real-time expense tracking with smart categorization"
+    if (input.includes("fitness")) return "Personalized workout plans based on user goals"
+    return "Intuitive onboarding and easy setup process"
+  }
+
+  const extractFeature2 = (input: string): string => {
+    if (input.includes("finance")) return "Budget insights and spending analytics"
+    if (input.includes("fitness")) return "Progress tracking with visual charts and milestones"
+    return "Core functionality that solves the main user problem"
+  }
+
+  const extractFeature3 = (input: string): string => {
+    if (input.includes("finance")) return "Bill reminders and savings goals"
+    if (input.includes("fitness")) return "Social features and community motivation"
+    return "Advanced features that enhance the user experience"
+  }
+
+  const recommendLayout = (input: string): string => {
+    return "iPhone-centered with bold headlines and clear visual hierarchy"
+  }
+
+  const recommendColors = (input: string): string => {
+    if (input.includes("finance")) return "Professional blues and greens to convey trust and growth"
+    if (input.includes("fitness")) return "Energetic oranges and blues to inspire action"
+    return "Modern gradient backgrounds with clean, minimal aesthetics"
+  }
+
+  const recommendTone = (input: string): string => {
+    return "Clean and professional with emphasis on clarity and user benefits"
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -719,7 +518,7 @@ Here's what matters:
         className="shrink-0 relative z-50"
       >
         <div className={`w-full mx-auto px-2 sm:px-4 py-4 ${isPanelOpen ? 'max-w-2xl' : 'max-w-3xl'}`}>
-          <div className="relative border border-neutral-200 bg-neutral-50">
+          <div className="relative rounded-2xl border border-neutral-200 bg-white">
         {/* Top bar - Mention & Add context */}
         <div className="flex items-center gap-2 px-3 sm:px-4 pt-2 sm:pt-3 pb-2"> 
           <button className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-700 transition-colors">
@@ -743,19 +542,19 @@ Here's what matters:
         </div>
 
         {/* Bottom bar - Actions */}
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-t border-neutral-200">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-t border-zinc-100">
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-            <button className="p-1.5 sm:p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
+            <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
               <Paperclip className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
-            <button className="p-1.5 sm:p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
+            <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
               <Image className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
-            <button className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors font-light">
+            <button className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors">
               <Library className="h-4 w-4" />
               <span>Prompt Library</span>
             </button>
-            <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors font-light">
+            <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors">
               <Wand2 className="h-4 w-4" />
               <span>Improve Prompt</span>
             </button>
@@ -764,10 +563,10 @@ Here's what matters:
           <button
             onClick={handleSubmit}
             disabled={!value.trim()}
-            className={`h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center transition-all shrink-0 border ${
+            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
               value.trim()
-                ? "bg-neutral-900 text-white cursor-pointer hover:bg-neutral-800 border-neutral-900"
-                : "bg-neutral-200 text-neutral-400 cursor-not-allowed border-neutral-200"
+                ? "bg-black text-white cursor-pointer hover:bg-gray-800"
+                : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
             }`}
           >
             <ArrowUp className="h-4 w-4 sm:h-5 sm:w-5" />

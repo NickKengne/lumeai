@@ -1,12 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video, Download, Share2, MousePointer2, Hand, Square, Circle, Minus } from "lucide-react"
+import { X, Type, Move, Trash2, Copy, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Image as ImageIcon, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Layers, Layout, Check, Video, Download, Share2, MousePointer2, Hand, Square, Circle, Minus, Palette, Sparkles } from "lucide-react"
 import { VideoGenerator } from "./video-generator"
-
-import { resolveTemplate, type AIResponse, generateBackgroundWithNanoBanana, type PromptAnalysis } from "@/lib/ai-helpers"
 import { IphoneMockup } from "./iphone-mockup"
-import { type ScreenshotAnalysisResult, generateLayoutForScreenshot, type ScreenAssetLayout } from "@/lib/screenshot-analyzer"
+import { 
+  LAYOUT_TEMPLATES, 
+  getTemplateById,
+  generateLayersFromTemplate,
+  type LayoutTemplate
+} from "@/lib/layout-templates"
+import { analyzeScreenshots } from "@/lib/screenshot-analyzer"
 
 interface Layer {
   id: string
@@ -23,14 +27,6 @@ interface Layer {
   italic?: boolean
   underline?: boolean
   align?: "left" | "center" | "right"
-  // Mockup specific
-  mockupFrame?: {
-    x: number
-    y: number
-    width: number
-    height: number
-    borderRadius?: number
-  }
   // Background specific
   backgroundColor?: string
   backgroundGradient?: {
@@ -54,12 +50,9 @@ interface DesignCanvasProps {
   uploadedScreenshots?: string[]
   uploadedLogo?: string
   uploadedAssets?: string[]
-  screenshotAnalysis?: ScreenshotAnalysisResult | null
-  aiStructure?: AIResponse // AI-generated structure
-  promptAnalysis?: PromptAnalysis // Enhanced prompt analysis from Gemini
 }
 
-export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], uploadedLogo, uploadedAssets = [], screenshotAnalysis, aiStructure, promptAnalysis }: DesignCanvasProps) {
+export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], uploadedLogo, uploadedAssets = [] }: DesignCanvasProps) {
   const [screens, setScreens] = React.useState<Screen[]>([])
   const [currentScreenId, setCurrentScreenId] = React.useState("")
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)
@@ -72,309 +65,162 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 })
   const [panOffset, setPanOffset] = React.useState({ x: 0, y: 0 })
   const [spacePressed, setSpacePressed] = React.useState(false)
-  const [isGenerating, setIsGenerating] = React.useState(false)
-  const [isGeneratingBackground, setIsGeneratingBackground] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
   const [showVideoGenerator, setShowVideoGenerator] = React.useState(false)
   const [showShareModal, setShowShareModal] = React.useState(false)
   const [shareLink, setShareLink] = React.useState("")
   const [isExporting, setIsExporting] = React.useState(false)
   const [activeTool, setActiveTool] = React.useState<"select" | "hand" | "text" | "rectangle" | "circle" | "line">("select")
+  const [showTemplateSelector, setShowTemplateSelector] = React.useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState('default')
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false)
+  const [aiAnalysis, setAiAnalysis] = React.useState<any>(null)
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const rafRef = React.useRef<number | null>(null)
   const dragPositionRef = React.useRef({ x: 0, y: 0 })
   const resizeDimensions = React.useRef({ width: 0, height: 0 })
   const isDraggingRef = React.useRef(false)
 
-  // Generate screens from uploaded screenshots + AI structure
+  // Analyze screenshots with AI and generate screens
   React.useEffect(() => {
-    if (uploadedScreenshots.length > 0 && screens.length === 0) {
-      console.log('🚀 Initializing screens from', uploadedScreenshots.length, 'uploaded screenshots')
-      generateScreensFromAIStructure()
+    if (uploadedScreenshots.length > 0 && screens.length === 0 && !isAnalyzing) {
+      generateScreensWithAI()
     }
   }, [uploadedScreenshots])
-  
-  // Emergency fallback: if we have screenshots but no screens after 2 seconds, force create them
-  React.useEffect(() => {
-    if (uploadedScreenshots.length > 0 && screens.length === 0) {
-      const timeoutId = setTimeout(() => {
-        if (screens.length === 0) {
-          console.warn('⚠️ Emergency fallback: Creating screens directly from screenshots')
-          const fallbackScreens = uploadedScreenshots.map((screenshot, index) => ({
-            id: `screen_${index + 1}`,
-            name: `Screen ${index + 1}`,
-            backgroundColor: getRandomBackground(index),
-            layers: createFallbackLayers(screenshot, index, uploadedLogo)
-          }))
-          setScreens(fallbackScreens)
-          setCurrentScreenId(fallbackScreens[0]?.id || "")
-        }
-      }, 2000)
-      
-      return () => clearTimeout(timeoutId)
-    }
-  }, [uploadedScreenshots, screens.length])
 
-  const generateScreensFromAIStructure = async () => {
-    setIsGenerating(true)
+  const generateScreensWithAI = async () => {
+    setIsAnalyzing(true)
+    console.log('🤖 Analyzing screenshots with AI...')
     
     try {
-      const generatedScreens: Screen[] = []
-
-      for (let index = 0; index < uploadedScreenshots.length; index++) {
-        const screenshot = uploadedScreenshots[index]
+      // Analyze screenshots with AI to get template suggestions, headlines, and colors
+      const analysis = await analyzeScreenshots(uploadedScreenshots, userPrompt || 'mobile app')
+      setAiAnalysis(analysis)
+      
+      console.log('✨ AI Analysis:', {
+        template: analysis.suggestedTemplateId,
+        reasoning: analysis.templateReasoning,
+        backgrounds: analysis.suggestedBackgrounds.slice(0, 3),
+        headlines: analysis.screenHeadlines
+      })
+      
+      const template = getTemplateById(analysis.suggestedTemplateId)
+      if (!template) {
+        console.error('Template not found:', analysis.suggestedTemplateId)
+        setIsAnalyzing(false)
+        return
+      }
+      
+      setSelectedTemplateId(analysis.suggestedTemplateId)
+      
+      // Always generate 5 screens with alternating configurations
+      const newScreens = Array.from({ length: 5 }, (_, index) => {
+        const screenshot = uploadedScreenshots[index % uploadedScreenshots.length]
+        const headline = analysis.screenHeadlines[index] || `Feature ${index + 1}`
+        const subtitle = analysis.screenSubtitles?.[index] || 'This is a subtitle which explains this feature in a better way.'
+        const bgColor = analysis.suggestedBackgrounds[index % analysis.suggestedBackgrounds.length] || '#F5F5F5'
         
-        try {
-          const aiLayout = await generateLayoutForScreenshot(
-            screenshot,
-            userPrompt || 'mobile app',
-            uploadedLogo,
-            index
-          )
-
-          if (aiLayout) {
-            const layers = createLayersFromAILayout(aiLayout, screenshot, uploadedLogo)
-            generatedScreens.push({
-              id: `screen_${index + 1}`,
-              name: `Screen ${index + 1}`,
-              backgroundColor: aiLayout.backgroundColor,
-              layers
-            })
-          } else {
-            // Fallback if AI layout returns null
-            const fallbackLayers = createFallbackLayers(screenshot, index, uploadedLogo)
-            generatedScreens.push({
-              id: `screen_${index + 1}`,
-              name: `Screen ${index + 1}`,
-              backgroundColor: getRandomBackground(index),
-              layers: fallbackLayers
-            })
-          }
-        } catch (layoutError) {
-          console.error(`Failed to generate layout for screenshot ${index}:`, layoutError)
-          // Always create a screen even if layout generation fails
-          const fallbackLayers = createFallbackLayers(screenshot, index, uploadedLogo)
-          generatedScreens.push({
+        const layers = generateLayersFromTemplate(template, {
+          screenshot,
+          headline,
+          subtitle,
+          logo: uploadedLogo,
+          textColor: analysis.textColor,
+          fontFamily: analysis.detectedFonts?.[0]
+        }, index)
+        
+        return {
             id: `screen_${index + 1}`,
             name: `Screen ${index + 1}`,
-            backgroundColor: getRandomBackground(index),
-            layers: fallbackLayers
-          })
+          backgroundColor: bgColor,
+          templateId: template.id,
+          layers: layers.map((l, idx) => {
+            // Update background color if it's a background layer
+            if (l.type === 'background') {
+              return { ...l, id: `${l.id}_${index}_${idx}`, backgroundColor: bgColor }
+            }
+            return { ...l, id: `${l.id}_${index}_${idx}` }
+          }) as Layer[]
         }
-      }
-
-      console.log('Generated screens:', generatedScreens)
-      setScreens(generatedScreens)
-      setCurrentScreenId(generatedScreens[0]?.id || "")
+      })
+      
+      console.log('✅ Created', newScreens.length, 'AI-powered screens')
+      setScreens(newScreens)
+      setCurrentScreenId(newScreens[0]?.id || "")
     } catch (error) {
-      console.error('Failed to generate screens:', error)
-      // Ultimate fallback - just map screenshots directly
-      const fallbackScreens = uploadedScreenshots.map((screenshot, index) => ({
+      console.error('AI analysis failed:', error)
+      // Fallback to simple generation
+      generateScreensFallback()
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  const generateScreensFallback = () => {
+    console.log('📸 Using fallback generation - creating 5 screens')
+    
+    // Always generate 5 screens with alternating configurations
+    const defaultTemplate = getTemplateById('default')
+    if (!defaultTemplate) return
+    
+    const newScreens = Array.from({ length: 5 }, (_, index) => {
+      const screenshot = uploadedScreenshots[index % uploadedScreenshots.length]
+      
+      const layers = generateLayersFromTemplate(defaultTemplate, {
+        screenshot,
+        headline: `A super helpful app feature`,
+        subtitle: 'This is a subtitle which explains this feature in a better way.',
+        logo: uploadedLogo
+      }, index)
+      
+      return {
         id: `screen_${index + 1}`,
         name: `Screen ${index + 1}`,
-        backgroundColor: getRandomBackground(index),
-        layers: createFallbackLayers(screenshot, index, uploadedLogo)
-      }))
-      console.log('Using fallback screens:', fallbackScreens)
-      setScreens(fallbackScreens)
-      setCurrentScreenId(fallbackScreens[0]?.id || "")
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  const createLayersFromAILayout = (layout: ScreenAssetLayout, screenshot: string, logo?: string): Layer[] => {
-    const layers: Layer[] = []
-
-    layers.push({
-      id: `bg_${Date.now()}`,
-      type: "background",
-      content: "",
-      x: 0,
-      y: 0,
-      width: 1242,
-      height: 2688,
-      backgroundColor: layout.backgroundColor
-    })
-
-    layers.push({
-      id: `mockup_${Date.now()}`,
-      type: "mockup",
-      content: screenshot,
-      x: layout.screenshotPosition.x,
-      y: layout.screenshotPosition.y,
-      width: layout.screenshotPosition.width,
-      height: layout.screenshotPosition.height,
-      mockupFrame: {
-        x: 0,
-        y: 0,
-        width: layout.screenshotPosition.width,
-        height: layout.screenshotPosition.height,
-        borderRadius: 40
+        backgroundColor: defaultTemplate.backgroundColor,
+        templateId: defaultTemplate.id,
+        layers: layers.map((l, idx) => ({
+          ...l,
+          id: `${l.id}_${index}_${idx}`
+        })) as Layer[]
       }
     })
-
-    layers.push({
-      id: `headline_${Date.now()}`,
-      type: "text",
-      content: layout.headline,
-      x: layout.headlinePosition.x,
-      y: layout.headlinePosition.y,
-      width: 1000,
-      height: 100,
-      fontSize: layout.fontSize?.headline || 72,
-      fontFamily: layout.fontFamily || screenshotAnalysis?.typography?.primaryFont || 'Inter',
-      color: layout.textColor,
-      bold: true,
-      align: "center"
-    })
-
-    if (layout.subtitle && layout.subtitlePosition) {
-      layers.push({
-        id: `subtitle_${Date.now()}`,
-        type: "text",
-        content: layout.subtitle,
-        x: layout.subtitlePosition.x,
-        y: layout.subtitlePosition.y,
-        width: 900,
-        height: 60,
-        fontSize: layout.fontSize?.subtitle || 36,
-        fontFamily: layout.fontFamily || screenshotAnalysis?.typography?.primaryFont || 'Inter',
-        color: layout.textColor,
-        align: "center"
-      })
-    }
-
-    if (logo && layout.logoPosition) {
-      layers.push({
-        id: `logo_${Date.now()}`,
-        type: "image",
-        content: logo,
-        x: layout.logoPosition.x,
-        y: layout.logoPosition.y,
-        width: layout.logoPosition.width,
-        height: layout.logoPosition.height
-      })
-    }
-
-    if (layout.additionalAssets) {
-      layout.additionalAssets.forEach((asset: { position: { x: number; y: number; width: number; height: number } }, idx: number) => {
-        if (uploadedAssets[idx]) {
-          layers.push({
-            id: `asset_${Date.now()}_${idx}`,
-            type: "decoration",
-            content: uploadedAssets[idx],
-            x: asset.position.x,
-            y: asset.position.y,
-            width: asset.position.width,
-            height: asset.position.height
-          })
-        }
-      })
-    }
-
-    return layers
-  }
-
-  const createFallbackLayers = (screenshot: string, index: number, logo?: string): Layer[] => {
-    console.log(`Creating fallback layers for screenshot ${index}:`, screenshot.substring(0, 50) + '...')
-    const layers: Layer[] = []
-    const bgColor = getRandomBackground(index)
-
-    // Background layer
-    layers.push({
-      id: `bg_${Date.now()}_${index}`,
-      type: "background",
-      content: "",
-      x: 0,
-      y: 0,
-      width: 1242,
-      height: 2688,
-      backgroundColor: bgColor
-    })
-
-    // Screenshot/Mockup layer - THE MAIN CONTENT
-    layers.push({
-      id: `mockup_${Date.now()}_${index}`,
-      type: "mockup",
-      content: screenshot,
-      x: 371,
-      y: 900,
-      width: 500,
-      height: 1080,
-      mockupFrame: {
-        x: 0,
-        y: 0,
-        width: 500,
-        height: 1080,
-        borderRadius: 40
-      }
-    })
-
-    // Headline text
-    layers.push({
-      id: `headline_${Date.now()}_${index}`,
-      type: "text",
-      content: `Feature ${index + 1}`,
-      x: 621,
-      y: 400,
-      width: 1000,
-      height: 100,
-      fontSize: 72,
-      fontFamily: screenshotAnalysis?.typography?.primaryFont || 'Inter',
-      color: "#1A1A1A",
-      bold: true,
-      align: "center"
-    })
-
-    // Logo if provided
-    if (logo) {
-      layers.push({
-        id: `logo_${Date.now()}_${index}`,
-        type: "image",
-        content: logo,
-        x: 80,
-        y: 120,
-        width: 100,
-        height: 100
-      })
-    }
-
-    console.log(`Created ${layers.length} layers for screen ${index}`)
-    return layers
-  }
-
-
-  const getRandomBackground = (index: number = 0): string => {
-    // Priority 1: Use colors from screenshot analysis (extracted from actual app)
-    if (screenshotAnalysis?.suggestedBackgrounds?.length) {
-      return screenshotAnalysis.suggestedBackgrounds[index % screenshotAnalysis.suggestedBackgrounds.length]
-    }
-    // Priority 2: Use colors from prompt analysis
-    if (promptAnalysis?.visualStyle?.colorScheme) {
-      return promptAnalysis.visualStyle.colorScheme[index % promptAnalysis.visualStyle.colorScheme.length] || '#F0F4FF'
-    }
-    // Fallback: Default palette
-    const backgrounds = ['#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBEB', '#FEF2F2', '#F0FDFA']
-    return backgrounds[index % backgrounds.length]
-  }
-
-  const generateAIBackground = async () => {
-    if (!currentScreen) return
     
-    setIsGeneratingBackground(true)
-    try {
-      const backgroundPrompt = promptAnalysis 
-        ? `${promptAnalysis.visualStyle.mood} background for ${promptAnalysis.appCategory} app. Colors: ${promptAnalysis.visualStyle.colorScheme.join(", ")}. Style: ${promptAnalysis.visualStyle.designStyle}`
-        : `Modern app store screenshot background for ${userPrompt || 'mobile app'}`
+    setScreens(newScreens)
+    setCurrentScreenId(newScreens[0]?.id || "")
+  }
+
+  // Apply template to all screens
+  const applyTemplateToScreens = (templateId: string) => {
+    const template = getTemplateById(templateId)
+    if (!template) return
+    
+    setSelectedTemplateId(templateId)
+    
+    setScreens(prev => prev.map((screen, index) => {
+      // Find mockup layer or use uploaded screenshot
+      const screenshot = screen.layers.find(l => l.type === "mockup")?.content || uploadedScreenshots[index] || ""
+      const headline = screen.layers.find(l => l.id.includes("headline"))?.content || `Feature ${index + 1}`
+      const subtitle = screen.layers.find(l => l.id.includes("subtitle"))?.content || ""
       
-      const generatedBackground = await generateBackgroundWithNanoBanana(backgroundPrompt)
-      updateScreenBackground(generatedBackground)
-    } catch (error) {
-      console.error("Background generation failed:", error)
-    } finally {
-      setIsGeneratingBackground(false)
-    }
+      const newLayers = generateLayersFromTemplate(template, {
+        screenshot,
+        headline,
+        subtitle,
+        logo: uploadedLogo
+      })
+      
+      return {
+        ...screen,
+        backgroundColor: template.backgroundColor,
+        templateId,
+        layers: newLayers.map((l, idx) => ({
+          ...l,
+          id: `${l.id}_${index}_${idx}`
+        })) as Layer[]
+      }
+    }))
+    
+    setShowTemplateSelector(false)
   }
 
   // Initialize with default screen if no uploads
@@ -555,26 +401,6 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   // Get current screen and layers - AFTER all hooks
   const currentScreen = screens.find(s => s.id === currentScreenId)
   const layers = currentScreen?.layers || []
-  
-  // Debug logging
-  React.useEffect(() => {
-    console.log('📊 Design Canvas State:', {
-      totalScreens: screens.length,
-      currentScreenId,
-      currentScreenLayers: layers.length,
-      uploadedScreenshots: uploadedScreenshots.length,
-      mockupLayers: layers.filter(l => l.type === 'mockup').length
-    })
-  }, [screens, currentScreenId, layers, uploadedScreenshots])
-
-  // Early return AFTER all hooks
-  if (!currentScreen) {
-    return (
-      <div className="w-full h-full bg-neutral-50 flex items-center justify-center">
-        <p className="text-neutral-500 font-light">Loading canvas...</p>
-      </div>
-    )
-  }
 
   const addScreen = () => {
     const newScreen: Screen = {
@@ -599,44 +425,6 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     updateScreenBackground(color, true)
   }
 
-  const regenerateCurrentScreen = async () => {
-    if (!currentScreen) return
-    
-    const currentScreenshot = currentScreen.layers.find(l => l.type === "mockup" || l.type === "image")?.content
-    if (!currentScreenshot) {
-      console.warn("No screenshot found in current screen")
-      return
-    }
-
-    setIsGenerating(true)
-    try {
-      const screenIndex = screens.findIndex(s => s.id === currentScreenId)
-      const aiLayout = await generateLayoutForScreenshot(
-        currentScreenshot,
-        userPrompt || 'mobile app',
-        uploadedLogo,
-        screenIndex
-      )
-
-      if (aiLayout) {
-        const newLayers = createLayersFromAILayout(aiLayout, currentScreenshot, uploadedLogo)
-        setScreens(prev => prev.map(screen => 
-          screen.id === currentScreenId 
-            ? { 
-                ...screen, 
-                backgroundColor: aiLayout.backgroundColor,
-                layers: newLayers
-              }
-            : screen
-        ))
-      }
-    } catch (error) {
-      console.error('Failed to regenerate screen:', error)
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
   const addTextLayer = () => {
     const newLayer: Layer = {
       id: Date.now().toString(),
@@ -644,11 +432,12 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       content: "New Text",
       x: 100,
       y: 250,
-      width: 200,
-      height: 40,
-      fontSize: 20,
-      color: "#000000",
-      bold: false,
+      width: 450,
+      height: 50,
+      fontSize: 34,
+      fontFamily: 'Lato, -apple-system, sans-serif',
+      color: "#1A1A1A",
+      bold: true,
       italic: false,
       underline: false,
       align: "left"
@@ -890,17 +679,25 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
     document.body.removeChild(a)
   }
 
+  // Early return check
+  if (!currentScreen && screens.length === 0) {
+  return (
+      <div className="w-full h-full bg-neutral-50 flex items-center justify-center">
+        {isAnalyzing ? (
+          <div className="text-center px-4">
+            <Sparkles className="h-8 w-8 mx-auto mb-4 text-neutral-900 animate-pulse" />
+            <p className="text-sm text-neutral-900 font-light mb-2">AI is analyzing your screenshots...</p>
+            <p className="text-xs text-neutral-500 font-light">Extracting colors, suggesting layouts, and generating headlines</p>
+          </div>
+        ) : (
+          <p className="text-neutral-500 font-light">Loading canvas...</p>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="w-full bg-neutral-50 overflow-hidden shrink-0 h-full flex flex-col">
-      {/* Loading State */}
-      {isGenerating && (
-        <div className="absolute inset-0 bg-neutral-50/90 z-50 flex items-center justify-center">
-          <div className="text-center px-4">
-            <div className="inline-block h-8 w-8 animate-spin border-4 border-solid border-neutral-900 border-r-transparent mb-4"></div>
-            <p className="text-xs sm:text-sm text-neutral-500 font-light">Generating your App Store screenshots...</p>
-          </div>
-        </div>
-      )}
 
       {/* Figma-style Floating Toolbar */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 bg-white border border-neutral-200 shadow-lg px-2 py-2">
@@ -1017,57 +814,57 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
         </button>
       </div>
 
-      {/* Canvas Header - Minimalist */}
-      <div className="bg-neutral-50 border-b border-neutral-200 px-3 sm:px-4 py-2.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3">
+      {/* Canvas Header - Clean Professional */}
+      <div className="bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
+            className="p-1.5 hover:bg-neutral-100 rounded transition-all duration-200"
           >
-            <X className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
+            <X className="h-4 w-4 text-neutral-600" />
           </button>
-          <div className="hidden sm:block h-4 w-px bg-neutral-200" />
-          <h2 className="text-sm font-light text-neutral-900">Canvas Editor</h2>
+          <div className="h-5 w-px bg-neutral-200" />
+          <div>
+            <h2 className="text-sm font-semibold text-neutral-900">Screenshot Designer</h2>
+            <p className="text-xs text-neutral-500">{screens.length} screens</p>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowTemplateSelector(true)}
+            className="p-1.5 hover:bg-neutral-100 rounded transition-all duration-200"
+            title="Change Layout"
+          >
+            <Palette className="h-4 w-4 text-neutral-600" />
+          </button>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
+            className="p-1.5 hover:bg-neutral-100 rounded transition-all duration-200"
             title={sidebarOpen ? "Hide Panel" : "Show Panel"}
           >
-            <Layers className="h-4 w-4 text-neutral-500 hover:text-neutral-900" />
+            <Layers className="h-4 w-4 text-neutral-600" />
           </button>
-          <div className="hidden sm:block h-4 w-px bg-neutral-200" />
+          <div className="h-5 w-px bg-neutral-200" />
           <button 
             onClick={() => setShowVideoGenerator(true)}
-            className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 flex items-center gap-1.5 border border-neutral-200"
+            className="px-3 py-1.5 text-xs font-medium bg-white text-neutral-700 hover:bg-neutral-100 rounded transition-all duration-200 flex items-center gap-2 border border-neutral-200"
           >
-            <Video className="h-3.5 w-3.5" />
+            <Video className="h-4 w-4" />
             <span className="hidden sm:inline">Video</span>
           </button>
           <button 
-            onClick={() => {
-              // TODO: Implement community sharing with link generation
-              alert('Community sharing coming soon! This will generate a shareable link to your canvas.')
-            }}
-            className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 flex items-center gap-1.5 border border-neutral-200"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Share</span>
-          </button>
-          <button 
             onClick={() => currentScreen && exportScreenshotAsPNG(currentScreen)}
-            className="px-3 sm:px-4 py-1.5 text-xs font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900 flex items-center gap-1.5"
+            className="px-4 py-1.5 text-xs font-medium bg-neutral-900 text-white hover:bg-neutral-800 rounded transition-all duration-200 flex items-center gap-2"
             disabled={!currentScreen || isExporting}
           >
             {isExporting ? (
               <>
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                 <span className="hidden sm:inline">Exporting...</span>
               </>
             ) : (
               <>
-                <Download className="h-3.5 w-3.5" />
+                <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Export</span>
               </>
             )}
@@ -1077,10 +874,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
 
       {/* Main Content Area - Flex Row */}
       <div className="flex-1 flex overflow-hidden flex-col sm:flex-row">
-        {/* Canvas Area - Scrollable - Minimalist */}
+        {/* Canvas Area - Clean White */}
         <div 
           ref={canvasRef}
-          className={`flex-1 p-8 overflow-auto flex items-center justify-center bg-neutral-50 ${spacePressed ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
+          className={`flex-1 p-12 overflow-auto flex items-center justify-center bg-neutral-100 ${spacePressed ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -1091,7 +888,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           }}
         >
           <div
-            className="flex gap-8 min-w-max"
+            className="flex gap-12 min-w-max"
             style={{
               transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0)`,
               willChange: isPanning ? 'transform' : 'auto',
@@ -1100,8 +897,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             {screens.map((screen) => (
               <div 
                 key={screen.id}
-                className={`relative overflow-hidden duration-200 ${
-                  currentScreenId === screen.id ? 'ring-2 ring-neutral-600' : 'ring-1 ring-neutral-200'
+                className={`relative overflow-hidden duration-200 shadow-lg ${
+                  currentScreenId === screen.id ? 'ring-2 ring-blue-500' : 'ring-1 ring-neutral-300'
                 }`}
                 style={{ 
                   width: `${375 * zoom}px`, 
@@ -1110,11 +907,12 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                   flexShrink: 0,
                   minWidth: '200px',
                   transform: 'translateZ(0)',
+                  borderRadius: '2px'
                 }}
                 onClick={() => setCurrentScreenId(screen.id)}
               >
-                {/* Screen Label - Minimalist */}
-                <div className="absolute -top-8 left-0 text-xs font-light text-neutral-700">{screen.name}</div>
+                {/* Screen Label */}
+                <div className="absolute -top-9 left-0 text-xs font-medium text-neutral-600">{screen.name}</div>
 
                 {/* Draggable Layers - Minimalist */}
                 {screen.layers.map(layer => {
@@ -1145,7 +943,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                           className="w-full h-full flex items-center px-2"
                           style={{
                             fontSize: (layer.fontSize || 20) * zoom,
-                            fontFamily: layer.fontFamily || 'inherit',
+                            fontFamily: layer.fontFamily || 'Lato, -apple-system, sans-serif',
                             color: layer.color,
                             fontWeight: layer.bold ? 700 : 400,
                             fontStyle: layer.italic ? 'italic' : 'normal',
@@ -1153,7 +951,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                             textAlign: layer.align || 'left',
                             justifyContent: 
                               layer.align === 'center' ? 'center' : 
-                              layer.align === 'right' ? 'flex-end' : 'flex-start'
+                              layer.align === 'right' ? 'flex-end' : 'flex-start',
+                            lineHeight: 1.2
                           }}
                         >
                           {layer.content}
@@ -1164,8 +963,8 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       {layer.type === "image" && (
                         <img
                           src={layer.content}
-                          alt="App screenshot"
-                          className="w-full h-full"
+                          alt="Layer image"
+                          className="w-full h-full object-contain"
                           draggable={false}
                         />
                       )}
@@ -1173,7 +972,6 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       {/* iPhone Mockup Frame with Screenshot Inside */}
                       {layer.type === "mockup" && (
                         <>
-                          {console.log('Rendering mockup layer:', layer.id, 'with content:', layer.content.substring(0, 50) + '...')}
                           <IphoneMockup 
                             src={layer.content}
                             className="w-full h-full"
@@ -1202,7 +1000,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                         </>
                       )}
                       
-                      {/* Background Layer (full-canvas background) */}
+                      {/* Background Layer */}
                       {layer.type === "background" && (
                         <div
                           className="w-full h-full pointer-events-none"
@@ -1240,98 +1038,54 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
           }}
         >
           <div className={`p-4 space-y-4 ${sidebarOpen ? 'block' : 'hidden'}`}>
-          {/* User Prompt & AI Analysis - Minimalist */}
-          {userPrompt && (
-            <div className="space-y-3">
-              <div className="bg-neutral-50 p-3 border border-neutral-200">
-                <p className="text-xs text-neutral-500 leading-relaxed font-light">
-                  "{userPrompt.length > 80 ? userPrompt.slice(0, 80) + '...' : userPrompt}"
-                </p>
-              </div>
-              
-              {/* Screenshot Analysis - Font Detection */}
-              {/* Temporarily disabled - font detection not working properly
-              {screenshotAnalysis?.typography?.primaryFont && (
-                <div className="bg-neutral-50 p-3 border border-neutral-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Type className="h-4 w-4 text-neutral-400" />
-                    <h4 className="text-xs font-light text-neutral-900">Detected Font</h4>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div 
-                      className="px-3 py-2 bg-neutral-100 border border-neutral-200 font-light text-neutral-900"
-                      style={{ fontFamily: screenshotAnalysis.typography.primaryFont }}
-                    >
-                      {screenshotAnalysis.typography.primaryFont.split(',')[0].replace(/['"]/g, '')}
-                    </div>
-                    <p className="text-[9px] font-light text-neutral-500">
-                      This font is automatically applied to all text in your screenshots
-                    </p>
-                  </div>
-                </div>
-              )}
-              */}
-              
-              {/* Smart Analysis - Commented out
-              {promptAnalysis && (
-                <div className="bg-neutral-50 p-3 border border-neutral-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 bg-neutral-900 flex items-center justify-center text-white text-xs font-light">
-                      AI
-                    </div>
-                    <h4 className="text-xs font-light text-neutral-900">Smart Analysis</h4>
-                  </div>
-                  
-                  <div className="space-y-2.5 text-xs text-neutral-500">
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 font-light">Category</span>
-                      <span className="font-light text-neutral-900">{promptAnalysis.appCategory}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 font-light">Audience</span>
-                      <span className="font-light text-neutral-900">{promptAnalysis.targetAudience}</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-400 block mb-1.5 font-light">Key Features</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {promptAnalysis.keyFeatures.slice(0, 3).map((feature, i) => (
-                          <span key={i} className="px-2 py-1 bg-neutral-50 text-[10px] font-light text-neutral-600 border border-neutral-200">
-                            {feature}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-neutral-400 font-light">Design Style</span>
-                      <span className="font-light text-neutral-900">{promptAnalysis.visualStyle.mood}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              */}
-            </div>
-          )}
 
-          {/* Screens - Minimalist */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-light text-neutral-900">Screens ({screens.length})</h3>
+           {/* AI Analysis Result */}
+           {aiAnalysis && (
+             <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 p-4 text-white space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                 <Sparkles className="h-4 w-4" />
+                 <h3 className="text-xs font-light">AI Template Selection</h3>
+                  </div>
+               <p className="text-xs font-light opacity-90">
+                 {aiAnalysis.templateReasoning}
+               </p>
+               <div className="flex gap-1.5 mt-3">
+                 {aiAnalysis.suggestedBackgrounds.slice(0, 5).map((color: string, idx: number) => (
+                   <div
+                     key={idx}
+                     className="w-6 h-6 rounded border border-white/20"
+                     style={{ backgroundColor: color }}
+                     title={color}
+                   />
+                 ))}
+                    </div>
+               <p className="text-[10px] font-light opacity-70 mt-2">
+                 Colors extracted from your app
+                    </p>
+                </div>
+              )}
+
+
+           {/* Screens Section - Figma Style */}
+           <div className="border-b border-neutral-200 pb-3">
+             <div className="flex items-center justify-between mb-2">
+               <h3 className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wide">Screens</h3>
               <button
                 onClick={addScreen}
-                className="p-1.5 hover:bg-neutral-100 transition-all duration-200"
+                 className="p-1 hover:bg-neutral-100 rounded transition-all duration-200"
               >
-                <Plus className="h-4 w-4 text-neutral-500" />
+                 <Plus className="h-3.5 w-3.5 text-neutral-500" />
               </button>
             </div>
-            <div className="space-y-2">
+             <div className="space-y-1">
               {screens.map(screen => (
                 <button
                   key={screen.id}
                   onClick={() => setCurrentScreenId(screen.id)}
-                  className={`w-full px-3 py-2.5 text-xs font-light transition-all duration-200 border ${
+                   className={`w-full px-2.5 py-1.5 text-xs transition-all duration-200 text-left ${
                     currentScreenId === screen.id 
-                      ? 'bg-neutral-900 text-white border-neutral-900' 
-                      : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100 border-neutral-200'
+                       ? 'bg-blue-500 text-white' 
+                       : 'text-neutral-700 hover:bg-neutral-100'
                   }`}
                 >
                   {screen.name}
@@ -1340,59 +1094,20 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </div>
           </div>
 
-          {currentScreen && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-light text-neutral-900">AI Layout</h3>
-                <Layout className="h-4 w-4 text-neutral-400" />
-              </div>
-              <button
-                onClick={regenerateCurrentScreen}
-                disabled={isGenerating}
-                className="w-full p-3 border border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent"></div>
-                    <span className="text-xs font-light text-neutral-600">Regenerating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Layout className="h-4 w-4 text-neutral-600" />
-                    <span className="text-xs font-light text-neutral-900">Regenerate with AI</span>
-                  </>
-                )}
-              </button>
-              <p className="text-[9px] font-light text-neutral-500">AI will analyze your screenshot and create a new layout with contextual text and positioning</p>
-            </div>
-          )}
 
-          {/* Background Color - Minimalist */}
+           {/* Fill Section - Figma Style */}
+           <div className="border-b border-neutral-200 pb-3">
+               <h3 className="text-[11px] font-semibold text-neutral-500 mb-2 uppercase tracking-wide">Fill</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-light text-neutral-900">Background</h3>
-              <button
-                onClick={generateAIBackground}
-                disabled={isGeneratingBackground}
-                className="px-2.5 py-1.5 text-xs font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 disabled:opacity-50 flex items-center gap-1.5 border border-neutral-900"
-              >
-                {isGeneratingBackground ? (
-                  <>
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    <span>AI</span>
-                  </>
-                ) : (
-                  <>AI Gen</>
-                )}
-              </button>
-            </div>
-            <div className="space-y-3">
-              {/* Suggested Backgrounds from AI Analysis */}
-              {screenshotAnalysis?.suggestedBackgrounds && screenshotAnalysis.suggestedBackgrounds.length > 0 && (
+               {/* AI-suggested backgrounds */}
+               {aiAnalysis?.suggestedBackgrounds && aiAnalysis.suggestedBackgrounds.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-light text-neutral-400">From Your App</p>
+                   <div className="flex items-center gap-2">
+                     <Sparkles className="h-3.5 w-3.5 text-neutral-400" />
+                     <p className="text-[10px] font-light text-neutral-400">AI-Suggested Colors</p>
+                   </div>
                   <div className="grid grid-cols-5 gap-2">
-                    {screenshotAnalysis.suggestedBackgrounds.slice(0, 5).map((color, idx) => (
+                     {aiAnalysis.suggestedBackgrounds.slice(0, 5).map((color: string, idx: number) => (
                       <button
                         key={color + idx}
                         onClick={(e) => {
@@ -1407,14 +1122,14 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                           applyBackgroundToAllScreens(color)
                         }}
                         className={`w-full aspect-square border transition-all duration-200 relative group ${
-                          currentScreen.backgroundColor === color 
+                           currentScreen?.backgroundColor === color 
                             ? 'border-neutral-900 scale-105 ring-2 ring-neutral-900' 
                             : 'border-neutral-200 hover:border-neutral-400'
                         }`}
                         style={{ backgroundColor: color }}
                         title={`${color}\nShift+Click or Right-click to apply to all screens`}
                       >
-                        {currentScreen.backgroundColor === color && (
+                         {currentScreen?.backgroundColor === color && (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Check className="h-3 w-3 text-white drop-shadow-lg" />
                           </div>
@@ -1422,18 +1137,18 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       </button>
                     ))}
                   </div>
-                  <p className="text-[9px] font-light text-neutral-500 italic">Shift+Click or Right-click any color to apply to all screens</p>
+                   <p className="text-[9px] font-light text-neutral-500 italic">Extracted from your app's color scheme</p>
                 </div>
               )}
               
               <input
                 type="color"
-                value={currentScreen.backgroundColor.startsWith('#') ? currentScreen.backgroundColor : '#F0F4FF'}
+                 value={currentScreen?.backgroundColor?.startsWith('#') ? currentScreen.backgroundColor : '#F0F4FF'}
                 onChange={(e) => updateScreenBackground(e.target.value)}
                 className="w-full h-10 border border-neutral-200 cursor-pointer"
               />
               <div className="space-y-2">
-                <p className="text-[10px] font-light text-neutral-400">Presets</p>
+                 <p className="text-[10px] font-light text-neutral-400">More Options</p>
                 <div className="grid grid-cols-6 gap-2">
                   {[
                     '#FFFFFF', '#F5F5F5', '#000000',
@@ -1455,7 +1170,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                         applyBackgroundToAllScreens(color)
                       }}
                       className={`w-full aspect-square border transition-all duration-200 ${
-                        currentScreen.backgroundColor === color 
+                        currentScreen?.backgroundColor === color 
                           ? 'border-neutral-900 scale-105' 
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
@@ -1467,7 +1182,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
               </div>
               
               {/* Apply to All Screens Button */}
-              {screens.length > 1 && (
+              {screens.length > 1 && currentScreen && (
                 <button
                   onClick={() => applyBackgroundToAllScreens(currentScreen.backgroundColor)}
                   className="w-full py-2 px-3 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
@@ -1479,9 +1194,9 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </div>
           </div>
 
-          {/* Add Tools - Minimalist */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-light text-neutral-900">Add Elements</h3>
+           {/* Content Section - Figma Style */}
+           <div className="border-b border-neutral-200 pb-3">
+             <h3 className="text-[11px] font-semibold text-neutral-500 mb-2 uppercase tracking-wide">Content</h3>
             <div className="grid grid-cols-2 gap-2">
               <button 
                 onClick={addTextLayer}
@@ -1499,10 +1214,10 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </div>
           </div>
 
-          {/* Assets Library - NEW */}
+           {/* Assets Section - Figma Style */}
           {(uploadedLogo || uploadedAssets.length > 0) && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-light text-neutral-900">Your Assets</h3>
+             <div className="border-b border-neutral-200 pb-3">
+               <h3 className="text-[11px] font-semibold text-neutral-500 mb-2 uppercase tracking-wide">Assets</h3>
               
               {/* Logo */}
               {uploadedLogo && (
@@ -1558,30 +1273,31 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             </div>
           )}
 
-          {/* Layers List - Minimalist */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-light text-neutral-900">Layers</h3>
-            <div className="space-y-1.5">
+           {/* Layers Section - Figma Style */}
+           <div className="border-b border-neutral-200 pb-3">
+             <h3 className="text-[11px] font-semibold text-neutral-500 mb-2 uppercase tracking-wide">Layers</h3>
+             <div className="space-y-0.5">
               {layers.map(layer => (
                 <div
                   key={layer.id}
                   onClick={() => setSelectedLayer(layer.id)}
-                  className={`px-3 py-2.5 cursor-pointer flex items-center justify-between group transition-all duration-200 border ${
+                   className={`px-2 py-1.5 cursor-pointer flex items-center justify-between group transition-all duration-200 ${
                     selectedLayer === layer.id 
-                      ? 'bg-neutral-900 text-white border-neutral-900' 
-                      : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200'
+                       ? 'bg-blue-500 text-white' 
+                       : 'hover:bg-neutral-100 text-neutral-700'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
+                   <div className="flex items-center gap-2">
                     {layer.type === "text" ? (
-                      <Type className={`h-4 w-4 ${selectedLayer === layer.id ? 'text-white' : 'text-neutral-400'}`} />
-                    ) : (
-                      <ImageIcon className={`h-4 w-4 ${selectedLayer === layer.id ? 'text-white' : 'text-neutral-400'}`} />
-                    )}
-                    <span className={`text-xs font-light truncate max-w-[150px] ${
-                      selectedLayer === layer.id ? 'text-white' : 'text-neutral-600'
-                    }`}>
-                      {layer.content.length > 20 ? layer.content.slice(0, 20) + '...' : layer.content}
+                       <Type className="h-3.5 w-3.5" />
+                     ) : layer.type === "mockup" ? (
+                       <ImageIcon className="h-3.5 w-3.5" />
+                     ) : (
+                       <Square className="h-3.5 w-3.5" />
+                     )}
+                     <span className="text-xs truncate max-w-[140px]">
+                       {layer.type === "mockup" ? "iPhone Mockup" : 
+                        layer.content.length > 18 ? layer.content.slice(0, 18) + '...' : layer.content}
                     </span>
                   </div>
                   <button
@@ -1589,23 +1305,81 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       e.stopPropagation()
                       deleteLayer(layer.id)
                     }}
-                    className={`p-1 hover:bg-neutral-800 transition-colors ${
-                      selectedLayer === layer.id ? 'opacity-0 group-hover:opacity-100' : ''
-                    }`}
+                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-black/10 rounded transition-all"
                   >
-                    <Trash2 className={`h-3.5 w-3.5 ${
-                      selectedLayer === layer.id ? 'text-white hover:text-neutral-300' : 'text-neutral-400 hover:text-neutral-600'
-                    }`} />
+                     <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Properties - Minimalist */}
+           {/* Properties - Figma Style */}
           {selectedLayerData && (
-            <div className="space-y-4 pt-4 border-t border-neutral-200">
-              <h3 className="text-xs font-light text-neutral-900">Properties</h3>
+             <div className="space-y-3">
+               <h3 className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wide">Properties</h3>
+              
+              {/* Position - Like Figma */}
+              <div>
+                <label className="text-xs font-light text-neutral-400 mb-2 block">Position</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-neutral-400 mb-1 block">X</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedLayerData.x)}
+                      onChange={(e) => {
+                        const newX = Number(e.target.value)
+                        updateLayerStyle(selectedLayerData.id, { x: newX })
+                      }}
+                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-transparent bg-neutral-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400 mb-1 block">Y</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedLayerData.y)}
+                      onChange={(e) => {
+                        const newY = Number(e.target.value)
+                        updateLayerStyle(selectedLayerData.id, { y: newY })
+                      }}
+                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-transparent bg-neutral-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dimensions - Like Figma */}
+              <div>
+                <label className="text-xs font-light text-neutral-400 mb-2 block">Dimensions</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-neutral-400 mb-1 block">W</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedLayerData.width)}
+                      onChange={(e) => {
+                        const newWidth = Number(e.target.value)
+                        updateLayerStyle(selectedLayerData.id, { width: newWidth })
+                      }}
+                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-transparent bg-neutral-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400 mb-1 block">H</label>
+                    <input
+                      type="number"
+                      value={Math.round(selectedLayerData.height)}
+                      onChange={(e) => {
+                        const newHeight = Number(e.target.value)
+                        updateLayerStyle(selectedLayerData.id, { height: newHeight })
+                      }}
+                      className="w-full px-2 py-1.5 text-xs border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-transparent bg-neutral-50"
+                    />
+                  </div>
+                </div>
+              </div>
               
               {selectedLayerData.type === "text" && (
                 <>
@@ -1826,6 +1600,74 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
             prompt={userPrompt}
             onClose={() => setShowVideoGenerator(false)}
           />
+        </div>
+      </div>
+    )}
+
+     {/* Template Selector Modal */}
+     {showTemplateSelector && (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        onClick={() => setShowTemplateSelector(false)}
+      >
+        <div 
+          className="relative w-full max-w-4xl max-h-[80vh] bg-white overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-neutral-200">
+            <h2 className="text-lg text-neutral-700">Choose a Layout</h2>
+            <p className="text-xs text-neutral-500 mt-1">Select a design style for your screenshots</p>
+          </div>
+          
+          {/* Template Grid */}
+          <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {LAYOUT_TEMPLATES.map(template => (
+                <button
+                  key={template.id}
+                  onClick={() => setShowTemplateSelector(false)}
+                  className={`group relative overflow-hidden bg-neutral-50 border transition-all ${
+                    selectedTemplateId === template.id 
+                      ? 'border-neutral-900' 
+                      : 'border-neutral-200 hover:border-neutral-400'
+                  }`}
+                >
+                  {/* Template Preview Image */}
+                  <div className="aspect-[9/16] bg-gradient-to-br from-neutral-100 to-neutral-200 p-4">
+                    {/* Config 1 preview - top */}
+                    <div className="h-[45%] flex flex-col items-start">
+                      <div className="h-1.5 bg-neutral-400 w-3/4 mb-1" />
+                      <div className="h-1 bg-neutral-300 w-1/2 mb-2" />
+                      <div className="w-8 h-16 border border-neutral-400 bg-white mx-auto mt-auto" />
+                    </div>
+                    
+                    {/* Divider */}
+                    <div className="border-t border-dashed border-neutral-300 my-1" />
+                    
+                    {/* Config 2 preview - bottom */}
+                    <div className="h-[45%] flex flex-col items-start">
+                      <div className="w-8 h-16 border border-neutral-400 bg-white mx-auto mb-auto" />
+                      <div className="h-1.5 bg-neutral-400 w-3/4 mb-1 mt-auto" />
+                      <div className="h-1 bg-neutral-300 w-1/2" />
+                    </div>
+                  </div>
+                  
+                  {/* Template Name */}
+                  <div className="px-3 py-2 border-t border-neutral-200 bg-white">
+                    <p className="text-xs text-neutral-700 text-center">{template.name}</p>
+                  </div>
+                  
+                  {/* Selected Indicator */}
+                  {selectedTemplateId === template.id && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-neutral-900 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     )}
