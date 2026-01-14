@@ -46,15 +46,15 @@ export interface LayoutTemplate {
 const SCREEN_CONFIGS = [
   // Config A: screens 1, 3, 5
   {
-    mockup: { x: 468, y: 245, width: 307, height: 622 },
+    mockup: { x: 34, y: 245, width: 307, height: 622 },
     title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 100, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    subtitle: { x: 26, y: 118, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   },
   // Config B: screens 2, 4
   {
-    mockup: { x: 468, y: -66, width: 307, height: 622 },
-    title: { x: 26, y: 595, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 625, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    mockup: { x: 34, y: -66, width: 307, height: 622 },
+    title: { x: 26, y: 612, width: 300, height: 50, fontSize: 34, align: 'left' as const },
+    subtitle: { x: 26, y: 688, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   }
 ]
 

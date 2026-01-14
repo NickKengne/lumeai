@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Copy, RotateCcw, Share2, Check, Sparkles, Upload, X, Video } from "lucide-react"
+import { Copy, RotateCcw, Share2, Check, Sparkles, Upload, X, Video, Search } from "lucide-react"
 import { VideoGenerator } from "./video-generator"
 import { DesignCanvas } from "./design-canvas"
 import { motion, AnimatePresence } from "motion/react"
@@ -13,6 +13,7 @@ import { analyzeUserPrompt } from "@/lib/ai-helpers"
 import { LAYOUT_TEMPLATES } from "@/lib/layout-templates"
 import { saveChatToHistory, generateChatTitle, getChatById } from "@/lib/chat-storage"
 import { useParams, useSearchParams } from "next/navigation"
+import { analyzeScreenshots } from "@/lib/screenshot-analyzer"
 
 interface Message {
   id: string
@@ -29,9 +30,10 @@ interface ChatConversationProps {
   messages: Message[]
   onPanelOpenChange?: (isOpen: boolean) => void
   onScreenshotsUpload?: (screenshots: string[]) => void
+  onAddMessage?: (message: Message) => void
 }
 
-export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpload }: ChatConversationProps) {
+export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpload, onAddMessage }: ChatConversationProps) {
   const params = useParams()
   const searchParams = useSearchParams()
   const chatId = params?.chatId as string | undefined
@@ -57,6 +59,13 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const logoInputRef = React.useRef<HTMLInputElement>(null)
   const assetsInputRef = React.useRef<HTMLInputElement>(null)
+  const [isAnalyzingScreenshots, setIsAnalyzingScreenshots] = React.useState(false)
+  const [screenshotAnalysis, setScreenshotAnalysis] = React.useState<{
+    dominantColors: string[]
+    backgroundsWithTextColors: Array<{ background: string; textColor: string }>
+    detectedFonts: string[]
+  } | null>(null)
+  const [hasAnalyzed, setHasAnalyzed] = React.useState(false)
 
   // Update panel width based on screen size
   React.useEffect(() => {
@@ -321,20 +330,112 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     setUploadedAssets(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleAnalyzeAndSuggest = async () => {
+  // Helper function to determine text color based on background brightness
+  const getTextColorForBackground = (bgColor: string): string => {
+    const hex = bgColor.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16)
+    const g = parseInt(hex.substr(2, 2), 16)
+    const b = parseInt(hex.substr(4, 2), 16)
+    
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    
+    // Return black text for light backgrounds, white for dark
+    return luminance > 0.5 ? '#1A1A1A' : '#FFFFFF'
+  }
+
+  const handleAnalyzeScreenshotsForBenchmark = async () => {
     if (uploadedScreenshots.length === 0) return
 
-    // Design canvas now handles all AI analysis automatically
-    // Just open the panel
+    setIsAnalyzingScreenshots(true)
+    
+    // Create a streaming analysis message
+    const analysisMessageId = `analysis-${Date.now()}`
+    let streamingContent = ""
+
     try {
-      setShowLayoutPreview(true)
+      console.log("🔍 Analyzing screenshots for design benchmark...")
+      
+      // Start with initial message
+      streamingContent = "## 🎨 Analyzing Your Screenshots\n\nExamining colors, typography, and design elements..."
+      onAddMessage?.({
+        id: analysisMessageId,
+        role: 'assistant',
+        content: streamingContent,
+        timestamp: new Date(),
+        isStreaming: true
+      })
+
+      // Simulate streaming delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const analysis = await analyzeScreenshots(uploadedScreenshots, selectedPrompt || "App screenshots")
+      
+      // Map backgrounds to their appropriate text colors
+      const backgroundsWithTextColors = analysis.suggestedBackgrounds.map(bg => ({
+        background: bg,
+        textColor: getTextColorForBackground(bg)
+      }))
+
+      setScreenshotAnalysis({
+        dominantColors: analysis.dominantColors,
+        backgroundsWithTextColors,
+        detectedFonts: analysis.detectedFonts
+      })
+
+      // Build the analysis result message
+      streamingContent = "## 🎨 Screenshot Analysis Complete\n\n"
+      
+      // Dominant Colors Section
+      streamingContent += "### Dominant Colors Extracted\n"
+      streamingContent += "I've identified the primary colors from your screenshots:\n\n"
+      analysis.dominantColors.forEach((color, idx) => {
+        streamingContent += `${idx + 1}. **${color}** - ${idx === 0 ? 'Primary color' : idx === 1 ? 'Secondary color' : 'Accent color'}\n`
+      })
+      
+      streamingContent += "\n### Background Variations for App Store\n"
+      streamingContent += "Based on your app's color palette, here are the best background options with optimal text colors:\n\n"
+      
+      backgroundsWithTextColors.forEach((item, idx) => {
+        const brightness = getTextColorForBackground(item.background) === '#FFFFFF' ? 'Dark' : 'Light'
+        streamingContent += `${idx + 1}. **Background:** ${item.background} (${brightness}) → **Text:** ${item.textColor}\n`
+      })
+      
+      streamingContent += "\n### Typography Recommendations\n"
+      streamingContent += "Suggested fonts that match your app's style:\n\n"
+      analysis.detectedFonts.forEach((font, idx) => {
+        streamingContent += `${idx + 1}. ${font}\n`
+      })
+      
+      streamingContent += "\n### 💡 Design Tips\n"
+      streamingContent += "- Use high contrast combinations for better readability\n"
+      streamingContent += "- Light backgrounds work well for showcasing dark UI screenshots\n"
+      streamingContent += "- Dark backgrounds create premium, modern aesthetics\n"
+      streamingContent += "\n✅ Ready to generate your App Store screenshots!"
+
+      // Update message with complete analysis
+      onAddMessage?.({
+        id: analysisMessageId,
+        role: 'assistant',
+        content: streamingContent,
+        timestamp: new Date(),
+        isStreaming: false
+      })
+
+      setHasAnalyzed(true)
+      console.log("✅ Screenshot analysis complete:", analysis)
     } catch (error: any) {
-      console.error('Error opening canvas:', error)
-      if (false) {
-        alert('⚠️ Error!\n\n' +
-              'The AI analysis is temporarily unavailable. Using basic color detection instead.\n\n' +
-              '💡 Tip: Wait a few minutes before analyzing more screenshots, or consider upgrading your Google AI API plan for higher limits.')
-      }
+      console.error('Error analyzing screenshots:', error)
+      
+      streamingContent = "## ⚠️ Analysis Error\n\nI encountered an issue analyzing your screenshots. Using basic color detection instead.\n\nYou can still proceed with screenshot generation using default settings."
+      
+      onAddMessage?.({
+        id: analysisMessageId,
+        role: 'assistant',
+        content: streamingContent,
+        timestamp: new Date(),
+        isStreaming: false
+      })
     } finally {
       setIsAnalyzingScreenshots(false)
     }
@@ -548,23 +649,43 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         )}
                       </div>
 
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
-                          disabled={isGeneratingStructure}
-                          className="flex-1 flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
-                        >
-                          <Sparkles className="h-4 w-4" />
-                          {isGeneratingStructure ? 'Generating...' : 'Generate Screenshots'}
-                            </button>
-                            <button
-                              onClick={() => setShowVideoGenerator(true)}
-                          className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-900 text-sm font-light hover:bg-neutral-200 transition-colors justify-center border border-neutral-200"
-                            >
-                              <Video className="h-4 w-4" />
-                              Video
-                            </button>
-                          </div>
+                      {/* Step 1: Analyze Screenshots */}
+                      {!hasAnalyzed && (
+                        <div className="mt-3">
+                          <button
+                            onClick={handleAnalyzeScreenshotsForBenchmark}
+                            disabled={isAnalyzingScreenshots}
+                            className="w-full flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
+                          >
+                            <Search className="h-4 w-4" />
+                            {isAnalyzingScreenshots ? 'Analyzing Screenshots...' : 'Analyze Screenshots'}
+                          </button>
+                          <p className="text-xs text-neutral-400 mt-2 text-center">
+                            Analyze colors, fonts, and backgrounds before generating
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Step 2: Generate & Video (only after analysis) */}
+                      {hasAnalyzed && (
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
+                            disabled={isGeneratingStructure}
+                            className="flex-1 flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            {isGeneratingStructure ? 'Generating...' : 'Generate Screenshots'}
+                          </button>
+                          <button
+                            onClick={() => setShowVideoGenerator(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-900 text-sm font-light hover:bg-neutral-200 transition-colors justify-center border border-neutral-200"
+                          >
+                            <Video className="h-4 w-4" />
+                            Video
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -653,6 +774,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
               uploadedScreenshots={uploadedScreenshots}
               uploadedLogo={uploadedLogo}
               uploadedAssets={uploadedAssets}
+              screenshotAnalysis={screenshotAnalysis}
             />
           </motion.div>
         )}

@@ -50,9 +50,14 @@ interface DesignCanvasProps {
   uploadedScreenshots?: string[]
   uploadedLogo?: string
   uploadedAssets?: string[]
+  screenshotAnalysis?: {
+    dominantColors: string[]
+    backgroundsWithTextColors: Array<{ background: string; textColor: string }>
+    detectedFonts: string[]
+  } | null
 }
 
-export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], uploadedLogo, uploadedAssets = [] }: DesignCanvasProps) {
+export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], uploadedLogo, uploadedAssets = [], screenshotAnalysis = null }: DesignCanvasProps) {
   const [screens, setScreens] = React.useState<Screen[]>([])
   const [currentScreenId, setCurrentScreenId] = React.useState("")
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)

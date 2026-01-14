@@ -81,6 +81,22 @@ export function ChatInput({
     onPanelOpenChange?.(isOpen)
   }, [onPanelOpenChange])
 
+  // Handle adding or updating messages (for analysis streaming)
+  const handleAddMessage = React.useCallback((message: Message) => {
+    setMessages(prev => {
+      const existingIndex = prev.findIndex(m => m.id === message.id)
+      if (existingIndex >= 0) {
+        // Update existing message
+        const newMessages = [...prev]
+        newMessages[existingIndex] = message
+        return newMessages
+      } else {
+        // Add new message
+        return [...prev, message]
+      }
+    })
+  }, [])
+
   // AI Response Generator (moved up for use in effects)
   const generateAIResponse = React.useCallback((userInput: string): string => {
     // Enhanced AI response following the Claude.md workflow
@@ -506,7 +522,11 @@ Ready to upload your app screenshots?`
     <div className="w-full h-full flex flex-col overflow-hidden">
       {/* Messages Area */}
       <div className="flex-1 overflow-hidden">
-        <ChatConversation messages={messages} onPanelOpenChange={handlePanelOpenChange} />
+        <ChatConversation 
+          messages={messages} 
+          onPanelOpenChange={handlePanelOpenChange}
+          onAddMessage={handleAddMessage}
+        />
       </div>
 
       {/* Chat Input - Shrinks when canvas is open */}
