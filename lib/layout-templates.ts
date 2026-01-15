@@ -41,12 +41,12 @@ export interface LayoutTemplate {
 
 const SCREEN_CONFIGS = [
   {
-    mockup: { x: 44, y: 245, width: 307, height: 622 },
+    mockup: { x: 34, y: 245, width: 307, height: 622 },
     title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'left' as const },
     subtitle: { x: 26, y: 96, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   },
   {
-    mockup: { x: 44, y: -66, width: 307, height: 622 },
+    mockup: { x: 34, y: -66, width: 307, height: 622 },
     title: { x: 26, y: 612, width: 300, height: 50, fontSize: 34, align: 'left' as const },
     subtitle: { x: 26, y: 666, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   }

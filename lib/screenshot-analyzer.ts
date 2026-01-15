@@ -3,8 +3,11 @@
  * Analyzes uploaded screenshots to extract colors and suggest layouts
  */
 
-// Extract dominant colors from screenshot
-export async function extractColorsFromScreenshot(screenshotBase64: string): Promise<string[]> {
+// Extract dominant colors AND background from screenshot
+export async function extractColorsFromScreenshot(screenshotBase64: string): Promise<{
+  colors: string[]
+  backgroundColor: string
+}> {
   try {
     // Create a canvas to analyze the image
     const img = new Image()
@@ -14,9 +17,9 @@ export async function extractColorsFromScreenshot(screenshotBase64: string): Pro
       img.src = screenshotBase64
     })
 
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-    if (!ctx) return ['#F5F5F5']
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return { colors: ['#F5F5F5'], backgroundColor: '#F5F5F5' }
 
     // Scale down for faster analysis
     const scale = 0.1
@@ -28,23 +31,50 @@ export async function extractColorsFromScreenshot(screenshotBase64: string): Pro
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
 
-    // Count colors
+    // Count colors and detect background
     const colorCounts: { [key: string]: number } = {}
+    const edgeColors: string[] = []
+    
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i]
       const g = data[i + 1]
       const b = data[i + 2]
       const a = data[i + 3]
+      
+      const pixelIndex = i / 4
+      const x = pixelIndex % canvas.width
+      const y = Math.floor(pixelIndex / canvas.width)
 
-      // Skip transparent pixels and very light/dark pixels
-        if (a < 128) continue
-      if (r > 245 && g > 245 && b > 245) continue // Skip white
-      if (r < 10 && g < 10 && b < 10) continue // Skip black
+      // Skip transparent pixels
+      if (a < 128) continue
+
+      // Collect edge pixels for background detection
+      const isEdge = x < 5 || x > canvas.width - 5 || y < 5 || y > canvas.height - 5
+      if (isEdge) {
+        const edgeColor = `${Math.floor(r / 16) * 16},${Math.floor(g / 16) * 16},${Math.floor(b / 16) * 16}`
+        edgeColors.push(edgeColor)
+      }
+
+      // Skip very light/dark for color extraction
+      if (r > 245 && g > 245 && b > 245) continue
+      if (r < 10 && g < 10 && b < 10) continue
 
       // Quantize to reduce color variations
       const quantized = `${Math.floor(r / 32) * 32},${Math.floor(g / 32) * 32},${Math.floor(b / 32) * 32}`
       colorCounts[quantized] = (colorCounts[quantized] || 0) + 1
     }
+
+    // Detect background from edge colors
+    const bgColorCounts: { [key: string]: number } = {}
+    edgeColors.forEach(color => {
+      bgColorCounts[color] = (bgColorCounts[color] || 0) + 1
+    })
+    
+    const mostCommonBgColor = Object.entries(bgColorCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || '240,240,240'
+    
+    const [bgR, bgG, bgB] = mostCommonBgColor.split(',').map(Number)
+    const backgroundColor = `#${bgR.toString(16).padStart(2, '0')}${bgG.toString(16).padStart(2, '0')}${bgB.toString(16).padStart(2, '0')}`
 
     // Get top colors
     const sortedColors = Object.entries(colorCounts)
@@ -55,10 +85,13 @@ export async function extractColorsFromScreenshot(screenshotBase64: string): Pro
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
       })
 
-    return sortedColors.length > 0 ? sortedColors : ['#F5F5F5']
+    return {
+      colors: sortedColors.length > 0 ? sortedColors : ['#F5F5F5'],
+      backgroundColor
+    }
   } catch (error) {
     console.error('Color extraction failed:', error)
-    return ['#F5F5F5']
+    return { colors: ['#F5F5F5'], backgroundColor: '#F5F5F5' }
   }
 }
 
@@ -256,47 +289,106 @@ export async function analyzeScreenshots(
   // Get AI suggestions
   const aiAnalysis = await analyzeScreenshotsWithAI(screenshots, userPrompt)
 
-  // Extract colors from first screenshot
+  // Extract colors and background from first screenshot
   let dominantColors: string[] = []
-  let complementaryBg: string[] = []
+  let detectedBackground: string = '#F5F5F5'
 
   if (screenshots.length > 0) {
     try {
-      dominantColors = await extractColorsFromScreenshot(screenshots[0])
-      complementaryBg = generateComplementaryColors(dominantColors)
+      const extracted = await extractColorsFromScreenshot(screenshots[0])
+      dominantColors = extracted.colors
+      detectedBackground = extracted.backgroundColor
     } catch (e) {
       console.error('Color extraction failed:', e)
     }
   }
 
-  // Determine best text color based on screenshot brightness
-  let textColor = '#FFFFFF' // Default to white
-  if (dominantColors.length > 0) {
-    const avgBrightness = dominantColors.reduce((sum, color) => {
-      const hex = color.replace('#', '')
-      const r = parseInt(hex.substr(0, 2), 16)
-      const g = parseInt(hex.substr(2, 2), 16)
-      const b = parseInt(hex.substr(4, 2), 16)
-      return sum + (r + g + b) / 3
-    }, 0) / dominantColors.length
-    
-    textColor = avgBrightness > 128 ? '#1A1A1A' : '#FFFFFF'
-  }
+  // Use the detected background as primary
+  const bgHex = detectedBackground.replace('#', '')
+  const bgR = parseInt(bgHex.substr(0, 2), 16)
+  const bgG = parseInt(bgHex.substr(2, 2), 16)
+  const bgB = parseInt(bgHex.substr(4, 2), 16)
+  const bgBrightness = (bgR + bgG + bgB) / 3
+  
+  // Determine text color based on background
+  const textColor = bgBrightness > 128 ? '#1A1A1A' : '#FFFFFF'
 
-  // Merge AI backgrounds with extracted colors
-  const allBackgrounds = [
-    ...complementaryBg,
-    ...aiAnalysis.suggestedBackgrounds
+  // Generate background variations from the detected background
+  const backgroundVariations = [
+    detectedBackground, // Use detected background first!
+    ...generateComplementaryColors(dominantColors)
   ].slice(0, 6)
   
-  // Detect fonts from AI analysis or use defaults
-  const detectedFonts = ['SF Pro Display', 'Inter', 'Helvetica Neue']
+  // Detect fonts based purely on visual characteristics
+  const detectedFonts = detectFontsFromVisuals(dominantColors, bgBrightness)
   
   return {
     ...aiAnalysis,
     dominantColors,
-    suggestedBackgrounds: allBackgrounds.length > 0 ? allBackgrounds : aiAnalysis.suggestedBackgrounds,
+    suggestedBackgrounds: backgroundVariations,
     detectedFonts,
     textColor
   }
+}
+
+/**
+ * Detect appropriate fonts based ONLY on visual characteristics of the screenshot
+ * No keyword matching - just colors and style
+ */
+function detectFontsFromVisuals(colors: string[], backgroundBrightness: number): string[] {
+  if (colors.length === 0) {
+    return ['Inter', 'SF Pro Display', 'Roboto']
+  }
+  
+  // Analyze color saturation and variety
+  let totalSaturation = 0
+  let colorVariety = 0
+  
+  colors.forEach(color => {
+    const hex = color.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16)
+    const g = parseInt(hex.substr(2, 2), 16)
+    const b = parseInt(hex.substr(4, 2), 16)
+    
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    const saturation = max === 0 ? 0 : (max - min) / max
+    
+    totalSaturation += saturation
+    if (saturation > 0.3) colorVariety++
+  })
+  
+  const avgSaturation = totalSaturation / colors.length
+  const isColorful = avgSaturation > 0.3 && colorVariety >= 2
+  const isDark = backgroundBrightness < 128
+  const isVeryDark = backgroundBrightness < 80
+  const isVeryLight = backgroundBrightness > 200
+  
+  // Modern, colorful, energetic apps
+  if (isColorful && !isDark) {
+    return ['Poppins', 'Montserrat', 'Nunito']
+  }
+  
+  // Modern, colorful, dark apps
+  if (isColorful && isDark) {
+    return ['Space Grotesk', 'Outfit', 'Plus Jakarta Sans']
+  }
+  
+  // Minimal, dark, professional apps
+  if (isVeryDark && !isColorful) {
+    return ['IBM Plex Sans', 'Inter', 'Roboto']
+  }
+  
+  // Minimal, light, clean apps  
+  if (isVeryLight && !isColorful) {
+    return ['Inter', 'SF Pro Display', 'Lato']
+  }
+  
+  // Moderate saturation - balanced, modern
+  if (avgSaturation > 0.15 && avgSaturation < 0.35) {
+    return ['Work Sans', 'DM Sans', 'Rubik']
+  }
+  
+  // Default: Universal, readable fonts
+  return ['Inter', 'SF Pro Display', 'Roboto']
 }

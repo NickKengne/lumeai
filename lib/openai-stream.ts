@@ -177,116 +177,215 @@ export async function mockStreamAIResponse(
 function generateMockMarkdownResponse(userInput: string): string {
   const input = userInput.toLowerCase()
   
-  // Detect app category
+  // Generate varied response styles
+  const responseStyles = ['direct', 'analytical', 'strategic', 'visual-first']
+  const selectedStyle = responseStyles[Math.floor(Math.random() * responseStyles.length)]
+  
   let response = ''
   
-  if (input.includes('finance') || input.includes('budget') || input.includes('money')) {
-    response = `## Quick Take
+  if (input.includes('finance') || input.includes('budget') || input.includes('money') || input.includes('bank')) {
+    if (selectedStyle === 'direct') {
+      response = `Banking apps live or die on trust. Here's what matters:
 
-You're building a finance app. The bar is high—people trust these apps with their money, so every pixel matters.
+Your biggest competitor isn't other apps—it's the friction of switching banks. People stick with what they know, even if it sucks.
 
-**Core Challenge:** Getting someone to link their bank account to a new app requires massive trust. Your screenshots need to scream "secure" and "simple" simultaneously.
+**What needs to jump off the screen:**
+- Real-time balance updates (show it's actually connected)
+- One-tap transfers that feel instant
+- Transaction history that doesn't look like a spreadsheet
+- Whatever makes you different from ${input.includes('transfer') ? 'Venmo' : input.includes('budget') ? 'Mint' : 'your bank app'}
 
-## Screenshot Must-Haves
+Skip the generic "manage your money" messaging. Show the moment someone realizes they just saved 3 minutes doing something that used to take 10.
 
-1. **Dashboard view** - Show financial clarity, not complexity
-2. **One key insight** - A graph or stat that makes them go "oh, I need that"
-3. **Security badges** - Bank-level encryption, biometric login
-4. **Social proof** - User count or rating if you have it
+Upload your screens and I'll help you highlight what actually converts.`
+    } else if (selectedStyle === 'analytical') {
+      response = `Finance app. Interesting space—high trust barrier, high switching cost.
 
-**Common Mistake:** Too many numbers and charts. Pick ONE powerful visual per screen.
+**The Psychology:** Users won't switch unless the pain of staying > pain of changing. Your screenshots need to demonstrate immediate value, not promise future benefits.
 
-## Design Direction
+**Screenshot Strategy:**
 
-**Colors:** Blues/greens for trust. Avoid anything that feels unstable (reds, blacks).
-**Tone:** Professional but not corporate. Approachable but not cute.
-**Layout:** Clean, lots of white space. Let the data breathe.
+Screen 1 should answer "What's different?" in 2 seconds. Not "easy money transfer"—everyone says that. Show the transfer happening. Show the notification. Show the confirmation.
 
----
+Screen 2: The dashboard. But make it a dashboard someone would actually check daily. What's the hook? Real-time spending alerts? Automatic savings? Instant categorization?
 
-**Next:** Upload your app screenshots. I'll design multiple layout options that actually convert.`
+Screen 3: Trust signals. Security isn't a feature anymore, it's table stakes. Show biometrics, encryption, whatever. But quickly.
+
+**Critical:** ${input.includes('real-time') ? 'You mentioned real-time. That\'s your angle. Hammer it.' : input.includes('easy') ? 'Everyone says "easy." Show fast instead.' : 'Find your one differentiator and lead with it.'}
+
+Upload your actual screens so we can craft something that stands out.`
+    } else if (selectedStyle === 'strategic') {
+      response = `${input.includes('empower') || input.includes('manage') ? 'Empowerment messaging is everywhere in fintech.' : 'Finance app space is crowded.'} You need sharper positioning.
+
+**Competitive Landscape:** You're fighting apps users already have installed, already trust, and already understand. That's brutal.
+
+**Conversion Approach:**
+
+Don't try to explain features. Show outcomes. Not "track transactions"—show someone catching a subscription they forgot about. Not "easy transfers"—show a split check getting settled in 10 seconds.
+
+**Screenshot Flow I'd Recommend:**
+1. The "aha" moment (whatever your app does that clicks instantly)
+2. The interface (prove it's not complicated)
+3. The payoff (saved money? saved time? less stress?)
+
+${input.includes('security') || input.includes('safe') ? '\n**On Security:** Mention it, don\'t overexplain it. One line, one icon, done.\n' : ''}
+Let's see what you've built and figure out the angle that'll make people stop scrolling.`
+    } else {
+      response = `Looking at ${input.includes('bank') ? 'banking' : 'finance'} app screenshots...
+
+**Visual Strategy:** Financial apps have a visual trust problem. Too sterile = corporate and boring. Too casual = feels unsafe with money.
+
+You need that sweet spot: modern but trustworthy. Clear but not cold.
+
+**Color Psychology:**
+- Blues: Trust (overused but works)
+- Greens: Growth, money (good for positive actions)
+- White space: Clarity (critical for finance)
+
+**What to Show:**
+${input.includes('transfer') ? '→ The transfer flow: 3 taps max\n→ Confirmation that feels instant\n→ Transaction appearing in real-time' : ''}
+${input.includes('track') || input.includes('history') ? '→ Transaction list that\'s scannable\n→ Search/filter that actually works\n→ Insights that are useful, not generic' : ''}
+${input.includes('dashboard') ? '→ Account balances front and center\n→ Recent activity (not buried)\n→ Quick actions within thumb reach' : ''}
+
+Share your screenshots and I'll help you create something that looks as good as it functions.`
+    }
   } else if (input.includes('fitness') || input.includes('health') || input.includes('workout')) {
-    response = `## Quick Take
+    const variations = [
+      `Fitness apps are emotional products disguised as utility apps.
 
-Fitness apps live or die on motivation. Your screenshots need to make people feel capable, not guilty.
+The real competition? The voice in their head saying "I'll start Monday." Your screenshots need to shut that voice up.
 
-**Core Challenge:** Everyone's downloaded a fitness app that collected dust. You need to show why THIS time is different.
+**What Works:**
+- Progress that feels attainable (not "get shredded in 30 days")
+- Workouts that look doable right now
+- Community that doesn't feel intimidating
+- Results that are specific (not generic transformation pics)
 
-## Screenshot Must-Haves
+**What Doesn't:**
+- Stock photos of models
+- Workouts that look complicated
+- Nutrition plans that require meal prep skills
+- Anything that triggers guilt instead of motivation
 
-1. **Transformation story** - Before/after or progress visualization
-2. **The workout interface** - Prove it's not complicated
-3. **Social/community element** - Nobody wants to suffer alone
-4. **Quick wins** - Show what they'll achieve in week 1
+${input.includes('track') ? 'You mentioned tracking. Good. But show the insight, not the data entry.' : ''}
+${input.includes('plan') ? 'Plans are great until they\'re too rigid. Show flexibility.' : ''}
 
-**Common Mistake:** Too intense. Sixpack abs scare away more people than they attract. Show progress, not perfection.
+Upload your screens. Let's make something that actually gets people to lace up their shoes.`,
 
-## Design Direction
+      `Health/fitness space. Tough market because motivation is hard to capture in a screenshot.
 
-**Colors:** Energetic but not aggressive. Orange/blue combo works well.
-**Tone:** Motivational but realistic. Coach, not drill sergeant.
-**Layout:** Dynamic angles, movement, energy. Avoid static poses.
+**The Challenge:** By the time someone's looking at your App Store page, they're already motivated. The question is: will they still be motivated on day 4?
 
----
+Your screenshots should answer: "Will I actually use this?"
 
-**Next:** Send me your app screens. I'll create layouts that inspire action, not guilt.`
+**Show This:**
+1. How fast they can start (nobody wants 20 setup questions)
+2. What a real workout looks like in your app
+3. Progress tracking that feels rewarding, not judgy
+4. The thing that brings them back (community? streaks? something else?)
+
+**Skip This:**
+- Generic "achieve your goals" messaging
+- Perfect bodies (they alienate more than inspire)
+- Complicated workout plans
+- "Revolutionary" claims
+
+What's your actual hook? Upload your UI and let's figure out how to show it.`
+    ]
+    response = variations[Math.floor(Math.random() * variations.length)]
   } else if (input.includes('social') || input.includes('dating') || input.includes('chat')) {
-    response = `## Quick Take
+    const socialVariations = [
+      `Social apps. The graveyard is full of "connect with friends" promises.
 
-Social apps are about belonging. Your screenshots need to show connection, not features.
+What actually makes someone join a new social platform? FOMO. Curiosity. A friend dragging them in. Not your screenshots.
 
-**Core Challenge:** Empty social apps feel dead. You need to show a thriving community without looking fake.
+But screenshots can kill interest fast if they look:
+- Empty (no one wants to be first)
+- Overwhelming (too many features confuse)
+- Generic (seen it all before)
 
-## Screenshot Must-Haves
+**Show:**
+- Real conversations (blur sensitive stuff)
+- The discovery feed (how do I find interesting people?)
+- Whatever makes your community different
+- Activity indicators (this place is alive)
 
-1. **Active conversations** - Real-looking chats (blur the content if needed)
-2. **Discovery mechanism** - How do I find my people?
-3. **Privacy controls** - Gen Z cares about this more than you think
-4. **The vibe** - What makes this community special?
+Upload your UI. Let's make sure it doesn't look like every other social app that failed.`,
 
-**Common Mistake:** Stock photos of models. Use real (or real-looking) diverse people.
+      `The network effect problem: Social apps need users to be useful, but users won't join without users.
 
-## Design Direction
+Your screenshots can't solve this, but they can avoid making it worse.
 
-**Colors:** Vibrant but not childish. Think Discord, not Facebook 2010.
-**Tone:** Inclusive and welcoming. No FOMO tactics.
-**Layout:** Show the product in use, not empty screens.
+**What triggers download:**
+- Seeing someone they know might be there
+- A feature they can't get elsewhere
+- A community they identify with
+- Pure curiosity (if you nail the presentation)
 
----
+**Screenshot Strategy:**
+1. Show the vibe immediately (what kind of people use this?)
+2. Demonstrate the core interaction (is this chat? feed? something new?)
+3. Highlight what's different (please don't say "authentic connections")
 
-**Next:** Upload your screens. I'll design layouts that make people want to join the conversation.`
+What's your actual differentiator? Let's see your screens.`
+    ]
+    response = socialVariations[Math.floor(Math.random() * socialVariations.length)]
   } else {
-    response = `## Quick Take
+    const genericVariations = [
+      `Okay, so you're building: "${userInput.slice(0, 80)}${userInput.length > 80 ? '...' : ''}"
 
-I'm picking up: "${userInput.slice(0, 60)}${userInput.length > 60 ? '...' : ''}"
+Let's be honest—most App Store screenshots are terrible. They either:
+- Explain too much (walls of text nobody reads)
+- Show too little (just the UI with no context)
+- Look identical to competitors
+- Miss the point entirely
 
-Here's what matters for App Store screenshots:
+The goal isn't to explain your app. It's to make someone curious enough to download.
 
-## The Three-Second Rule
+**What your screenshots should do:**
+1. Pass the "3-second test" (what is this?)
+2. Show the core value (not features)
+3. Look polished enough to trust
+4. Stand out from similar apps
 
-Users decide in 3 seconds. Your first screenshot needs to answer:
-1. What does this app do?
-2. Why should I care?
-3. Is it for me?
+Upload your actual app screens and let's figure out what story they should tell.`,
 
-## Screenshot Blueprint
+      `"${userInput.slice(0, 60)}${userInput.length > 60 ? '...' : ''}"
 
-**Screen 1:** Hero shot - Your main interface with ONE clear benefit headline
-**Screen 2:** The "aha" moment - The feature that makes you different
-**Screen 3:** Social proof - Reviews, user count, or press mentions
-**Screen 4:** CTA - "Start free trial" or similar
+Interesting. Before we dive into designs, quick question: What makes someone choose YOUR app over the dozen similar ones?
 
-**Common Mistake:** Trying to show everything. Pick your 3-4 strongest selling points and hammer them home.
+That answer should be visible in your first screenshot. Not written, not explained—*shown*.
 
-## Next Move
+Most apps fail here. They show features (buttons, menus, lists) instead of outcomes (what you get, why it matters, how it feels).
 
-Upload your app screenshots and I'll create professional layouts with:
-- Multiple design templates to choose from
-- Benefit-focused headlines
-- App Store-optimized sizing
-- Fully editable in the canvas
+**The Setup:**
+- Screen 1: The hook (why look at screen 2?)
+- Screen 2: The proof (okay, this actually works)
+- Screen 3+: Details (if they're still interested)
 
-**Ready? Drop those screenshots.**`
+Let me see what you've built. We'll figure out the angle that makes people stop scrolling.`,
+
+      `Got it: "${userInput.slice(0, 70)}${userInput.length > 70 ? '...' : ''}"
+
+Here's the thing about App Store screenshots—people don't read them. They scan. They judge. They move on.
+
+You've got maybe 4 seconds of attention. Your screenshots need to work at a glance.
+
+**Questions your screens should answer instantly:**
+- Is this for me?
+- What problem does it solve?
+- Will I actually use this?
+- Does it look trustworthy?
+
+**What usually kills interest:**
+- Generic stock photos
+- Feature lists (nobody cares yet)
+- Cluttered interfaces
+- No clear value prop
+
+Upload your UI and I'll help you create something that converts browsers into downloads.`
+    ]
+    response = genericVariations[Math.floor(Math.random() * genericVariations.length)]
   }
   
   return response
