@@ -28,7 +28,7 @@ interface Message {
 
 interface ChatConversationProps {
   messages: Message[]
-  onPanelOpenChange?: (isOpen: boolean) => void
+  onPanelOpenChange?: (isOpen: boolean, panelWidth?: number) => void
   onScreenshotsUpload?: (screenshots: string[]) => void
   onAddMessage?: (message: Message) => void
 }
@@ -66,6 +66,9 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     detectedFonts: string[]
   } | null>(null)
   const [hasAnalyzed, setHasAnalyzed] = React.useState(false)
+  const [selectedBackgroundIndex, setSelectedBackgroundIndex] = React.useState<number | undefined>(undefined)
+  const [selectedFont, setSelectedFont] = React.useState<string | undefined>(undefined)
+  const [analysisMessageId, setAnalysisMessageId] = React.useState<string | null>(null)
 
   // Update panel width based on screen size
   React.useEffect(() => {
@@ -124,8 +127,8 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   }, [isResizing])
 
   React.useEffect(() => {
-    onPanelOpenChange?.(isPanelOpen)
-  }, [isPanelOpen, onPanelOpenChange])
+    onPanelOpenChange?.(isPanelOpen, panelWidth)
+  }, [isPanelOpen, panelWidth, onPanelOpenChange])
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -349,26 +352,58 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
 
     setIsAnalyzingScreenshots(true)
     
-    // Create a streaming analysis message
-    const analysisMessageId = `analysis-${Date.now()}`
-    let streamingContent = ""
+    // Create a thinking/exploring message
+    const newAnalysisMessageId = `analysis-${Date.now()}`
+    setAnalysisMessageId(newAnalysisMessageId)
 
     try {
       console.log("🔍 Analyzing screenshots for design benchmark...")
       
-      // Start with initial message
-      streamingContent = "## 🎨 Analyzing Your Screenshots\n\nExamining colors, typography, and design elements..."
+      // Show thinking animation with steps
+      const thinkingSteps = [
+        "Extracting dominant colors from screenshots",
+        "Analyzing typography and font styles", 
+        "Generating background color variations",
+        "Calculating optimal text contrast",
+        "Preparing design recommendations"
+      ]
+      
+      let currentStep = 0
+      
+      // Start with thinking animation
       onAddMessage?.({
-        id: analysisMessageId,
+        id: newAnalysisMessageId,
         role: 'assistant',
-        content: streamingContent,
+        content: `__THINKING__${JSON.stringify({ steps: thinkingSteps, currentStep: 0 })}`,
         timestamp: new Date(),
         isStreaming: true
       })
 
-      // Simulate streaming delay
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Simulate thinking steps
+      for (let i = 0; i < thinkingSteps.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 600))
+        currentStep = i
+        onAddMessage?.({
+          id: newAnalysisMessageId,
+          role: 'assistant',
+          content: `__THINKING__${JSON.stringify({ steps: thinkingSteps, currentStep: i })}`,
+          timestamp: new Date(),
+          isStreaming: true
+        })
+      }
 
+      // Complete thinking animation
+      await new Promise(resolve => setTimeout(resolve, 400))
+      onAddMessage?.({
+        id: newAnalysisMessageId,
+        role: 'assistant',
+        content: `__THINKING__${JSON.stringify({ steps: thinkingSteps, currentStep: thinkingSteps.length })}`,
+        timestamp: new Date(),
+        isStreaming: true
+      })
+
+      // Now do the actual analysis
+      await new Promise(resolve => setTimeout(resolve, 300))
       const analysis = await analyzeScreenshots(uploadedScreenshots, selectedPrompt || "App screenshots")
       
       // Map backgrounds to their appropriate text colors
@@ -377,47 +412,53 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
         textColor: getTextColorForBackground(bg)
       }))
 
-      setScreenshotAnalysis({
+      const analysisData = {
         dominantColors: analysis.dominantColors,
         backgroundsWithTextColors,
         detectedFonts: analysis.detectedFonts
-      })
+      }
+      
+      setScreenshotAnalysis(analysisData)
+      
+      // Auto-select first background and font
+      setSelectedBackgroundIndex(0)
+      setSelectedFont(analysis.detectedFonts[0])
 
       // Build the analysis result message
-      streamingContent = "## 🎨 Screenshot Analysis Complete\n\n"
+      let finalContent = "## 🎨 Screenshot Analysis Complete\n\n"
       
       // Dominant Colors Section
-      streamingContent += "### Dominant Colors Extracted\n"
-      streamingContent += "I've identified the primary colors from your screenshots:\n\n"
+      finalContent += "### Dominant Colors Extracted\n"
+      finalContent += "I've identified the primary colors from your screenshots:\n\n"
       analysis.dominantColors.forEach((color, idx) => {
-        streamingContent += `${idx + 1}. **${color}** - ${idx === 0 ? 'Primary color' : idx === 1 ? 'Secondary color' : 'Accent color'}\n`
+        finalContent += `${idx + 1}. **${color}** - ${idx === 0 ? 'Primary color' : idx === 1 ? 'Secondary color' : 'Accent color'}\n`
       })
       
-      streamingContent += "\n### Background Variations for App Store\n"
-      streamingContent += "Based on your app's color palette, here are the best background options with optimal text colors:\n\n"
+      finalContent += "\n### Background Variations for App Store\n"
+      finalContent += "Based on your app's color palette, here are the best background options with optimal text colors:\n\n"
       
       backgroundsWithTextColors.forEach((item, idx) => {
         const brightness = getTextColorForBackground(item.background) === '#FFFFFF' ? 'Dark' : 'Light'
-        streamingContent += `${idx + 1}. **Background:** ${item.background} (${brightness}) → **Text:** ${item.textColor}\n`
+        finalContent += `${idx + 1}. **Background:** ${item.background} (${brightness}) → **Text:** ${item.textColor}\n`
       })
       
-      streamingContent += "\n### Typography Recommendations\n"
-      streamingContent += "Suggested fonts that match your app's style:\n\n"
+      finalContent += "\n### Typography Recommendations\n"
+      finalContent += "Suggested fonts that match your app's style:\n\n"
       analysis.detectedFonts.forEach((font, idx) => {
-        streamingContent += `${idx + 1}. ${font}\n`
+        finalContent += `${idx + 1}. ${font}\n`
       })
       
-      streamingContent += "\n### 💡 Design Tips\n"
-      streamingContent += "- Use high contrast combinations for better readability\n"
-      streamingContent += "- Light backgrounds work well for showcasing dark UI screenshots\n"
-      streamingContent += "- Dark backgrounds create premium, modern aesthetics\n"
-      streamingContent += "\n✅ Ready to generate your App Store screenshots!"
+      finalContent += "\n### 💡 Design Tips\n"
+      finalContent += "- Use high contrast combinations for better readability\n"
+      finalContent += "- Light backgrounds work well for showcasing dark UI screenshots\n"
+      finalContent += "- Dark backgrounds create premium, modern aesthetics\n"
+      finalContent += "\n✅ Ready to generate your App Store screenshots!"
 
       // Update message with complete analysis
       onAddMessage?.({
-        id: analysisMessageId,
+        id: newAnalysisMessageId,
         role: 'assistant',
-        content: streamingContent,
+        content: finalContent,
         timestamp: new Date(),
         isStreaming: false
       })
@@ -427,12 +468,12 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     } catch (error: any) {
       console.error('Error analyzing screenshots:', error)
       
-      streamingContent = "## ⚠️ Analysis Error\n\nI encountered an issue analyzing your screenshots. Using basic color detection instead.\n\nYou can still proceed with screenshot generation using default settings."
+      const errorContent = "## ⚠️ Analysis Error\n\nI encountered an issue analyzing your screenshots. Using basic color detection instead.\n\nYou can still proceed with screenshot generation using default settings."
       
       onAddMessage?.({
-        id: analysisMessageId,
+        id: newAnalysisMessageId,
         role: 'assistant',
-        content: streamingContent,
+        content: errorContent,
         timestamp: new Date(),
         isStreaming: false
       })
@@ -480,6 +521,11 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                 <FormattedMessage 
                   content={message.content} 
                   isStreaming={message.isStreaming}
+                  analysisData={message.id === analysisMessageId ? screenshotAnalysis || undefined : undefined}
+                  selectedBackground={selectedBackgroundIndex}
+                  selectedFont={selectedFont}
+                  onBackgroundSelect={setSelectedBackgroundIndex}
+                  onFontSelect={setSelectedFont}
                 />
               ) : (
                 <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
@@ -540,113 +586,6 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                             </button>
                           </div>
                         ))}
-                      </div>
-
-                      {/* Logo Upload Section */}
-                      <div className="pt-2 border-t border-neutral-200">
-                        <p className="text-xs text-neutral-500 mb-2">App Logo (Optional)</p>
-                        {!uploadedLogo && !showLogoUploader && (
-                          <button
-                            onClick={() => setShowLogoUploader(true)}
-                            className="flex items-center gap-2 px-3 py-2 bg-white border border-neutral-300 text-neutral-700 text-xs rounded-lg hover:bg-neutral-50 transition-colors w-full justify-center"
-                          >
-                            <Upload className="h-3.5 w-3.5" />
-                            Upload Logo
-                          </button>
-                        )}
-
-                        {showLogoUploader && (
-                          <div className="border border-neutral-200 p-4 text-center hover:bg-neutral-100 transition-colors cursor-pointer">
-                            <input
-                              ref={logoInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={handleLogoUpload}
-                              className="hidden"
-                            />
-                            <button
-                              onClick={() => logoInputRef.current?.click()}
-                              className="w-full"
-                            >
-                              <Upload className="h-6 w-6 mx-auto mb-1 text-neutral-400" />
-                              <p className="text-xs text-neutral-600">Upload your app logo</p>
-                              <p className="text-[10px] text-neutral-400 mt-0.5">PNG or SVG (square format)</p>
-                            </button>
-                          </div>
-                        )}
-
-                        {uploadedLogo && (
-                          <div className="relative group inline-block">
-                            <img 
-                              src={uploadedLogo} 
-                              alt="App Logo"
-                              className="w-20 h-20 object-cover border border-neutral-200 bg-neutral-50"
-                            />
-                            <button
-                              onClick={handleRemoveLogo}
-                              className="absolute -top-1 -right-1 p-1 bg-neutral-900 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Assets Upload Section */}
-                      <div className="pt-2 border-t border-neutral-200">
-                        <p className="text-xs text-neutral-500 mb-2">Brand Assets (Optional)</p>
-                        <p className="text-[10px] text-neutral-400 mb-2">Icons, badges, or decorative elements</p>
-                        
-                        {!showAssetsUploader && (
-                          <button
-                            onClick={() => setShowAssetsUploader(true)}
-                            className="flex items-center gap-2 px-3 py-2 bg-neutral-50 border border-neutral-200 text-neutral-900 text-xs font-light hover:bg-neutral-100 transition-colors w-full justify-center"
-                          >
-                            <Upload className="h-3.5 w-3.5" />
-                            Upload Assets
-                          </button>
-                        )}
-
-                        {showAssetsUploader && (
-                          <div className="border border-neutral-200 p-4 text-center hover:bg-neutral-100 transition-colors cursor-pointer">
-                            <input
-                              ref={assetsInputRef}
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={handleAssetsUpload}
-                              className="hidden"
-                            />
-                            <button
-                              onClick={() => assetsInputRef.current?.click()}
-                              className="w-full"
-                            >
-                              <Upload className="h-6 w-6 mx-auto mb-1 text-neutral-400" />
-                              <p className="text-xs text-neutral-600">Upload brand assets</p>
-                              <p className="text-[10px] text-neutral-400 mt-0.5">Icons, badges, or decorations</p>
-                            </button>
-                          </div>
-                        )}
-
-                        {uploadedAssets.length > 0 && (
-                          <div className="grid grid-cols-4 gap-2 mt-2">
-                            {uploadedAssets.map((url, idx) => (
-                              <div key={idx} className="relative group">
-                                <img 
-                                  src={url} 
-                                  alt={`Asset ${idx + 1}`}
-                                  className="w-full h-16 object-cover border border-neutral-200 bg-neutral-50"
-                                />
-                                <button
-                                  onClick={() => handleRemoveAsset(idx)}
-                                  className="absolute -top-1 -right-1 p-0.5 bg-neutral-900 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <X className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       {/* Step 1: Analyze Screenshots */}
@@ -775,6 +714,8 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
               uploadedLogo={uploadedLogo}
               uploadedAssets={uploadedAssets}
               screenshotAnalysis={screenshotAnalysis}
+              selectedBackgroundIndex={selectedBackgroundIndex}
+              selectedFont={selectedFont}
             />
           </motion.div>
         )}

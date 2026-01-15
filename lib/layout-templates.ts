@@ -9,14 +9,12 @@ export interface LayoutTemplate {
   category: 'minimal' | 'bold' | 'elegant' | 'playful' | 'dark' | 'modern'
   backgroundColor: string
   textColor: string
-  // iPhone mockup positioning (307x622)
   mockup: {
     x: number
     y: number
     width: number
     height: number
-  }
-  // Title positioning
+  }   
   title: {
     x: number
     y: number
@@ -25,7 +23,6 @@ export interface LayoutTemplate {
     fontSize: number
     align: 'left' | 'center' | 'right'
   }
-  // Subtitle positioning
   subtitle: {
     x: number
     y: number
@@ -42,19 +39,16 @@ export interface LayoutTemplate {
   preview: string
 }
 
-// Screen configurations for the default template
 const SCREEN_CONFIGS = [
-  // Config A: screens 1, 3, 5
   {
-    mockup: { x: 34, y: 245, width: 307, height: 622 },
+    mockup: { x: 44, y: 245, width: 307, height: 622 },
     title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 118, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    subtitle: { x: 26, y: 96, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   },
-  // Config B: screens 2, 4
   {
-    mockup: { x: 34, y: -66, width: 307, height: 622 },
+    mockup: { x: 44, y: -66, width: 307, height: 622 },
     title: { x: 26, y: 612, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 688, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    subtitle: { x: 26, y: 666, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   }
 ]
 
@@ -122,7 +116,10 @@ export function generateLayersFromTemplate(
     height: config.mockup.height
   })
   
-  // Title - AI provides color and font
+  // Determine the font to use (prioritize provided font from AI)
+  const selectedFont = content.fontFamily || 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
+  
+  // Title - AI provides color and font (MUST use the same font for consistency)
   layers.push({
     id: 'headline',
     type: 'text',
@@ -132,13 +129,13 @@ export function generateLayersFromTemplate(
     width: config.title.width,
     height: config.title.height,
     fontSize: config.title.fontSize,
-    fontFamily: content.fontFamily || 'Lato, -apple-system, BlinkMacSystemFont, sans-serif',
+    fontFamily: selectedFont,
     color: content.textColor || template.textColor,
     bold: true,
     align: config.title.align
   })
   
-  // Subtitle - AI provides color and font
+  // Subtitle - AI provides color and font (MUST use the SAME font as title)
   if (content.subtitle) {
     layers.push({
       id: 'subtitle',
@@ -149,7 +146,7 @@ export function generateLayersFromTemplate(
       width: config.subtitle.width,
       height: config.subtitle.height,
       fontSize: config.subtitle.fontSize,
-      fontFamily: content.fontFamily || 'Lato, -apple-system, BlinkMacSystemFont, sans-serif',
+      fontFamily: selectedFont, // Use the SAME font as the title
       color: content.textColor || template.textColor,
       bold: false,
       align: config.subtitle.align

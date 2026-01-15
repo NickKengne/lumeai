@@ -3,13 +3,81 @@
 import * as React from "react"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { ColorPalette, FontSelector } from './color-swatch'
+import { ThinkingSteps } from './thinking-animation'
 
 interface FormattedMessageProps {
   content: string
   isStreaming?: boolean
+  analysisData?: {
+    dominantColors?: string[]
+    backgroundsWithTextColors?: Array<{ background: string; textColor: string }>
+    detectedFonts?: string[]
+  }
+  selectedBackground?: number
+  selectedFont?: string
+  onBackgroundSelect?: (index: number) => void
+  onFontSelect?: (font: string) => void
 }
 
-export function FormattedMessage({ content, isStreaming = false }: FormattedMessageProps) {
+export function FormattedMessage({ 
+  content, 
+  isStreaming = false,
+  analysisData,
+  selectedBackground,
+  selectedFont,
+  onBackgroundSelect,
+  onFontSelect
+}: FormattedMessageProps) {
+  // Check if this is a thinking/exploring message
+  const isThinking = content.startsWith('__THINKING__')
+  
+  // Check if this is an analysis message
+  const isAnalysisMessage = content.includes('## 🎨 Screenshot Analysis Complete') || 
+                           content.includes('Dominant Colors Extracted')
+  
+  // Extract the text content without the color/font sections if it's an analysis message
+  const getContentWithoutColorSections = (text: string) => {
+    if (!isAnalysisMessage) return text
+    
+    // Remove the sections that will be replaced with interactive components
+    let cleaned = text
+      .replace(/### Dominant Colors Extracted[\s\S]*?(?=###|$)/g, '')
+      .replace(/### Background Variations for App Store[\s\S]*?(?=###|$)/g, '')
+      .replace(/### Typography Recommendations[\s\S]*?(?=###|$)/g, '')
+    
+    return cleaned
+  }
+  // Parse thinking data if present
+  let thinkingData = null
+  if (isThinking) {
+    try {
+      const jsonStr = content.replace('__THINKING__', '')
+      thinkingData = JSON.parse(jsonStr)
+    } catch (e) {
+      console.error('Failed to parse thinking data:', e)
+    }
+  }
+
+  const displayContent = isAnalysisMessage ? getContentWithoutColorSections(content) : content
+
+  // If thinking, show thinking animation
+  if (isThinking && thinkingData) {
+    return (
+      <div className="prose prose-neutral prose-sm max-w-none">
+        <div className="flex items-start gap-3 py-2">
+          <div className="flex-1">
+            <p className="text-sm text-neutral-600 mb-3">Exploring your screenshots</p>
+            <ThinkingSteps 
+              steps={thinkingData.steps} 
+              currentStep={thinkingData.currentStep}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="prose prose-neutral prose-sm max-w-none">
       <ReactMarkdown
@@ -60,8 +128,51 @@ export function FormattedMessage({ content, isStreaming = false }: FormattedMess
           ),
         }}
       >
-        {content}
+        {displayContent}
       </ReactMarkdown>
+      
+      {/* Render interactive color/font selection for analysis messages */}
+      {isAnalysisMessage && analysisData && !isStreaming && (
+        <>
+          {/* Dominant Colors */}
+          {analysisData.dominantColors && analysisData.dominantColors.length > 0 && (
+            <ColorPalette
+              colors={analysisData.dominantColors}
+              labels={analysisData.dominantColors.map((_, idx) => 
+                idx === 0 ? 'Primary' : idx === 1 ? 'Secondary' : 'Accent'
+              )}
+              title="Dominant Colors Extracted"
+              type="dominant"
+            />
+          )}
+          
+          {/* Background Variations */}
+          {analysisData.backgroundsWithTextColors && analysisData.backgroundsWithTextColors.length > 0 && (
+            <ColorPalette
+              colors={analysisData.backgroundsWithTextColors.map(item => item.background)}
+              textColors={analysisData.backgroundsWithTextColors.map(item => item.textColor)}
+              labels={analysisData.backgroundsWithTextColors.map((item, idx) => {
+                const brightness = item.textColor === '#FFFFFF' ? 'Dark' : 'Light'
+                return brightness
+              })}
+              title="Background Variations for App Store"
+              type="background"
+              selectedIndex={selectedBackground}
+              onSelect={onBackgroundSelect}
+            />
+          )}
+          
+          {/* Font Selection */}
+          {analysisData.detectedFonts && analysisData.detectedFonts.length > 0 && (
+            <FontSelector
+              fonts={analysisData.detectedFonts}
+              selectedFont={selectedFont}
+              onSelect={onFontSelect}
+            />
+          )}
+        </>
+      )}
+      
       {isStreaming && (
         <span className="inline-block w-1 h-4 bg-neutral-800 animate-pulse ml-1" />
       )}

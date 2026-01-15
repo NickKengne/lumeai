@@ -55,9 +55,20 @@ interface DesignCanvasProps {
     backgroundsWithTextColors: Array<{ background: string; textColor: string }>
     detectedFonts: string[]
   } | null
+  selectedBackgroundIndex?: number
+  selectedFont?: string
 }
 
-export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], uploadedLogo, uploadedAssets = [], screenshotAnalysis = null }: DesignCanvasProps) {
+export function DesignCanvas({ 
+  onClose, 
+  userPrompt, 
+  uploadedScreenshots = [], 
+  uploadedLogo, 
+  uploadedAssets = [], 
+  screenshotAnalysis = null,
+  selectedBackgroundIndex,
+  selectedFont
+}: DesignCanvasProps) {
   const [screens, setScreens] = React.useState<Screen[]>([])
   const [currentScreenId, setCurrentScreenId] = React.useState("")
   const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null)
@@ -118,31 +129,65 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
       
       setSelectedTemplateId(analysis.suggestedTemplateId)
       
-      // Always generate 5 screens with alternating configurations
+      // Determine which background color to use for ALL screens
+      let uniformBgColor = '#F5F5F5'
+      let uniformTextColor = '#1A1A1A'
+      
+      if (screenshotAnalysis && selectedBackgroundIndex !== undefined) {
+        // Use the user-selected background
+        const selectedBg = screenshotAnalysis.backgroundsWithTextColors[selectedBackgroundIndex]
+        if (selectedBg) {
+          uniformBgColor = selectedBg.background
+          uniformTextColor = selectedBg.textColor
+        }
+      } else if (analysis.suggestedBackgrounds.length > 0) {
+        // Use the first AI-suggested background
+        uniformBgColor = analysis.suggestedBackgrounds[0]
+        uniformTextColor = analysis.textColor
+      }
+      
+      // Determine which font to use
+      const uniformFont = selectedFont || analysis.detectedFonts?.[0] || 'Inter'
+      
+      console.log('🎨 Using uniform styling:', {
+        background: uniformBgColor,
+        textColor: uniformTextColor,
+        font: uniformFont
+      })
+      
+      // Always generate 5 screens with CONSISTENT background and font
       const newScreens = Array.from({ length: 5 }, (_, index) => {
         const screenshot = uploadedScreenshots[index % uploadedScreenshots.length]
         const headline = analysis.screenHeadlines[index] || `Feature ${index + 1}`
         const subtitle = analysis.screenSubtitles?.[index] || 'This is a subtitle which explains this feature in a better way.'
-        const bgColor = analysis.suggestedBackgrounds[index % analysis.suggestedBackgrounds.length] || '#F5F5F5'
         
         const layers = generateLayersFromTemplate(template, {
           screenshot,
           headline,
           subtitle,
           logo: uploadedLogo,
-          textColor: analysis.textColor,
-          fontFamily: analysis.detectedFonts?.[0]
+          textColor: uniformTextColor,
+          fontFamily: uniformFont
         }, index)
         
         return {
             id: `screen_${index + 1}`,
             name: `Screen ${index + 1}`,
-          backgroundColor: bgColor,
+          backgroundColor: uniformBgColor,
           templateId: template.id,
           layers: layers.map((l, idx) => {
             // Update background color if it's a background layer
             if (l.type === 'background') {
-              return { ...l, id: `${l.id}_${index}_${idx}`, backgroundColor: bgColor }
+              return { ...l, id: `${l.id}_${index}_${idx}`, backgroundColor: uniformBgColor }
+            }
+            // Update text color and font for text layers
+            if (l.type === 'text') {
+              return { 
+                ...l, 
+                id: `${l.id}_${index}_${idx}`, 
+                color: uniformTextColor,
+                fontFamily: uniformFont
+              }
             }
             return { ...l, id: `${l.id}_${index}_${idx}` }
           }) as Layer[]
@@ -419,11 +464,21 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
   }
 
   const updateScreenBackground = (color: string, applyToAll: boolean = false) => {
-    setScreens(prev => prev.map(screen => 
-      (applyToAll || screen.id === currentScreenId)
-        ? { ...screen, backgroundColor: color }
-        : screen
-    ))
+    setScreens(prev => prev.map(screen => {
+      if (applyToAll || screen.id === currentScreenId) {
+        // Update both screen backgroundColor AND the background layer
+        return {
+          ...screen,
+          backgroundColor: color,
+          layers: screen.layers.map(layer => 
+            layer.type === 'background' 
+              ? { ...layer, backgroundColor: color }
+              : layer
+          )
+        }
+      }
+      return screen
+    }))
   }
 
   const applyBackgroundToAllScreens = (color: string) => {
@@ -1152,6 +1207,38 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                 onChange={(e) => updateScreenBackground(e.target.value)}
                 className="w-full h-10 border border-neutral-200 cursor-pointer"
               />
+              {/* Analyzed Colors from Screenshots */}
+              {screenshotAnalysis && screenshotAnalysis.backgroundsWithTextColors.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-light text-neutral-400">🎨 Colors from Your Screenshots</p>
+                  <div className="grid grid-cols-6 gap-2">
+                    {screenshotAnalysis.backgroundsWithTextColors.map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          if (e.shiftKey) {
+                            applyBackgroundToAllScreens(item.background)
+                          } else {
+                            updateScreenBackground(item.background)
+                          }
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          applyBackgroundToAllScreens(item.background)
+                        }}
+                        className={`w-full aspect-square border-2 transition-all duration-200 ${
+                          currentScreen?.backgroundColor === item.background 
+                            ? 'border-neutral-900 scale-105 ring-2 ring-neutral-400' 
+                            : 'border-neutral-300 hover:border-neutral-400'
+                        }`}
+                        style={{ backgroundColor: item.background }}
+                        title={`${item.background} → Text: ${item.textColor}\nShift+Click or Right-click to apply to all screens`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                  <p className="text-[10px] font-light text-neutral-400">More Options</p>
                 <div className="grid grid-cols-6 gap-2">
@@ -1481,7 +1568,18 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       onChange={(e) => updateLayerStyle(selectedLayerData.id, { fontFamily: e.target.value })}
                       className="w-full px-3 py-2 text-xs border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent bg-neutral-50"
                     >
-                      <option value="inherit">Default (System)</option>
+                      {/* Show detected fonts from AI analysis first */}
+                      {screenshotAnalysis?.detectedFonts && screenshotAnalysis.detectedFonts.length > 0 && (
+                        <optgroup label="🎨 Detected from Your App">
+                          {screenshotAnalysis.detectedFonts.map((font, idx) => (
+                            <option key={idx} value={`'${font}', sans-serif`}>
+                              {font}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="System Fonts">
+                        <option value="inherit">Default (System)</option>
                       <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">SF Pro (iOS)</option>
                       <option value="'Inter', sans-serif">Inter</option>
                       <option value="'Poppins', sans-serif">Poppins</option>
@@ -1519,6 +1617,7 @@ export function DesignCanvas({ onClose, userPrompt, uploadedScreenshots = [], up
                       <option value="'Times New Roman', Times, serif">Times New Roman</option>
                       <option value="Georgia, serif">Georgia</option>
                       <option value="Verdana, sans-serif">Verdana</option>
+                      </optgroup>
                     </select>
                   </div>
 

@@ -27,9 +27,18 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [canvasPanelWidth, setCanvasPanelWidth] = useState(800)
   const [needsAIResponse, setNeedsAIResponse] = useState(false)
   const [chatTitle, setChatTitle] = useState("Chat")
   const { setOpen: setSidebarOpen } = useSidebar()
+
+  // Handle panel state changes from ChatConversation
+  const handlePanelOpenChange = (isOpen: boolean, width?: number) => {
+    setIsPanelOpen(isOpen)
+    if (width !== undefined) {
+      setCanvasPanelWidth(width)
+    }
+  }
 
   // Hide sidebar when panel opens
   useEffect(() => {
@@ -127,9 +136,11 @@ export default function ChatPage() {
           <ChatInput 
             chatId={chatId} 
             initialMessages={messages}
-            onPanelOpenChange={setIsPanelOpen}
+            onPanelOpenChange={handlePanelOpenChange}
             triggerAIResponse={needsAIResponse}
             onAIResponseTriggered={() => setNeedsAIResponse(false)}
+            canvasPanelWidth={canvasPanelWidth}
+            canvasPanelOpen={isPanelOpen}
           />
         </div>
       </div>

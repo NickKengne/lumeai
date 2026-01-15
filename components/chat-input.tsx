@@ -26,9 +26,11 @@ interface Message {
 interface ChatInputProps {
   chatId?: string
   initialMessages?: Message[]
-  onPanelOpenChange?: (isOpen: boolean) => void
+  onPanelOpenChange?: (isOpen: boolean, width?: number) => void
   triggerAIResponse?: boolean
   onAIResponseTriggered?: () => void
+  canvasPanelWidth?: number  // Receive pixel width from canvas
+  canvasPanelOpen?: boolean  // Receive open state from canvas
 }
 
 export function ChatInput({ 
@@ -36,7 +38,9 @@ export function ChatInput({
   initialMessages = [], 
   onPanelOpenChange,
   triggerAIResponse = false,
-  onAIResponseTriggered
+  onAIResponseTriggered,
+  canvasPanelWidth = 800,
+  canvasPanelOpen = false
 }: ChatInputProps) {
   const router = useRouter()
   const [value, setValue] = React.useState("")
@@ -47,38 +51,18 @@ export function ChatInput({
   const [showMentionPopover, setShowMentionPopover] = React.useState(false)
   const [showBanner, setShowBanner] = React.useState(true)
   const [messages, setMessages] = React.useState<Message[]>(initialMessages)
-  const [isPanelOpen, setIsPanelOpen] = React.useState(false)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
-  const [panelWidth, setPanelWidth] = React.useState("70%")
 
-  // Update panel width based on screen size
-  React.useEffect(() => {
-    const updatePanelWidth = () => {
-      if (typeof window === 'undefined') return
-      
-      const width = window.innerWidth
-      if (width < 640) {
-        setPanelWidth("90%")
-      } else if (width < 768) {
-        setPanelWidth("85%")
-      } else if (width < 1024) {
-        setPanelWidth("75%")
-      } else if (width < 1280) {
-        setPanelWidth("70%")
-      } else {
-        setPanelWidth("65%")
-      }
+  // Track panel open state - use prop if available
+  const isPanelOpen = canvasPanelOpen
+  const panelWidth = canvasPanelWidth
+
+  // Handle panel changes from ChatConversation and notify parent
+  const handlePanelOpenChange = React.useCallback((isOpen: boolean, width?: number) => {
+    // Pass both values up to parent if it's a function that accepts them
+    if (typeof onPanelOpenChange === 'function') {
+      onPanelOpenChange(isOpen, width)
     }
-
-    updatePanelWidth()
-    window.addEventListener('resize', updatePanelWidth)
-    return () => window.removeEventListener('resize', updatePanelWidth)
-  }, [])
-
-  // Track panel open state
-  const handlePanelOpenChange = React.useCallback((isOpen: boolean) => {
-    setIsPanelOpen(isOpen)
-    onPanelOpenChange?.(isOpen)
   }, [onPanelOpenChange])
 
   // Handle adding or updating messages (for analysis streaming)
@@ -532,7 +516,7 @@ Ready to upload your app screenshots?`
       {/* Chat Input - Shrinks when canvas is open */}
       <motion.div 
         animate={{ 
-          width: isPanelOpen ? `calc(100% - ${panelWidth})` : "100%"
+          width: isPanelOpen ? `calc(100% - ${panelWidth}px)` : "100%"
         }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className="shrink-0 relative z-50"
