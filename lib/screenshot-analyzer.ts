@@ -155,11 +155,12 @@ export async function analyzeScreenshotsWithAI(
 User's app description: "${userPrompt}"
 Number of screenshots: ${screenshots.length}
 
-Available template: default
-This template alternates between 2 screen configurations automatically
+Available templates:
+- layout1: Left-aligned text with alternating mockup positions (top/bottom)
+- layout2: Center-aligned text with centered mockup (consistent across all screens)
 
 Based on the app description, provide:
-1. Best template ID (just the ID from list above)
+1. Best template ID (either "layout1" or "layout2")
 2. Why this template works for this app (one sentence)
 3. Compelling headline for each screenshot (3-4 words, benefit-focused)
 4. Optional subtitle for each (5-7 words)
@@ -167,8 +168,8 @@ Based on the app description, provide:
 
 Respond in JSON format:
 {
-  "templateId": "default",
-  "reasoning": "Clean professional layout",
+  "templateId": "layout1",
+  "reasoning": "Clean professional layout with dynamic alternating screens",
   "headlines": ["Track Expenses", "Budget Insights", "Reach Goals", "Smart Savings", "Financial Freedom"],
   "subtitles": ["Never miss a transaction", "See where money goes", "Save with AI tips", "Automated budgeting", "Reach your goals faster"],
   "backgrounds": ["#F5F5F5", "#FFFFFF", "#FAFAFA"],
@@ -215,7 +216,7 @@ Respond in JSON format:
     const result = JSON.parse(content)
 
     return {
-      suggestedTemplateId: result.templateId || 'dark_centered',
+      suggestedTemplateId: result.templateId || 'layout1',
       templateReasoning: result.reasoning || 'Professional design choice',
       screenHeadlines: result.headlines || Array(screenshots.length).fill('Amazing Feature'),
       screenSubtitles: result.subtitles || [],
@@ -240,8 +241,8 @@ function generateFallbackAnalysis(
 } {
   const prompt = userPrompt.toLowerCase()
 
-  let templateId = 'default'
-  let reasoning = 'Clean and professional'
+  let templateId = 'layout1'
+  let reasoning = 'Clean and professional layout with alternating screens'
   let backgrounds = ['#F5F5F5', '#FFFFFF', '#FAFAFA', '#F8F8F8', '#FCFCFC']
 
   if (prompt.includes('finance') || prompt.includes('money')) {

@@ -25,8 +25,7 @@ Tone: Professional but human. Strategic but accessible. Confident but not arroga
 Format: Use markdown headers (##) and bullet points. No emojis.`
 
 // Structure system prompt (JSON only)
-const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert.
-Transform app descriptions into structured screenshot instructions.
+const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert who creates compelling, unique screenshot copy.
 
 CRITICAL: Output ONLY valid JSON matching this exact schema.
 
@@ -53,12 +52,29 @@ OUTPUT FORMAT:
   ]
 }
 
-RULES:
-- Generate 3-5 screens that tell a story
-- Headlines: Max 8 words, benefit-focused
-- Subheadlines: Optional, max 15 words
-- Use ONLY the exact enum values listed above
-- No markdown, no explanations, ONLY JSON`
+CRITICAL RULES FOR HEADLINES & SUBHEADLINES:
+1. Extract the SPECIFIC value proposition from the user's description
+2. Use their actual product terminology and unique features
+3. Avoid generic phrases like "Track Your", "Manage Your", "Transform Your"
+4. Make each headline tell a different part of the story
+5. Headlines should be benefit-driven and SPECIFIC to their product (3-8 words)
+6. Subheadlines should clarify the benefit, not repeat it (8-15 words)
+7. Create VARIED messaging - each screen should have a distinct angle
+8. Use concrete, actionable language that reflects their unique selling point
+
+STORYTELLING STRUCTURE:
+- Screen 1: Lead with their strongest differentiator (what makes THIS app different?)
+- Screen 2: Show the core experience or main feature in action
+- Screen 3: Secondary benefit or complementary feature
+- Screen 4+: Social proof, additional features, or outcome
+
+AVOID at all costs:
+- Generic templates ("Stay on top of...", "Reach your goals", "Built for you")
+- Repeating the same benefit multiple times
+- Vague promises without specific context
+- Copy that could work for any competitor
+
+Use ONLY the exact enum values listed above. No markdown, no explanations, ONLY JSON.`
 
 export interface StreamCallbacks {
   onStart?: () => void
@@ -506,119 +522,157 @@ export function generateMockStructure(userInput: string): AIResponse {
   let tone: AIResponse['tone'] = 'professional'
   let screens: ScreenLayout[] = []
   
-  if (input.includes('finance') || input.includes('budget')) {
+  // Extract key features and benefits from user input
+  const extractKeywords = (text: string): string[] => {
+    const words = text.split(/\s+/)
+    return words.filter(w => w.length > 4).slice(0, 5)
+  }
+  
+  const keywords = extractKeywords(userInput)
+  
+  if (input.includes('finance') || input.includes('budget') || input.includes('money') || input.includes('bank')) {
     theme = 'finance'
     tone = 'professional'
-    screens = [
-      {
-        id: 'screen_1',
-        headline: 'Track Every Expense',
-        subheadline: 'Stay on top of your spending',
-        layout: 'iphone_centered',
-        background: 'soft_gradient',
-        emphasis: 'dashboard'
-      },
-      {
-        id: 'screen_2',
-        headline: 'Visualize Your Budget',
-        subheadline: 'See where your money goes',
-        layout: 'iphone_offset',
-        background: 'solid_light',
-        emphasis: 'charts'
-      },
-      {
-        id: 'screen_3',
-        headline: 'Reach Your Goals',
-        subheadline: 'Save more, stress less',
-        layout: 'iphone_centered',
-        background: 'soft_gradient',
-        emphasis: 'feature'
-      }
+    
+    const variations = [
+      [
+        { headline: 'Split Bills in Seconds', subheadline: 'No more awkward money conversations', emphasis: 'social' as const },
+        { headline: 'Instant Transaction Sync', subheadline: 'Real-time balance updates across all accounts', emphasis: 'dashboard' as const },
+        { headline: 'Catch Hidden Subscriptions', subheadline: 'Automatic alerts for recurring charges', emphasis: 'feature' as const }
+      ],
+      [
+        { headline: 'Budget Without Thinking', subheadline: 'AI categorizes every transaction automatically', emphasis: 'dashboard' as const },
+        { headline: 'Spending Patterns Revealed', subheadline: 'Visual insights that actually help you save', emphasis: 'charts' as const },
+        { headline: 'Set It and Forget It', subheadline: 'Automatic transfers to your savings goals', emphasis: 'feature' as const }
+      ],
+      [
+        { headline: 'Bank-Level Security', subheadline: '256-bit encryption + biometric authentication', emphasis: 'feature' as const },
+        { headline: 'One-Tap Transfers', subheadline: 'Move money between accounts instantly', emphasis: 'dashboard' as const },
+        { headline: 'Smart Financial Alerts', subheadline: 'Get notified before you overspend', emphasis: 'charts' as const }
+      ]
     ]
-  } else if (input.includes('fitness') || input.includes('health')) {
+    
+    const selected = variations[Math.floor(Math.random() * variations.length)]
+    screens = selected.map((s, i) => ({
+      id: `screen_${i + 1}`,
+      headline: s.headline,
+      subheadline: s.subheadline,
+      layout: ['iphone_centered', 'iphone_offset', 'iphone_hero'][i % 3] as any,
+      background: ['soft_gradient', 'solid_light', 'minimal'][i % 3] as any,
+      emphasis: s.emphasis
+    }))
+  } else if (input.includes('fitness') || input.includes('health') || input.includes('workout')) {
     theme = 'fitness'
     tone = 'bold'
-    screens = [
-      {
-        id: 'screen_1',
-        headline: 'Achieve Your Goals',
-        subheadline: 'Personalized workout plans',
-        layout: 'iphone_centered',
-        background: 'soft_gradient',
-        emphasis: 'dashboard'
-      },
-      {
-        id: 'screen_2',
-        headline: 'Track Your Progress',
-        subheadline: 'See your improvements',
-        layout: 'iphone_offset',
-        background: 'solid_light',
-        emphasis: 'charts'
-      },
-      {
-        id: 'screen_3',
-        headline: 'Stay Motivated',
-        subheadline: 'Join a community',
-        layout: 'iphone_hero',
-        background: 'minimal',
-        emphasis: 'social'
-      }
+    
+    const variations = [
+      [
+        { headline: '5-Minute Home Workouts', subheadline: 'No equipment, no excuses, real results', emphasis: 'feature' as const },
+        { headline: 'AI Form Correction', subheadline: 'Real-time feedback using your camera', emphasis: 'dashboard' as const },
+        { headline: 'Progress That Motivates', subheadline: 'See strength gains week over week', emphasis: 'charts' as const }
+      ],
+      [
+        { headline: 'Workout With Friends', subheadline: 'Compete on leaderboards and share achievements', emphasis: 'social' as const },
+        { headline: 'Personalized Daily Plans', subheadline: 'AI adapts to your energy and schedule', emphasis: 'dashboard' as const },
+        { headline: 'Recovery Tracking', subheadline: 'Know when to push and when to rest', emphasis: 'charts' as const }
+      ],
+      [
+        { headline: 'Start From Anywhere', subheadline: 'Beginner-friendly programs that scale with you', emphasis: 'onboarding' as const },
+        { headline: 'Video Coaching Library', subheadline: 'Certified trainers guide every movement', emphasis: 'feature' as const },
+        { headline: 'Celebrate Every Win', subheadline: 'Earn badges and unlock new challenges', emphasis: 'dashboard' as const }
+      ]
     ]
-  } else if (input.includes('meditation') || input.includes('mindfulness')) {
+    
+    const selected = variations[Math.floor(Math.random() * variations.length)]
+    screens = selected.map((s, i) => ({
+      id: `screen_${i + 1}`,
+      headline: s.headline,
+      subheadline: s.subheadline,
+      layout: ['iphone_centered', 'iphone_offset', 'iphone_hero'][i % 3] as any,
+      background: ['soft_gradient', 'solid_light', 'minimal'][i % 3] as any,
+      emphasis: s.emphasis
+    }))
+  } else if (input.includes('meditation') || input.includes('mindfulness') || input.includes('sleep')) {
     theme = 'wellness'
     tone = 'minimal'
-    screens = [
-      {
-        id: 'screen_1',
-        headline: 'Find Your Peace',
-        subheadline: 'Guided meditation',
-        layout: 'iphone_centered',
-        background: 'soft_gradient',
-        emphasis: 'dashboard'
-      },
-      {
-        id: 'screen_2',
-        headline: 'Breathe & Relax',
-        subheadline: 'Reduce stress',
-        layout: 'iphone_hero',
-        background: 'minimal',
-        emphasis: 'feature'
-      },
-      {
-        id: 'screen_3',
-        headline: 'Track Your Journey',
-        layout: 'iphone_offset',
-        background: 'solid_light',
-        emphasis: 'charts'
-      }
+    
+    const variations = [
+      [
+        { headline: 'Sleep in 10 Minutes', subheadline: 'Guided breathwork that actually works', emphasis: 'feature' as const },
+        { headline: 'Calm in Your Pocket', subheadline: 'Quick exercises for stressful moments', emphasis: 'dashboard' as const },
+        { headline: 'Build a Daily Habit', subheadline: 'Gentle reminders, no pressure', emphasis: 'charts' as const }
+      ],
+      [
+        { headline: '3-Minute Resets', subheadline: 'Micro-meditations between meetings', emphasis: 'feature' as const },
+        { headline: 'Personalized Soundscapes', subheadline: 'Nature sounds tailored to your mood', emphasis: 'dashboard' as const },
+        { headline: 'Track Your Peace', subheadline: 'See how mindfulness impacts your wellbeing', emphasis: 'charts' as const }
+      ]
     ]
+    
+    const selected = variations[Math.floor(Math.random() * variations.length)]
+    screens = selected.map((s, i) => ({
+      id: `screen_${i + 1}`,
+      headline: s.headline,
+      subheadline: s.subheadline,
+      layout: ['iphone_centered', 'iphone_hero', 'iphone_offset'][i % 3] as any,
+      background: ['soft_gradient', 'minimal', 'solid_light'][i % 3] as any,
+      emphasis: s.emphasis
+    }))
+  } else if (input.includes('social') || input.includes('chat') || input.includes('dating') || input.includes('connect')) {
+    theme = 'social'
+    tone = 'playful'
+    
+    const variations = [
+      [
+        { headline: 'Real Conversations', subheadline: 'No likes, no follower counts, just talk', emphasis: 'social' as const },
+        { headline: 'Find Your People', subheadline: 'Match with others who share your interests', emphasis: 'dashboard' as const },
+        { headline: 'Voice-First Connect', subheadline: 'Break the ice with audio messages', emphasis: 'feature' as const }
+      ],
+      [
+        { headline: 'Skip the Small Talk', subheadline: 'Deep questions spark better connections', emphasis: 'feature' as const },
+        { headline: 'Safe Space Guaranteed', subheadline: 'AI moderation keeps conversations respectful', emphasis: 'dashboard' as const },
+        { headline: 'Meet IRL Faster', subheadline: 'Built-in event planning and meetup tools', emphasis: 'social' as const }
+      ]
+    ]
+    
+    const selected = variations[Math.floor(Math.random() * variations.length)]
+    screens = selected.map((s, i) => ({
+      id: `screen_${i + 1}`,
+      headline: s.headline,
+      subheadline: s.subheadline,
+      layout: ['iphone_centered', 'iphone_offset', 'iphone_hero'][i % 3] as any,
+      background: ['soft_gradient', 'solid_light', 'branded'][i % 3] as any,
+      emphasis: s.emphasis
+    }))
   } else {
-    screens = [
-      {
-        id: 'screen_1',
-        headline: 'Transform Your Experience',
-        subheadline: 'Everything you need',
-        layout: 'iphone_centered',
-        background: 'soft_gradient',
-        emphasis: 'dashboard'
-      },
-      {
-        id: 'screen_2',
-        headline: 'Built For You',
-        subheadline: 'Personalized features',
-        layout: 'iphone_offset',
-        background: 'solid_light',
-        emphasis: 'feature'
-      },
-      {
-        id: 'screen_3',
-        headline: 'Start Today',
-        subheadline: 'Join thousands of users',
-        layout: 'iphone_centered',
-        background: 'soft_gradient',
-        emphasis: 'social'
-      }
+    // Generic but more creative fallback
+    const genericVariations = [
+      [
+        { headline: `${keywords[0] ? keywords[0].charAt(0).toUpperCase() + keywords[0].slice(1) : 'Smart'} Solutions`, subheadline: 'Designed for how you actually work', emphasis: 'dashboard' as const },
+        { headline: 'Zero Learning Curve', subheadline: 'Start using it immediately, no tutorial needed', emphasis: 'onboarding' as const },
+        { headline: 'Works Offline Too', subheadline: 'Full functionality without internet connection', emphasis: 'feature' as const }
+      ],
+      [
+        { headline: 'Better by Design', subheadline: 'Every detail crafted for your workflow', emphasis: 'dashboard' as const },
+        { headline: 'Collaborate Seamlessly', subheadline: 'Share and sync across your team', emphasis: 'social' as const },
+        { headline: 'Privacy First', subheadline: 'Your data stays yours, always encrypted', emphasis: 'feature' as const }
+      ],
+      [
+        { headline: 'Lightning Fast', subheadline: 'Optimized for speed on any device', emphasis: 'feature' as const },
+        { headline: 'Customize Everything', subheadline: 'Adapt the experience to your preferences', emphasis: 'dashboard' as const },
+        { headline: 'Smart Automation', subheadline: 'Let AI handle the repetitive tasks', emphasis: 'charts' as const }
+      ]
     ]
+    
+    const selected = genericVariations[Math.floor(Math.random() * genericVariations.length)]
+    screens = selected.map((s, i) => ({
+      id: `screen_${i + 1}`,
+      headline: s.headline,
+      subheadline: s.subheadline,
+      layout: ['iphone_centered', 'iphone_offset', 'iphone_feature_list'][i % 3] as any,
+      background: ['soft_gradient', 'solid_light', 'minimal'][i % 3] as any,
+      emphasis: s.emphasis
+    }))
   }
 
   return {

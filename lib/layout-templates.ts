@@ -1,6 +1,6 @@
 /**
  * App Store Screenshot Layout Templates
- * ONE default template with alternating screen configurations
+ * TWO layout templates with different configurations
  */
 
 export interface LayoutTemplate {
@@ -39,31 +39,57 @@ export interface LayoutTemplate {
   preview: string
 }
 
-const SCREEN_CONFIGS = [
+// Layout 1: Left-aligned text with alternating mockup positions
+const SCREEN_CONFIGS_1 = [
   {
     mockup: { x: 34, y: 245, width: 307, height: 622 },
     title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 96, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    subtitle: { x: 26, y: 115, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   },
   {
     mockup: { x: 34, y: -66, width: 307, height: 622 },
     title: { x: 26, y: 612, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 666, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    subtitle: { x: 26, y: 680, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   }
 ]
 
-// ONE default template
+// Layout 2: Center-aligned text with centered mockup
+const SCREEN_CONFIGS_2 = [
+  {
+    mockup: { x: 34, y: 170, width: 307, height: 622 },
+    title: { x: 49, y: 42, width: 300, height: 50, fontSize: 34, align: 'center' as const },
+    subtitle: { x: 19, y: 89, width: 340, height: 20, fontSize: 16, align: 'center' as const }
+  },
+  {
+    mockup: { x: 34, y: 170, width: 307, height: 622 },
+    title: { x: 49, y: 42, width: 300, height: 50, fontSize: 34, align: 'center' as const },
+    subtitle: { x: 19, y: 89, width: 340, height: 20, fontSize: 16, align: 'center' as const }
+  },
+]
+
+// TWO layout templates
 export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
-    id: 'default',
-    name: 'Default',
+    id: 'layout1',
+    name: 'Layout 1 - Alternating',
     category: 'minimal',
     backgroundColor: '#F5F5F5',
     textColor: '#1A1A1A',
-    mockup: { x: 468, y: 245, width: 307, height: 622 },
+    mockup: { x: 34, y: 245, width: 307, height: 622 },
     title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'left' },
     subtitle: { x: 26, y: 100, width: 340, height: 20, fontSize: 16, align: 'left' },
-    preview: 'Default app store layout'
+    preview: 'Left-aligned with alternating mockup positions'
+  },
+  {
+    id: 'layout2',
+    name: 'Layout 2 - Centered',
+    category: 'modern',
+    backgroundColor: '#F5F5F5',
+    textColor: '#1A1A1A',
+    mockup: { x: 34, y: 170, width: 307, height: 622 },
+    title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'center' },
+    subtitle: { x: 26, y: 115, width: 340, height: 20, fontSize: 16, align: 'center' },
+    preview: 'Center-aligned with centered mockup'
   }
 ]
 
@@ -72,9 +98,10 @@ export function getTemplateById(id: string): LayoutTemplate | undefined {
   return LAYOUT_TEMPLATES.find(t => t.id === id)
 }
 
-// Get screen configuration by index (for alternating)
-export function getScreenConfig(index: number) {
-  return SCREEN_CONFIGS[index % 2]
+// Get screen configuration by index and template ID (for alternating)
+export function getScreenConfig(index: number, templateId: string = 'layout1') {
+  const configs = templateId === 'layout2' ? SCREEN_CONFIGS_2 : SCREEN_CONFIGS_1
+  return configs[index % 2]
 }
 
 // Generate layers from template with screen-specific config
@@ -90,7 +117,7 @@ export function generateLayersFromTemplate(
   },
   screenIndex: number = 0
 ) {
-  const config = getScreenConfig(screenIndex)
+  const config = getScreenConfig(screenIndex, template.id)
   const layers = []
   
   // Background (solid color)

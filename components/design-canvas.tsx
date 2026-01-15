@@ -88,7 +88,7 @@ export function DesignCanvas({
   const [isExporting, setIsExporting] = React.useState(false)
   const [activeTool, setActiveTool] = React.useState<"select" | "hand" | "text" | "rectangle" | "circle" | "line">("select")
   const [showTemplateSelector, setShowTemplateSelector] = React.useState(false)
-  const [selectedTemplateId, setSelectedTemplateId] = React.useState('default')
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState('layout1')
   const [isAnalyzing, setIsAnalyzing] = React.useState(false)
   const [aiAnalysis, setAiAnalysis] = React.useState<any>(null)
   const canvasRef = React.useRef<HTMLDivElement>(null)
@@ -210,7 +210,7 @@ export function DesignCanvas({
     console.log('📸 Using fallback generation - creating 5 screens')
     
     // Always generate 5 screens with alternating configurations
-    const defaultTemplate = getTemplateById('default')
+    const defaultTemplate = getTemplateById('layout1')
     if (!defaultTemplate) return
     
     const newScreens = Array.from({ length: 5 }, (_, index) => {
@@ -257,7 +257,7 @@ export function DesignCanvas({
         headline,
         subtitle,
         logo: uploadedLogo
-      })
+      }, index)
       
       return {
         ...screen,
@@ -948,7 +948,7 @@ export function DesignCanvas({
           }}
         >
           <div
-            className="flex gap-12 min-w-max"
+            className="flex gap-5 min-w-max"
             style={{
               transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0)`,
               willChange: isPanning ? 'transform' : 'auto',
@@ -957,7 +957,7 @@ export function DesignCanvas({
             {screens.map((screen) => (
               <div 
                 key={screen.id}
-                className={`relative overflow-hidden duration-200 shadow-lg ${
+                className={`relative overflow-hidden duration-200 ${
                   currentScreenId === screen.id ? 'ring-2 ring-blue-500' : 'ring-1 ring-neutral-300'
                 }`}
                 style={{ 
@@ -972,7 +972,7 @@ export function DesignCanvas({
                 onClick={() => setCurrentScreenId(screen.id)}
               >
                 {/* Screen Label */}
-                <div className="absolute -top-9 left-0 text-xs font-medium text-neutral-600">{screen.name}</div>
+                <p className=" absolute -top-10 left-0 text-xs font-medium text-neutral-900">{screen.name}</p>
 
                 {/* Draggable Layers - Minimalist */}
                 {screen.layers.map(layer => {
@@ -1730,7 +1730,9 @@ export function DesignCanvas({
               {LAYOUT_TEMPLATES.map(template => (
                 <button
                   key={template.id}
-                  onClick={() => setShowTemplateSelector(false)}
+                  onClick={() => {
+                    applyTemplateToScreens(template.id)
+                  }}
                   className={`group relative overflow-hidden bg-neutral-50 border transition-all ${
                     selectedTemplateId === template.id 
                       ? 'border-neutral-900' 
