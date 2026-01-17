@@ -27,6 +27,8 @@ interface Layer {
   italic?: boolean
   underline?: boolean
   align?: "left" | "center" | "right"
+  // Mockup specific
+  mockupVariant?: 'white' | 'black'
   // Background specific
   backgroundColor?: string
   backgroundGradient?: {
@@ -160,6 +162,7 @@ export function DesignCanvas({
         const screenshot = uploadedScreenshots[index % uploadedScreenshots.length]
         const headline = analysis.screenHeadlines[index] || `Feature ${index + 1}`
         const subtitle = analysis.screenSubtitles?.[index] || 'This is a subtitle which explains this feature in a better way.'
+        const mockupVariant = analysis.mockupVariants?.[index % uploadedScreenshots.length] || 'black'
         
         const layers = generateLayersFromTemplate(template, {
           screenshot,
@@ -167,7 +170,8 @@ export function DesignCanvas({
           subtitle,
           logo: uploadedLogo,
           textColor: uniformTextColor,
-          fontFamily: uniformFont
+          fontFamily: uniformFont,
+          mockupVariant
         }, index)
         
         return {
@@ -248,7 +252,9 @@ export function DesignCanvas({
     
     setScreens(prev => prev.map((screen, index) => {
       // Find mockup layer or use uploaded screenshot
-      const screenshot = screen.layers.find(l => l.type === "mockup")?.content || uploadedScreenshots[index] || ""
+      const mockupLayer = screen.layers.find(l => l.type === "mockup")
+      const screenshot = mockupLayer?.content || uploadedScreenshots[index] || ""
+      const mockupVariant = mockupLayer?.mockupVariant || 'black'
       const headline = screen.layers.find(l => l.id.includes("headline"))?.content || `Feature ${index + 1}`
       const subtitle = screen.layers.find(l => l.id.includes("subtitle"))?.content || ""
       
@@ -256,7 +262,8 @@ export function DesignCanvas({
         screenshot,
         headline,
         subtitle,
-        logo: uploadedLogo
+        logo: uploadedLogo,
+        mockupVariant
       }, index)
       
       return {
@@ -1034,6 +1041,7 @@ export function DesignCanvas({
                         <>
                           <IphoneMockup 
                             src={layer.content}
+                            variant={layer.mockupVariant || 'black'}
                             className="w-full h-full"
                           />
                           {/* Resize Handle */}
@@ -1101,7 +1109,7 @@ export function DesignCanvas({
 
            {/* AI Analysis Result */}
            {aiAnalysis && (
-             <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 p-4 text-white space-y-2">
+             <div className="bg-linear-to-br from-neutral-900 to-neutral-800 p-4 text-white space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                  <Sparkles className="h-4 w-4" />
                  <h3 className="text-xs font-light">AI Template Selection</h3>
@@ -1740,7 +1748,7 @@ export function DesignCanvas({
                   }`}
                 >
                   {/* Template Preview Image */}
-                  <div className="aspect-[9/16] bg-gradient-to-br from-neutral-100 to-neutral-200 p-4">
+                  <div className="aspect-9/16 bg-linear-to-br from-neutral-100 to-neutral-200 p-4">
                     {/* Config 1 preview - top */}
                     <div className="h-[45%] flex flex-col items-start">
                       <div className="h-1.5 bg-neutral-400 w-3/4 mb-1" />

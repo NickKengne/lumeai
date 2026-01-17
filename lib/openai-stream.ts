@@ -52,15 +52,17 @@ OUTPUT FORMAT:
   ]
 }
 
-CRITICAL RULES FOR HEADLINES & SUBHEADLINES:
-1. Extract the SPECIFIC value proposition from the user's description
-2. Use their actual product terminology and unique features
-3. Avoid generic phrases like "Track Your", "Manage Your", "Transform Your"
-4. Make each headline tell a different part of the story
-5. Headlines should be benefit-driven and SPECIFIC to their product (3-8 words)
-6. Subheadlines should clarify the benefit, not repeat it (8-15 words)
-7. Create VARIED messaging - each screen should have a distinct angle
-8. Use concrete, actionable language that reflects their unique selling point
+CRITICAL - READ USER INPUT CAREFULLY:
+1. Headlines MUST be EXACTLY 2 WORDS extracted from their description
+2. Subheadlines: 8-12 words explaining the benefit THEY described  
+3. Extract REAL features - DO NOT INVENT features they didn't mention
+4. Use their vocabulary, not generic marketing speak
+5. Each screen = different feature they ACTUALLY described
+
+EXAMPLES:
+- User: "AI workout plans" → "AI Workouts" + "Personalized training adapts to your level"
+- User: "split bills instantly" → "Bill Splitting" + "Share expenses with friends in seconds"  
+- User: "track calories" → "Calorie Tracking" + "Log meals instantly with photos"
 
 STORYTELLING STRUCTURE:
 - Screen 1: Lead with their strongest differentiator (what makes THIS app different?)

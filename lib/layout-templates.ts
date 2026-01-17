@@ -114,6 +114,7 @@ export function generateLayersFromTemplate(
     logo?: string
     textColor?: string
     fontFamily?: string
+    mockupVariant?: 'white' | 'black'
   },
   screenIndex: number = 0
 ) {
@@ -140,7 +141,8 @@ export function generateLayersFromTemplate(
     x: config.mockup.x,
     y: config.mockup.y,
     width: config.mockup.width,
-    height: config.mockup.height
+    height: config.mockup.height,
+    mockupVariant: content.mockupVariant || 'black'
   })
   
   // Determine the font to use (prioritize provided font from AI)
