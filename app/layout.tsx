@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,6 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const dm_sans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+});
 
 
 export const metadata: Metadata = {
@@ -104,7 +108,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Raleway:wght@400;600;700&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;700&family=Merriweather:wght@400;700&family=Source+Sans+Pro:wght@400;600;700&family=Oswald:wght@400;600;700&family=PT+Sans:wght@400;700&family=Ubuntu:wght@400;500;700&family=Work+Sans:wght@400;500;600&family=DM+Sans:wght@400;500;700&family=Rubik:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=Karla:wght@400;500;700&family=Lexend:wght@400;500;600&family=Sora:wght@400;500;600&family=Epilogue:wght@400;500;600&family=Red+Hat+Display:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Mulish:wght@400;600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans tracking-tight`}
+        className={`${dm_sans.className} antialiased`}
       >
         {children}
       </body>

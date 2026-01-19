@@ -9,7 +9,8 @@ import { motion, AnimatePresence } from "motion/react"
 import { FormattedMessage } from "./formatted-message"
 import { generateMockStructure, hasOpenAIKey, generateScreenshotStructure } from "@/lib/openai-stream"
 import type { AIResponse, PromptAnalysis } from "@/lib/ai-helpers"
-import { analyzeUserPrompt } from "@/lib/ai-helpers"
+import { analyzeUserPrompt as analyzeUserPromptGemini } from "@/lib/ai-helpers"
+import { analyzeUserPrompt, type PromptAnalysisResult } from "@/lib/prompt-analyzer"
 import { LAYOUT_TEMPLATES } from "@/lib/layout-templates"
 import { saveChatToHistory, generateChatTitle, getChatById } from "@/lib/chat-storage"
 import { useParams, useSearchParams } from "next/navigation"
@@ -50,6 +51,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const [showAssetsUploader, setShowAssetsUploader] = React.useState(false)
   const [aiStructure, setAiStructure] = React.useState<AIResponse | undefined>(undefined)
   const [promptAnalysis, setPromptAnalysis] = React.useState<PromptAnalysis | undefined>(undefined)
+  const [promptTitlesSubtitles, setPromptTitlesSubtitles] = React.useState<PromptAnalysisResult | undefined>(undefined)
   const [isGeneratingStructure, setIsGeneratingStructure] = React.useState(false)
   const [showLayoutPreview, setShowLayoutPreview] = React.useState(false)
   const [showVideoGenerator, setShowVideoGenerator] = React.useState(false)
@@ -218,22 +220,26 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
     if (screenshots && screenshots.length > 0) {
       setUploadedScreenshots(screenshots)
       
-      // Generate AI structure and prompt analysis before opening canvas
+      // Generate AI analysis before opening canvas
       setIsGeneratingStructure(true)
       try {
-        // First, analyze the prompt with Gemini
-        console.log("🔍 Analyzing user prompt with Gemini...")
-        const analysis = await analyzeUserPrompt(content)
-        setPromptAnalysis(analysis)
-        console.log("✅ Prompt analysis complete:", analysis)
+        // Analyze the prompt to get titles and subtitles
+        console.log("🔍 Analyzing user prompt for titles/subtitles...")
+        const titlesSubtitles = await analyzeUserPrompt(content)
+        setPromptTitlesSubtitles(titlesSubtitles)
+        console.log("✅ Prompt analysis complete:", titlesSubtitles)
         
-        // Then generate structure with OpenAI
+        // Optional: Still get Gemini analysis for other data
+        console.log("🔍 Getting additional prompt analysis...")
+        const analysis = await analyzeUserPromptGemini(content)
+        setPromptAnalysis(analysis)
+        
+        // Optional: Still generate structure with OpenAI (for backwards compatibility)
         console.log("🎨 Generating screenshot structure...")
         const structure = hasOpenAIKey() 
           ? await generateScreenshotStructure(content)
           : generateMockStructure(content)
         setAiStructure(structure)
-        console.log("✅ Structure generation complete:", structure)
       } catch (error) {
         console.error('Failed to generate structure or analysis:', error)
         // Fallback to mock
@@ -716,6 +722,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
               screenshotAnalysis={screenshotAnalysis}
               selectedBackgroundIndex={selectedBackgroundIndex}
               selectedFont={selectedFont}
+              promptTitlesSubtitles={promptTitlesSubtitles}
             />
           </motion.div>
         )}

@@ -139,7 +139,7 @@ For App Store success, I recommend creating 3-5 screenshots that showcase:
 
 ---
 
-🎨 **Next Steps:**
+**Next Steps:**
 
 To create stunning, App Store-ready screenshots for your app, I need to see what we're working with!
 
@@ -503,7 +503,7 @@ Ready to upload your app screenshots?`
   }
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden">
+    <div className="w-full h-full flex flex-col overflow-hidden isolate">
       {/* Messages Area */}
       <div className="flex-1 overflow-hidden">
         <ChatConversation 

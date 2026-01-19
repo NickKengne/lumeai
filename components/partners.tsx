@@ -12,12 +12,6 @@ const companies = [
   { name: "Uber", type: "image", src: "/uber-svgrepo-com.svg", width: 50 },
   { name: "Figma", type: "image", src: "/figma-svgrepo-com.svg", width: 50 },
   { name: "Vercel", type: "image", src: "/vercel-svgrepo-com.svg", width: 50 },
-  { name: "Netflix", type: "image", src: "/netflix-icon-svgrepo-com.svg", width: 50 },
-  { name: "Stripe", type: "image", src: "/stripe-svgrepo-com.svg", width: 50 },
-  { name: "Snapchat", type: "image", src: "/snapchat-logo-svgrepo-com.svg", width: 50 },
-  { name: "Mailchimp", type: "image", src: "/mailchimp-svgrepo-com.svg", width: 50 },
-  { name: "BMW", type: "image", src: "/bmw-logo-svgrepo-com.svg", width: 50 },
-  { name: "Airbnb", type: "image", src: "/airbnb-color-svgrepo-com.svg", width: 60 },
   { name: "Shopify", type: "image", src: "/shopify-color-svgrepo-com.svg", width: 50 },
   { name: "Notion", type: "image", src: "/notion-svgrepo-com.svg", width: 50 },
   { name: "Linear", type: "image", src: "/linear-svgrepo-com.svg", width: 50 },
@@ -26,9 +20,8 @@ const companies = [
 ]
 
 // Split companies into two rows
-const row1 = companies.slice(0, 6)
-const row2 = companies.slice(6, 12)
-const row3 = companies.slice(12, 18)
+const row1 = companies.slice(0, 7)
+const row2 = companies.slice(8, 13)
 
 export function Partners() {
   return (
@@ -78,23 +71,6 @@ export function Partners() {
             </div>
           </div>
 
-          {/* Row 3 */}
-          <div className="relative overflow-hidden">
-            <div className="flex">
-              {/* First set for seamless loop */}
-              <div className="flex items-center gap-16 shrink-0 animate-marquee">
-                {row3.map((company, idx) => (
-                  <CompanyLogo key={`row3-first-${idx}`} company={company} />
-                ))}
-              </div>
-              {/* Duplicate set for seamless loop */}
-              <div className="flex items-center gap-16 shrink-0 animate-marquee">
-                {row3.map((company, idx) => (
-                  <CompanyLogo key={`row3-second-${idx}`} company={company} />
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

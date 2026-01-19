@@ -1,3 +1,5 @@
+"use client"
+
 import { ChatInput } from "@/components/chat-input";
 import { FeatureGrid } from "@/components/feature-card";
 import { NavActions } from "@/components/nav-actions";
@@ -10,14 +12,40 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import type { Metadata } from "next";
+import * as React from "react";
 
-export const metadata: Metadata = {
-  title: "Dashboard - Start Creating App Store Screenshots | Lume AI",
-  description: "Welcome to your Lume AI dashboard. Start creating beautiful App Store screenshots with AI assistance.",
-};
+function getTimeBasedGreeting(): string {
+  const hour = new Date().getHours();
+  
+  if (hour < 12) {
+    return "Good morning";
+  } else if (hour < 18) {
+    return "Good afternoon";
+  } else {
+    return "Good evening";
+  }
+}
+
+function getUserName(): string {
+  // Try to get user name from localStorage (saved from settings)
+  if (typeof window !== 'undefined') {
+    const savedName = localStorage.getItem('userName');
+    if (savedName) {
+      return savedName;
+    }
+  }
+  return "there"; // Default fallback
+}
 
 export default function Page() {
+  const [greeting, setGreeting] = React.useState("Hello");
+  const [userName, setUserName] = React.useState("there");
+  
+  React.useEffect(() => {
+    setGreeting(getTimeBasedGreeting());
+    setUserName(getUserName());
+  }, []);
+
   return (
     <SidebarInset>
       <header className="flex h-14 shrink-0 items-center gap-2 bg-neutral-50 border-b border-neutral-200">
@@ -44,10 +72,10 @@ export default function Page() {
       <div className="bg-neutral-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
         <div className="max-w-3xl">
           <h1 className="text-5xl font-light tracking-tight text-neutral-900">
-            Hi , Dibrilain !
+            {greeting}, {userName}!
           </h1>
             <p className="text-3xl text-neutral-500 mb-4 mt-2 font-light">
-              How can I help your with your screens ?
+              How can I help you with your screenshots today?
             </p>
         <FeatureGrid />
         </div>

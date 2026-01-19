@@ -41,6 +41,14 @@ export default function SettingsPage() {
     avatar: "https://media.licdn.com/dms/image/v2/D4E03AQHTYbBtKMY2Vg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1714722950547?e=1769040000&v=beta&t=uwYoa3mmJNdHaic0FpADf8r_qPm7CmhWN7jRId4Yxq0"
   })
   
+  // Load saved name from localStorage on mount
+  React.useEffect(() => {
+    const savedName = localStorage.getItem('userName')
+    if (savedName) {
+      setProfileData(prev => ({ ...prev, name: savedName }))
+    }
+  }, [])
+  
   const [passwordData, setPasswordData] = React.useState({
     currentPassword: "",
     newPassword: "",
@@ -55,6 +63,8 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     setIsSaving(true)
+    // Save name to localStorage for dashboard greeting
+    localStorage.setItem('userName', profileData.name)
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     setIsSaving(false)

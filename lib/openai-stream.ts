@@ -8,21 +8,34 @@ import { AIResponseSchema, type AIResponse, type ScreenLayout } from './ai-helpe
 // Chat system prompt (clean markdown, conversational)
 const CHAT_SYSTEM_PROMPT = `You are a seasoned App Store marketing consultant who's helped hundreds of apps succeed.
 
-Your responses should be:
-- **Conversational** - Talk like a real person, not a template
-- **Specific** - Give actionable advice, not generic platitudes
-- **Strategic** - Think about what actually converts in the App Store
-- **Brief** - Get to the point quickly (200-400 words max)
+Think like a real marketing strategist, not a template. Every app is different - analyze what they're actually building and give relevant, specific advice.
 
-When analyzing an app concept:
-1. Identify the core value prop in one sentence
-2. Name the primary competitor mindset you're fighting
-3. Suggest 3-4 screenshot must-haves
-4. Point out one common mistake to avoid
-5. Ask user to upload their app screenshots so you can design them
+Your job:
+- Understand their app concept deeply
+- Think about what makes it different from competitors
+- Suggest 5 compelling screenshot titles and subtitles that highlight their actual features
+- Give strategic advice that actually helps
+- Be conversational and human
 
-Tone: Professional but human. Strategic but accessible. Confident but not arrogant.
-Format: Use markdown headers (##) and bullet points. No emojis.`
+CRITICAL: Always include 5 screenshot suggestions in this format:
+
+**Suggested Screenshots:**
+
+1. **Title One** - Subtitle explaining the benefit (8-12 words)
+2. **Title Two** - Subtitle explaining the benefit (8-12 words)
+3. **Title Three** - Subtitle explaining the benefit (8-12 words)
+4. **Title Four** - Subtitle explaining the benefit (8-12 words)
+5. **Title Five** - Subtitle explaining the benefit (8-12 words)
+
+Rules:
+- Titles: EXACTLY 2 words, extracted from THEIR features (e.g., "AI Workouts", "Bill Splitting")
+- Subtitles: 8-12 words explaining the actual benefit
+- Each one should be different and represent a real feature they mentioned
+- Use App Store keywords that users search for
+
+Think for yourself. Don't follow a rigid template. Respond naturally based on what they're building.
+
+Keep it conversational, strategic, and under 300 words. No emojis.`
 
 // Structure system prompt (JSON only)
 const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert who creates compelling, unique screenshot copy.
@@ -192,6 +205,66 @@ export async function mockStreamAIResponse(
   onComplete?.(fullText)
 }
 
+// Helper: Generate 5 screenshot titles and subtitles from user input
+function generate5Screenshots(userInput: string): string {
+  const input = userInput.toLowerCase()
+  let screenshots: Array<{ title: string; subtitle: string }> = []
+  
+  // Finance app
+  if (input.includes('finance') || input.includes('budget') || input.includes('money') || input.includes('bank')) {
+    screenshots = [
+      { title: 'Expense Tracking', subtitle: 'Automatically categorize and track all your expenses in real time' },
+      { title: 'Bill Splitting', subtitle: 'Split bills with friends and settle up instantly with one tap' },
+      { title: 'Smart Budgets', subtitle: 'Create intelligent budgets that adapt to your spending patterns' },
+      { title: 'Instant Payments', subtitle: 'Send money to anyone instantly without fees or delays' },
+      { title: 'Group Balance', subtitle: 'See who owes what in your groups with crystal clear balances' }
+    ]
+  } 
+  // Fitness app
+  else if (input.includes('fitness') || input.includes('health') || input.includes('workout')) {
+    screenshots = [
+      { title: 'AI Workouts', subtitle: 'Get personalized workout routines powered by artificial intelligence' },
+      { title: 'Progress Tracking', subtitle: 'Monitor your fitness journey with detailed charts and statistics' },
+      { title: 'Custom Plans', subtitle: 'Create custom workout plans tailored to your fitness level' },
+      { title: 'Form Coaching', subtitle: 'Receive real-time feedback on your exercise form and technique' },
+      { title: 'Smart Goals', subtitle: 'Set and achieve your fitness goals with intelligent tracking' }
+    ]
+  }
+  // Social/chat app
+  else if (input.includes('social') || input.includes('chat') || input.includes('dating') || input.includes('connect')) {
+    screenshots = [
+      { title: 'Smart Matching', subtitle: 'Connect with people who share your interests and values' },
+      { title: 'Real Conversations', subtitle: 'Start meaningful conversations without awkward icebreakers' },
+      { title: 'Safe Community', subtitle: 'Verified profiles and built-in safety features protect you' },
+      { title: 'Group Spaces', subtitle: 'Join communities based on your hobbies and passions' },
+      { title: 'Instant Messaging', subtitle: 'Chat seamlessly with photos, videos, and voice messages' }
+    ]
+  }
+  // Productivity app
+  else if (input.includes('task') || input.includes('todo') || input.includes('productivity') || input.includes('organize')) {
+    screenshots = [
+      { title: 'Quick Capture', subtitle: 'Add tasks and notes in seconds without breaking your flow' },
+      { title: 'Smart Organization', subtitle: 'AI automatically organizes your tasks by priority and deadline' },
+      { title: 'Progress Tracking', subtitle: 'See your productivity trends and celebrate your wins' },
+      { title: 'Team Sync', subtitle: 'Collaborate with your team and stay aligned on projects' },
+      { title: 'Focus Mode', subtitle: 'Block distractions and get in the zone with guided focus sessions' }
+    ]
+  }
+  // Default/generic
+  else {
+    screenshots = [
+      { title: 'Smart Features', subtitle: 'Powerful tools designed to help you succeed every day' },
+      { title: 'Quick Access', subtitle: 'Get to what you need instantly with intuitive navigation' },
+      { title: 'Easy Setup', subtitle: 'Start using the app in seconds with simple onboarding' },
+      { title: 'Auto Sync', subtitle: 'Everything stays in sync across all your devices seamlessly' },
+      { title: 'Premium Tools', subtitle: 'Advanced features that give you complete control and flexibility' }
+    ]
+  }
+  
+  return `\n\n**Suggested Screenshots:**\n\n` +
+    screenshots.map((s, i) => `${i + 1}. **${s.title}** - ${s.subtitle}`).join('\n')
+}
+
 function generateMockMarkdownResponse(userInput: string): string {
   const input = userInput.toLowerCase()
   
@@ -200,6 +273,7 @@ function generateMockMarkdownResponse(userInput: string): string {
   const selectedStyle = responseStyles[Math.floor(Math.random() * responseStyles.length)]
   
   let response = ''
+  const screenshotsSection = generate5Screenshots(userInput)
   
   if (input.includes('finance') || input.includes('budget') || input.includes('money') || input.includes('bank')) {
     if (selectedStyle === 'direct') {
@@ -214,6 +288,7 @@ Your biggest competitor isn't other apps—it's the friction of switching banks.
 - Whatever makes you different from ${input.includes('transfer') ? 'Venmo' : input.includes('budget') ? 'Mint' : 'your bank app'}
 
 Skip the generic "manage your money" messaging. Show the moment someone realizes they just saved 3 minutes doing something that used to take 10.
+${screenshotsSection}
 
 Upload your screens and I'll help you highlight what actually converts.`
     } else if (selectedStyle === 'analytical') {
@@ -230,6 +305,7 @@ Screen 2: The dashboard. But make it a dashboard someone would actually check da
 Screen 3: Trust signals. Security isn't a feature anymore, it's table stakes. Show biometrics, encryption, whatever. But quickly.
 
 **Critical:** ${input.includes('real-time') ? 'You mentioned real-time. That\'s your angle. Hammer it.' : input.includes('easy') ? 'Everyone says "easy." Show fast instead.' : 'Find your one differentiator and lead with it.'}
+${screenshotsSection}
 
 Upload your actual screens so we can craft something that stands out.`
     } else if (selectedStyle === 'strategic') {
@@ -247,6 +323,8 @@ Don't try to explain features. Show outcomes. Not "track transactions"—show so
 3. The payoff (saved money? saved time? less stress?)
 
 ${input.includes('security') || input.includes('safe') ? '\n**On Security:** Mention it, don\'t overexplain it. One line, one icon, done.\n' : ''}
+${screenshotsSection}
+
 Let's see what you've built and figure out the angle that'll make people stop scrolling.`
     } else {
       response = `Looking at ${input.includes('bank') ? 'banking' : 'finance'} app screenshots...
@@ -265,7 +343,8 @@ ${input.includes('transfer') ? '→ The transfer flow: 3 taps max\n→ Confirmat
 ${input.includes('track') || input.includes('history') ? '→ Transaction list that\'s scannable\n→ Search/filter that actually works\n→ Insights that are useful, not generic' : ''}
 ${input.includes('dashboard') ? '→ Account balances front and center\n→ Recent activity (not buried)\n→ Quick actions within thumb reach' : ''}
 
-Share your screenshots and I'll help you create something that looks as good as it functions.`
+Share your screenshots and I'll help you create something that looks as good as it functions.
+${screenshotsSection}`
     }
   } else if (input.includes('fitness') || input.includes('health') || input.includes('workout')) {
     const variations = [
@@ -287,6 +366,7 @@ The real competition? The voice in their head saying "I'll start Monday." Your s
 
 ${input.includes('track') ? 'You mentioned tracking. Good. But show the insight, not the data entry.' : ''}
 ${input.includes('plan') ? 'Plans are great until they\'re too rigid. Show flexibility.' : ''}
+${screenshotsSection}
 
 Upload your screens. Let's make something that actually gets people to lace up their shoes.`,
 
@@ -308,7 +388,8 @@ Your screenshots should answer: "Will I actually use this?"
 - Complicated workout plans
 - "Revolutionary" claims
 
-What's your actual hook? Upload your UI and let's figure out how to show it.`
+What's your actual hook? Upload your UI and let's figure out how to show it.
+${screenshotsSection}`
     ]
     response = variations[Math.floor(Math.random() * variations.length)]
   } else if (input.includes('social') || input.includes('dating') || input.includes('chat')) {
@@ -328,7 +409,8 @@ But screenshots can kill interest fast if they look:
 - Whatever makes your community different
 - Activity indicators (this place is alive)
 
-Upload your UI. Let's make sure it doesn't look like every other social app that failed.`,
+Upload your UI. Let's make sure it doesn't look like every other social app that failed.
+${screenshotsSection}`,
 
       `The network effect problem: Social apps need users to be useful, but users won't join without users.
 
@@ -345,7 +427,8 @@ Your screenshots can't solve this, but they can avoid making it worse.
 2. Demonstrate the core interaction (is this chat? feed? something new?)
 3. Highlight what's different (please don't say "authentic connections")
 
-What's your actual differentiator? Let's see your screens.`
+What's your actual differentiator? Let's see your screens.
+${screenshotsSection}`
     ]
     response = socialVariations[Math.floor(Math.random() * socialVariations.length)]
   } else {
@@ -366,7 +449,8 @@ The goal isn't to explain your app. It's to make someone curious enough to downl
 3. Look polished enough to trust
 4. Stand out from similar apps
 
-Upload your actual app screens and let's figure out what story they should tell.`,
+Upload your actual app screens and let's figure out what story they should tell.
+${screenshotsSection}`,
 
       `"${userInput.slice(0, 60)}${userInput.length > 60 ? '...' : ''}"
 
@@ -381,7 +465,8 @@ Most apps fail here. They show features (buttons, menus, lists) instead of outco
 - Screen 2: The proof (okay, this actually works)
 - Screen 3+: Details (if they're still interested)
 
-Let me see what you've built. We'll figure out the angle that makes people stop scrolling.`,
+Let me see what you've built. We'll figure out the angle that makes people stop scrolling.
+${screenshotsSection}`,
 
       `Got it: "${userInput.slice(0, 70)}${userInput.length > 70 ? '...' : ''}"
 
@@ -401,7 +486,8 @@ You've got maybe 4 seconds of attention. Your screenshots need to work at a glan
 - Cluttered interfaces
 - No clear value prop
 
-Upload your UI and I'll help you create something that converts browsers into downloads.`
+Upload your UI and I'll help you create something that converts browsers into downloads.
+${screenshotsSection}`
     ]
     response = genericVariations[Math.floor(Math.random() * genericVariations.length)]
   }

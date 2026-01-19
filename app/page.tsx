@@ -4,6 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { Partners } from "@/components/partners";
 import { FeatureGrid } from "@/components/feature-card";
 import { ChatInput } from "@/components/chat-input";
+import { Underline } from "@/components/underline";
 import { Check } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -154,21 +155,27 @@ export default function Home() {
           <section className="max-w-7xl mx-auto w-full px-6 py-32">
             <div className="flex flex-col items-center gap-6 max-w-4xl mx-auto">
               <h1 className="text-6xl md:text-7xl font-light text-center tracking-tight text-neutral-900">
-                App Store visuals,<br />generated in <span className="text-neutral-400"> under a minute</span>
+                Turn screenshots into{" "}
+                <span className="relative inline-block">
+                  <span className="relative z-10">stunning visuals</span>
+                  <Underline className="absolute left-0 right-0 -bottom-2 w-full h-3 text-blue-500 opacity-60" />
+                </span>
+                <br />
+                in seconds, not hours
               </h1>
               <div className="flex flex-col items-center gap-3 w-full">
                 <p className="text-xl text-center text-neutral-500 font-light max-w-2xl">
-                  Transform raw screenshots into polished App Store assets with AI. 
-                  No design skills required—just upload, customize, and export.
+                  AI-powered screenshot editor that creates beautiful App Store assets instantly. 
+                  Upload your screens, add mockups, generate headlines—all automated.
                 </p>
                 <p className="text-base text-center text-neutral-400 font-light">
-                  Trusted by indie developers and startups worldwide
+                  Join 10,000+ developers shipping faster with AI
                 </p>
               </div>
               <div className="w-full max-w-2xl mt-4">
                 <ChatInput/>
               </div>
-              <Partners />
+              {/* <Partners /> */}
             </div>
           </section>
 

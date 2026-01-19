@@ -46,6 +46,8 @@ interface Screen {
   templateId?: string // Track which template is being used
 }
 
+import type { PromptAnalysisResult } from "@/lib/prompt-analyzer"
+
 interface DesignCanvasProps {
   onClose: () => void
   userPrompt?: string
@@ -59,6 +61,7 @@ interface DesignCanvasProps {
   } | null
   selectedBackgroundIndex?: number
   selectedFont?: string
+  promptTitlesSubtitles?: PromptAnalysisResult
 }
 
 export function DesignCanvas({ 
@@ -69,7 +72,8 @@ export function DesignCanvas({
   uploadedAssets = [], 
   screenshotAnalysis = null,
   selectedBackgroundIndex,
-  selectedFont
+  selectedFont,
+  promptTitlesSubtitles
 }: DesignCanvasProps) {
   const [screens, setScreens] = React.useState<Screen[]>([])
   const [currentScreenId, setCurrentScreenId] = React.useState("")
@@ -108,28 +112,40 @@ export function DesignCanvas({
 
   const generateScreensWithAI = async () => {
     setIsAnalyzing(true)
-    console.log('🤖 Analyzing screenshots with AI...')
+    console.log('🤖 Analyzing screenshots for visual data...')
     
     try {
-      // Analyze screenshots with AI to get template suggestions, headlines, and colors
-      const analysis = await analyzeScreenshots(uploadedScreenshots, userPrompt || 'mobile app')
-      setAiAnalysis(analysis)
+      // Analyze screenshots for VISUAL data only (colors, fonts, backgrounds)
+      const visualAnalysis = await analyzeScreenshots(uploadedScreenshots)
+      setAiAnalysis(visualAnalysis)
       
-      console.log('✨ AI Analysis:', {
-        template: analysis.suggestedTemplateId,
-        reasoning: analysis.templateReasoning,
-        backgrounds: analysis.suggestedBackgrounds.slice(0, 3),
-        headlines: analysis.screenHeadlines
+      console.log('✨ Visual Analysis:', {
+        backgrounds: visualAnalysis.suggestedBackgrounds.slice(0, 3),
+        textColor: visualAnalysis.textColor,
+        fonts: visualAnalysis.detectedFonts
       })
       
-      const template = getTemplateById(analysis.suggestedTemplateId)
+      // Get titles and subtitles from prompt analysis (passed as prop)
+      const titles = promptTitlesSubtitles?.titles || ['Feature 1', 'Feature 2', 'Feature 3', 'Feature 4', 'Feature 5']
+      const subtitles = promptTitlesSubtitles?.subtitles || [
+        'Powerful features designed to help you succeed',
+        'Powerful features designed to help you succeed',
+        'Powerful features designed to help you succeed',
+        'Powerful features designed to help you succeed',
+        'Powerful features designed to help you succeed'
+      ]
+      const suggestedLayout = promptTitlesSubtitles?.suggestedLayout || 'layout1'
+      
+      console.log('📝 Using titles from prompt analysis:', titles)
+      
+      const template = getTemplateById(suggestedLayout)
       if (!template) {
-        console.error('Template not found:', analysis.suggestedTemplateId)
+        console.error('Template not found:', suggestedLayout)
         setIsAnalyzing(false)
         return
       }
       
-      setSelectedTemplateId(analysis.suggestedTemplateId)
+      setSelectedTemplateId(suggestedLayout)
       
       // Determine which background color to use for ALL screens
       let uniformBgColor = '#F5F5F5'
@@ -142,14 +158,14 @@ export function DesignCanvas({
           uniformBgColor = selectedBg.background
           uniformTextColor = selectedBg.textColor
         }
-      } else if (analysis.suggestedBackgrounds.length > 0) {
+      } else if (visualAnalysis.suggestedBackgrounds.length > 0) {
         // Use the first AI-suggested background
-        uniformBgColor = analysis.suggestedBackgrounds[0]
-        uniformTextColor = analysis.textColor
+        uniformBgColor = visualAnalysis.suggestedBackgrounds[0]
+        uniformTextColor = visualAnalysis.textColor
       }
       
       // Determine which font to use
-      const uniformFont = selectedFont || analysis.detectedFonts?.[0] || 'Inter'
+      const uniformFont = selectedFont || visualAnalysis.detectedFonts?.[0] || 'Inter'
       
       console.log('🎨 Using uniform styling:', {
         background: uniformBgColor,
@@ -160,9 +176,9 @@ export function DesignCanvas({
       // Always generate 5 screens with CONSISTENT background and font
       const newScreens = Array.from({ length: 5 }, (_, index) => {
         const screenshot = uploadedScreenshots[index % uploadedScreenshots.length]
-        const headline = analysis.screenHeadlines[index] || `Feature ${index + 1}`
-        const subtitle = analysis.screenSubtitles?.[index] || 'This is a subtitle which explains this feature in a better way.'
-        const mockupVariant = analysis.mockupVariants?.[index % uploadedScreenshots.length] || 'black'
+        const headline = titles[index] || `Feature ${index + 1}`
+        const subtitle = subtitles[index] || 'Powerful features designed to help you succeed'
+        const mockupVariant = visualAnalysis.mockupVariants?.[index % uploadedScreenshots.length] || 'black'
         
         const layers = generateLayersFromTemplate(template, {
           screenshot,
@@ -198,7 +214,7 @@ export function DesignCanvas({
         }
       })
       
-      console.log('✅ Created', newScreens.length, 'AI-powered screens')
+      console.log('✅ Created', newScreens.length, 'AI-powered screens with titles from prompt analysis')
       setScreens(newScreens)
       setCurrentScreenId(newScreens[0]?.id || "")
     } catch (error) {
@@ -255,20 +271,29 @@ export function DesignCanvas({
       const mockupLayer = screen.layers.find(l => l.type === "mockup")
       const screenshot = mockupLayer?.content || uploadedScreenshots[index] || ""
       const mockupVariant = mockupLayer?.mockupVariant || 'black'
+      
+      // Preserve existing text content (headlines and subtitles)
       const headline = screen.layers.find(l => l.id.includes("headline"))?.content || `Feature ${index + 1}`
       const subtitle = screen.layers.find(l => l.id.includes("subtitle"))?.content || ""
+      
+      // Preserve existing text styling (color and font)
+      const existingTextLayer = screen.layers.find(l => l.type === "text")
+      const textColor = existingTextLayer?.color || screen.layers.find(l => l.id.includes("headline"))?.color || '#1A1A1A'
+      const fontFamily = selectedFont || existingTextLayer?.fontFamily || aiAnalysis?.detectedFonts?.[0] || 'Inter'
       
       const newLayers = generateLayersFromTemplate(template, {
         screenshot,
         headline,
         subtitle,
         logo: uploadedLogo,
-        mockupVariant
+        mockupVariant,
+        textColor,
+        fontFamily
       }, index)
       
       return {
         ...screen,
-        backgroundColor: template.backgroundColor,
+        backgroundColor: screen.backgroundColor, // Preserve existing background color
         templateId,
         layers: newLayers.map((l, idx) => ({
           ...l,

@@ -15,27 +15,7 @@ export function Navbar() {
             <img src="/images/logo.png" alt="LumeAI" width={30} height={100} />
           </Link>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link 
-              href="/features" 
-              className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors font-light"
-            >
-              Features
-            </Link>
-            <Link 
-              href="/pricing" 
-              className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors font-light"
-            >
-              Pricing
-            </Link>
-            <Link 
-              href="/docs" 
-              className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors font-light"
-            >
-              Docs
-            </Link>
-          </div>
+        
 
           {/* Actions */}
           <div className="flex items-center gap-3">
