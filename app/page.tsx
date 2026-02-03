@@ -179,20 +179,6 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Features Section */}
-          <section className="max-w-7xl mx-auto w-full px-6 py-20">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-16">
-                <h2 className="text-4xl font-light tracking-tight text-neutral-900 mb-4">
-                  Everything you need to launch
-                </h2>
-                <p className="text-lg text-neutral-500 font-light max-w-2xl mx-auto">
-                  From screenshot upload to App Store submission—complete your visuals in minutes, not days.
-                </p>
-              </div>
-              <FeatureGrid />
-            </div>
-          </section>
 
           {/* Pricing Section */}
           <section className="max-w-7xl mx-auto w-full px-6 py-20 border-t border-neutral-200">

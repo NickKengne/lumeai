@@ -90,3 +90,6 @@ export function ThinkingSteps({ steps, currentStep }: ThinkingStepsProps) {
   )
 }
 
+
+
+

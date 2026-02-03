@@ -12,7 +12,7 @@ import type { AIResponse, PromptAnalysis } from "@/lib/ai-helpers"
 import { analyzeUserPrompt as analyzeUserPromptGemini } from "@/lib/ai-helpers"
 import { analyzeUserPrompt, type PromptAnalysisResult } from "@/lib/prompt-analyzer"
 import { LAYOUT_TEMPLATES } from "@/lib/layout-templates"
-import { saveChatToHistory, generateChatTitle, getChatById } from "@/lib/chat-storage"
+import { saveChatToHistory, generateChatTitle, getChatById, saveTempAssets, getChatTempAssets } from "@/lib/chat-storage"
 import { useParams, useSearchParams } from "next/navigation"
 import { analyzeScreenshots } from "@/lib/screenshot-analyzer"
 
@@ -142,14 +142,29 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
 
     const existingChat = getChatById(chatId)
     if (existingChat) {
-      if (existingChat.screenshots.length > 0) {
-        setUploadedScreenshots(existingChat.screenshots)
-      }
-      if (existingChat.logo) {
-        setUploadedLogo(existingChat.logo)
-      }
-      if (existingChat.assets.length > 0) {
-        setUploadedAssets(existingChat.assets)
+      // Try to load assets from sessionStorage first (temporary storage)
+      const tempAssets = getChatTempAssets(chatId)
+      if (tempAssets) {
+        if (tempAssets.screenshots && tempAssets.screenshots.length > 0) {
+          setUploadedScreenshots(tempAssets.screenshots)
+        }
+        if (tempAssets.logo) {
+          setUploadedLogo(tempAssets.logo)
+        }
+        if (tempAssets.assets && tempAssets.assets.length > 0) {
+          setUploadedAssets(tempAssets.assets)
+        }
+      } else {
+        // Fallback to localStorage (for backwards compatibility, though likely empty)
+        if (existingChat.screenshots.length > 0) {
+          setUploadedScreenshots(existingChat.screenshots)
+        }
+        if (existingChat.logo) {
+          setUploadedLogo(existingChat.logo)
+        }
+        if (existingChat.assets.length > 0) {
+          setUploadedAssets(existingChat.assets)
+        }
       }
     }
   }, [chatId])
@@ -166,6 +181,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
         timestamp: m.timestamp
       })))
 
+      // Save text content to localStorage (without large base64 images)
       saveChatToHistory({
         id: chatId,
         workspaceId: workspaceId,
@@ -176,12 +192,21 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
           content: m.content,
           timestamp: m.timestamp
         })),
-        screenshots: uploadedScreenshots,
-        logo: uploadedLogo,
-        assets: uploadedAssets,
+        screenshots: [], // Don't save to localStorage - too large
+        logo: undefined,
+        assets: [],
         createdAt: new Date(),
         updatedAt: new Date()
       })
+
+      // Save assets to sessionStorage (temporary, cleared on page refresh)
+      if (uploadedScreenshots.length > 0 || uploadedLogo || uploadedAssets.length > 0) {
+        saveTempAssets(chatId, {
+          screenshots: uploadedScreenshots,
+          logo: uploadedLogo,
+          assets: uploadedAssets
+        })
+      }
 
       // Notify sidebar to refresh
       window.dispatchEvent(new Event('chat-updated'))
@@ -575,7 +600,10 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
 
                   {uploadedScreenshots.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-xs text-neutral-500">Uploaded Screenshots ({uploadedScreenshots.length})</p>
+                      <div className="flex items-start justify-between">
+                        <p className="text-xs text-neutral-500">Uploaded Screenshots ({uploadedScreenshots.length})</p>
+                        <p className="text-[10px] text-neutral-400 italic">Session only</p>
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         {uploadedScreenshots.map((url, idx) => (
                           <div key={idx} className="relative group">

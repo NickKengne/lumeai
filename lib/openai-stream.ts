@@ -38,58 +38,73 @@ Think for yourself. Don't follow a rigid template. Respond naturally based on wh
 Keep it conversational, strategic, and under 300 words. No emojis.`
 
 // Structure system prompt (JSON only)
-const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert who creates compelling, unique screenshot copy.
+const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert extracting screenshot copy from user descriptions.
 
-CRITICAL: Output ONLY valid JSON matching this exact schema.
+CRITICAL: Read the user's ACTUAL app description and extract REAL features they mention.
 
-VALID VALUES (use EXACTLY as shown):
-- tone: MUST be one of: "clean", "bold", "professional", "playful", "minimal"
-- layout: MUST be one of: "iphone_centered", "iphone_offset", "iphone_feature_list", "iphone_comparison", "iphone_hero"
-- background: MUST be one of: "soft_gradient", "solid_light", "solid_dark", "branded", "minimal"
-- emphasis: MUST be one of: "dashboard", "charts", "social", "onboarding", "feature"
-
-OUTPUT FORMAT:
+OUTPUT SCHEMA:
 {
-  "theme": "finance",
-  "tone": "professional",
-  "targetAudience": "young professionals",
+  "theme": "string (app category)",
+  "tone": "clean|bold|professional|playful|minimal",
+  "targetAudience": "string (who uses this)",
   "screens": [
     {
-      "id": "screen_1",
-      "headline": "Track Every Expense",
-      "subheadline": "Stay on top of your spending",
-      "layout": "iphone_centered",
-      "background": "soft_gradient",
-      "emphasis": "dashboard"
+      "id": "screen_X",
+      "headline": "Two Words",
+      "subheadline": "8-12 word benefit description",
+      "layout": "iphone_centered|iphone_offset|iphone_feature_list|iphone_comparison|iphone_hero",
+      "background": "soft_gradient|solid_light|solid_dark|branded|minimal",
+      "emphasis": "dashboard|charts|social|onboarding|feature"
     }
   ]
 }
 
-CRITICAL - READ USER INPUT CAREFULLY:
-1. Headlines MUST be EXACTLY 2 WORDS extracted from their description
-2. Subheadlines: 8-12 words explaining the benefit THEY described  
-3. Extract REAL features - DO NOT INVENT features they didn't mention
-4. Use their vocabulary, not generic marketing speak
-5. Each screen = different feature they ACTUALLY described
+YOUR RULES:
+1. Headlines: EXACTLY 2 words from THEIR feature descriptions
+2. Subheadlines: 8-12 words explaining the benefit THEY described
+3. Generate 3-5 screens depending on how many features they mention
+4. Each screen = DIFFERENT feature they ACTUALLY mentioned
+5. DO NOT invent generic features ("Smart Features", "Quick Access")
+6. Use THEIR vocabulary, not marketing templates
+7. Vary the structure - don't always follow the same pattern
 
-EXAMPLES:
-- User: "AI workout plans" → "AI Workouts" + "Personalized training adapts to your level"
-- User: "split bills instantly" → "Bill Splitting" + "Share expenses with friends in seconds"  
-- User: "track calories" → "Calorie Tracking" + "Log meals instantly with photos"
+EXTRACTION EXAMPLES:
 
-STORYTELLING STRUCTURE:
-- Screen 1: Lead with their strongest differentiator (what makes THIS app different?)
-- Screen 2: Show the core experience or main feature in action
-- Screen 3: Secondary benefit or complementary feature
-- Screen 4+: Social proof, additional features, or outcome
+Input: "meditation app for sleep with nature sounds"
+Good:
+{
+  "theme": "wellness",
+  "tone": "minimal",
+  "targetAudience": "stressed professionals",
+  "screens": [
+    {"id": "screen_1", "headline": "Sleep Meditations", "subheadline": "Fall asleep faster with guided meditation designed for rest", "layout": "iphone_centered", "background": "soft_gradient", "emphasis": "feature"},
+    {"id": "screen_2", "headline": "Nature Soundscapes", "subheadline": "Relax with high quality recordings of rain and forests", "layout": "iphone_offset", "background": "minimal", "emphasis": "dashboard"},
+    {"id": "screen_3", "headline": "Bedtime Stories", "subheadline": "Drift off to soothing narrated tales for adults", "layout": "iphone_hero", "background": "soft_gradient", "emphasis": "feature"}
+  ]
+}
 
-AVOID at all costs:
-- Generic templates ("Stay on top of...", "Reach your goals", "Built for you")
-- Repeating the same benefit multiple times
-- Vague promises without specific context
-- Copy that could work for any competitor
+Input: "recipe app with photo ingredient recognition"
+Good:
+{
+  "theme": "food",
+  "tone": "playful",
+  "targetAudience": "home cooks",
+  "screens": [
+    {"id": "screen_1", "headline": "Photo Recognition", "subheadline": "Snap your fridge and see what meals you can make", "layout": "iphone_centered", "background": "branded", "emphasis": "feature"},
+    {"id": "screen_2", "headline": "Ingredient Scanner", "subheadline": "AI identifies every item from your pantry photos automatically", "layout": "iphone_offset", "background": "solid_light", "emphasis": "dashboard"},
+    {"id": "screen_3", "headline": "Recipe Suggestions", "subheadline": "Get personalized meal ideas based on what you have", "layout": "iphone_feature_list", "background": "soft_gradient", "emphasis": "feature"}
+  ]
+}
 
-Use ONLY the exact enum values listed above. No markdown, no explanations, ONLY JSON.`
+BAD - Generic template (DO NOT DO):
+{
+  "screens": [
+    {"headline": "Smart Features", "subheadline": "Powerful tools designed to help you succeed"},
+    {"headline": "Quick Access", "subheadline": "Get what you need instantly"}
+  ]
+}
+
+Return ONLY valid JSON. Read their description carefully.`
 
 export interface StreamCallbacks {
   onStart?: () => void
@@ -128,8 +143,8 @@ export async function streamAIResponse(
           { role: 'system', content: CHAT_SYSTEM_PROMPT },
           { role: 'user', content: userMessage }
         ],
-        temperature: 0.7,
-        max_tokens: 1000,
+        temperature: 0.85,
+        max_tokens: 1200,
         stream: true,
       }),
     })
@@ -559,13 +574,13 @@ export async function generateScreenshotStructure(
       'Authorization': `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: STRUCTURE_SYSTEM_PROMPT },
-        { role: 'user', content: userMessage }
+        { role: 'user', content: `App description: "${userMessage}"\n\nExtract REAL features they mention and create 3-5 compelling screenshot structures. Use THEIR words, not generic templates.` }
       ],
-      temperature: 0.7,
-      max_tokens: 1000,
+      temperature: 0.9,
+      max_tokens: 1500,
       response_format: { type: 'json_object' },
     }),
   })

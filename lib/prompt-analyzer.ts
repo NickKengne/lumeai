@@ -12,33 +12,41 @@ export interface PromptAnalysisResult {
   suggestedLayout: 'layout1' | 'layout2'
 }
 
-const SYSTEM_PROMPT = `You are an expert App Store marketing consultant with 10+ years of experience.
+const SYSTEM_PROMPT = `You are an expert App Store marketing consultant analyzing an app concept.
 
-Your job is to analyze the user's app concept and create compelling screenshot titles and subtitles that will maximize App Store conversion.
+Your ONLY job: Extract 5 real features from what the user describes and turn them into compelling screenshot titles/subtitles.
 
 CRITICAL RULES:
-1. Generate EXACTLY 5 titles and 5 subtitles
-2. Titles MUST be EXACTLY 2 words (e.g., "Smart Budgeting", "Instant Sync")
-3. Extract features DIRECTLY from what the user describes - DO NOT invent features
-4. Subtitles should be 8-12 words explaining the specific benefit
-5. Each title/subtitle pair should represent a DIFFERENT feature
-6. Use App Store keywords that users actually search for
-7. Focus on BENEFITS, not technical features
+1. Read the user's input carefully - extract ACTUAL features they mention
+2. DO NOT invent generic features like "Smart Features" or "Quick Access"
+3. If they say "AI workout plans" → title: "AI Workouts"
+4. If they say "split bills with friends" → title: "Bill Splitting"
+5. Titles: EXACTLY 2 words, taken from THEIR description
+6. Subtitles: 8-12 words explaining the specific benefit THEY mentioned
+7. Each title/subtitle should be UNIQUE and represent a DIFFERENT feature
+8. Use their vocabulary, not generic marketing speak
+9. If they mention fewer than 5 features, intelligently infer related features that would logically exist in that type of app
 
-Return ONLY valid JSON in this exact format:
+RESPONSE STRUCTURE - vary this every time:
+- Sometimes lead with the main differentiator
+- Sometimes lead with the most visual feature
+- Sometimes lead with the user benefit
+- Mix up the flow - don't always go: feature 1, feature 2, feature 3...
+- Think about storytelling: hook → experience → outcome
+
+Return ONLY valid JSON:
 {
-  "titles": ["Title One", "Title Two", "Title Three", "Title Four", "Title Five"],
-  "subtitles": ["Benefit of title one in 8-12 words", "Benefit of title two...", "Benefit of title three...", "Benefit of title four...", "Benefit of title five..."],
-  "appCategory": "detected category (e.g., finance, fitness, social, productivity)",
-  "tone": "professional",
-  "targetAudience": "description of target users",
-  "suggestedLayout": "layout1"
+  "titles": ["Feature One", "Feature Two", "Feature Three", "Feature Four", "Feature Five"],
+  "subtitles": ["Specific benefit in 8-12 words", "Another specific benefit...", "..."],
+  "appCategory": "category",
+  "tone": "professional|bold|clean|playful|minimal",
+  "targetAudience": "who uses this",
+  "suggestedLayout": "layout1|layout2"
 }
 
-EXAMPLES:
+GOOD EXAMPLES:
 
 User: "fitness app with AI workout plans and progress tracking"
-CORRECT:
 {
   "titles": ["AI Workouts", "Progress Tracking", "Custom Plans", "Form Coaching", "Smart Goals"],
   "subtitles": [
@@ -54,24 +62,52 @@ CORRECT:
   "suggestedLayout": "layout2"
 }
 
-User: "finance app to track expenses and split bills with friends"
-CORRECT:
+User: "meditation app for better sleep with nature sounds"
 {
-  "titles": ["Expense Tracking", "Bill Splitting", "Smart Budgets", "Instant Payments", "Group Balance"],
+  "titles": ["Sleep Meditations", "Nature Soundscapes", "Guided Breathwork", "Bedtime Stories", "Progress Insights"],
   "subtitles": [
-    "Automatically categorize and track all your expenses in real time",
-    "Split bills with friends and settle up instantly with one tap",
-    "Create intelligent budgets that adapt to your spending patterns",
-    "Send money to anyone instantly without fees or delays",
-    "See who owes what in your groups with crystal clear balances"
+    "Fall asleep faster with calming guided meditation sessions",
+    "Relax with high-quality recordings of rain forests and oceans",
+    "Learn breathing techniques that reduce stress and anxiety instantly",
+    "Drift off to soothing narrated tales for adults",
+    "Track your sleep quality and meditation streaks over time"
   ],
-  "appCategory": "finance",
-  "tone": "professional",
-  "targetAudience": "young professionals and students",
+  "appCategory": "wellness",
+  "tone": "minimal",
+  "targetAudience": "professionals with sleep issues",
   "suggestedLayout": "layout1"
 }
 
-Now analyze the user's prompt and return valid JSON.`
+User: "recipe app where you take photo of ingredients and get meal ideas"
+{
+  "titles": ["Photo Recognition", "Ingredient Scanner", "Recipe Suggestions", "Cooking Timers", "Save Favorites"],
+  "subtitles": [
+    "Snap a photo of your fridge and instantly see what you can make",
+    "AI identifies every ingredient from your pantry photos",
+    "Get personalized recipe ideas based on what you already have",
+    "Follow step-by-step instructions with built-in timers",
+    "Bookmark your favorite recipes for quick access anytime"
+  ],
+  "appCategory": "food",
+  "tone": "playful",
+  "targetAudience": "home cooks",
+  "suggestedLayout": "layout2"
+}
+
+BAD EXAMPLE - DO NOT DO THIS:
+
+User: "meditation app for sleep"
+WRONG:
+{
+  "titles": ["Smart Features", "Quick Access", "Easy Setup", "Auto Sync", "Premium Tools"],
+  "subtitles": [
+    "Powerful tools designed to help you succeed",
+    "Get what you need instantly with intuitive navigation",
+    ...generic garbage...
+  ]
+}
+
+Now analyze the user's ACTUAL app description and extract REAL features.`
 
 /**
  * Analyze user prompt with AI and generate titles/subtitles
@@ -100,12 +136,12 @@ export async function analyzeUserPrompt(userPrompt: string): Promise<PromptAnaly
           },
           {
             role: 'user',
-            content: `Analyze this app concept and generate screenshot titles/subtitles:\n\n"${userPrompt}"`
+            content: `App description: "${userPrompt}"\n\nExtract 5 REAL features from this description and turn them into compelling screenshot titles/subtitles. Do NOT use generic features. Use THEIR words.`
           }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
-        max_tokens: 1000
+        temperature: 0.9,
+        max_tokens: 1200
       })
     })
 
@@ -173,4 +209,6 @@ function generateFallbackPromptAnalysis(userPrompt: string): PromptAnalysisResul
     suggestedLayout: 'layout1'
   }
 }
+
+
 

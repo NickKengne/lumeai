@@ -148,34 +148,35 @@ export async function analyzeScreenshotsVisuals(
       return generateFallbackVisuals()
     }
 
-    const prompt = `You are a visual design expert analyzing app screenshots to extract styling information.
+    const prompt = `You are a visual design expert analyzing app screenshots.
 
-Analyze the VISUAL characteristics and suggest:
-1. Background color scheme (5 colors that complement the screenshot's visual style)
-2. Text color with good contrast
-3. Font family that matches the visual aesthetic
+Your job: Suggest complementary background colors and text colors for marketing screenshots based on the app's visual style.
 
-Consider:
-- Color saturation and brightness
-- Whether the design is minimal, bold, playful, or professional
-- Dark vs light themes
-- Modern vs traditional aesthetics
-- Energy level (calm vs energetic)
+Analyze:
+- Overall color palette (vibrant, muted, pastel, dark, light)
+- Design aesthetic (minimal, bold, modern, traditional, playful, professional)
+- Visual energy (calm/zen, energetic, corporate, friendly)
+- Color temperature (warm, cool, neutral)
 
-Available fonts to choose from:
-- Modern & Clean: Inter, SF Pro Display, Roboto, Lato
-- Bold & Energetic: Poppins, Montserrat, Nunito, Work Sans
-- Tech & Professional: IBM Plex Sans, Manrope, Space Grotesk, Plus Jakarta Sans
-- Elegant & Refined: DM Sans, Rubik, Outfit, Lexend
+Based on this, recommend:
+1. 5 background colors that would complement these screenshots in App Store listings
+2. A text color with excellent contrast
+3. A font style that matches the visual vibe
+
+Font categories to choose from:
+- Modern & Clean: Inter, SF Pro Display, Roboto, Lato (for tech/minimal apps)
+- Bold & Energetic: Poppins, Montserrat, Nunito, Work Sans (for fitness/social apps)
+- Professional: IBM Plex Sans, Manrope, Space Grotesk (for fintech/B2B apps)
+- Elegant: DM Sans, Rubik, Outfit, Lexend (for lifestyle/wellness apps)
 
 Return ONLY valid JSON:
 {
-  "backgrounds": ["#F5F5F5", "#FFFFFF", "#FAFAFA", "#F8F8F8", "#FCFCFC"],
-  "textColor": "#1A1A1A",
-  "fontFamily": "Inter"
+  "backgrounds": ["#HEX1", "#HEX2", "#HEX3", "#HEX4", "#HEX5"],
+  "textColor": "#HEX",
+  "fontFamily": "FontName"
 }
 
-Analyze based purely on visual characteristics - ignore any text content in the screenshots.`
+Focus on visual harmony - these colors will frame the screenshots, not replace them.`
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -187,17 +188,25 @@ Analyze based purely on visual characteristics - ignore any text content in the 
         model: 'gpt-4o-mini',
         messages: [
           {
-            role: 'system',
-            content: 'You are a visual design expert. Return only JSON.'
-          },
-          {
             role: 'user',
-            content: prompt
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              ...screenshots.map(screenshot => ({
+                type: 'image_url' as const,
+                image_url: {
+                  url: screenshot,
+                  detail: 'low' as const
+                }
+              }))
+            ]
           }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.5,
-        max_tokens: 500
+        temperature: 0.7,
+        max_tokens: 600
       })
     })
 
@@ -324,5 +333,5 @@ export async function analyzeScreenshots(
  */
 function detectFontsFromVisuals(colors: string[], backgroundBrightness: number): string[] {
   // This is now just a fallback - AI decides fonts in the main function
-  return ['Inter', 'SF Pro Display', 'Roboto']
+  return ['Inter', 'SF Pro Display', 'Roboto', 'Lato', 'Poppins', 'Montserrat', 'Nunito', 'Work Sans', 'IBM Plex Sans', 'Manrope', 'Space Grotesk', 'Plus Jakarta Sans', 'DM Sans', 'Rubik', 'Outfit', 'Lexend']
 }
