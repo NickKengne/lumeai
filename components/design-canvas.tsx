@@ -97,7 +97,9 @@ export function DesignCanvas({
   const [selectedTemplateId, setSelectedTemplateId] = React.useState('layout1')
   const [isAnalyzing, setIsAnalyzing] = React.useState(false)
   const [aiAnalysis, setAiAnalysis] = React.useState<any>(null)
+  const [mockupBeingReplaced, setMockupBeingReplaced] = React.useState<string | null>(null)
   const canvasRef = React.useRef<HTMLDivElement>(null)
+  const mockupFileInputRef = React.useRef<HTMLInputElement>(null)
   const rafRef = React.useRef<number | null>(null)
   const dragPositionRef = React.useRef({ x: 0, y: 0 })
   const resizeDimensions = React.useRef({ width: 0, height: 0 })
@@ -126,6 +128,8 @@ export function DesignCanvas({
       })
       
       // Get titles and subtitles from prompt analysis (passed as prop)
+      console.log('🎨 DesignCanvas received promptTitlesSubtitles:', promptTitlesSubtitles)
+      
       const titles = promptTitlesSubtitles?.titles || ['Feature 1', 'Feature 2', 'Feature 3', 'Feature 4', 'Feature 5']
       const subtitles = promptTitlesSubtitles?.subtitles || [
         'Powerful features designed to help you succeed',
@@ -136,7 +140,8 @@ export function DesignCanvas({
       ]
       const suggestedLayout = promptTitlesSubtitles?.suggestedLayout || 'layout1'
       
-      console.log('📝 Using titles from prompt analysis:', titles)
+      console.log('📝 Final titles being used:', titles)
+      console.log('📝 Final subtitles being used:', subtitles)
       
       const template = getTemplateById(suggestedLayout)
       if (!template) {
@@ -552,9 +557,59 @@ export function DesignCanvas({
   }
 
   const updateLayerStyle = (layerId: string, style: Partial<Layer>) => {
-    updateLayers(prev => prev.map(layer => 
-      layer.id === layerId ? { ...layer, ...style } : layer
-    ))
+    // If font is being changed, apply to ALL text layers
+    if (style.fontFamily) {
+      updateLayers(prev => prev.map(layer => 
+        layer.type === 'text' ? { ...layer, fontFamily: style.fontFamily } : layer
+      ))
+      
+      // Also update all screens to maintain consistency
+      setScreens(prevScreens => prevScreens.map(screen => ({
+        ...screen,
+        layers: screen.layers.map(layer =>
+          layer.type === 'text' ? { ...layer, fontFamily: style.fontFamily } : layer
+        )
+      })))
+    } else {
+      // For other style changes, only update the selected layer
+      updateLayers(prev => prev.map(layer => 
+        layer.id === layerId ? { ...layer, ...style } : layer
+      ))
+    }
+  }
+
+  const handleReplaceMockupImage = (layerId: string) => {
+    setMockupBeingReplaced(layerId)
+    mockupFileInputRef.current?.click()
+  }
+
+  const handleMockupFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !mockupBeingReplaced) return
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const result = reader.result as string
+      
+      // Update the mockup layer's content (screenshot inside)
+      updateLayers(prev => prev.map(layer => 
+        layer.id === mockupBeingReplaced ? { ...layer, content: result } : layer
+      ))
+      
+      // Also update the screen state
+      setScreens(prevScreens => prevScreens.map(screen => ({
+        ...screen,
+        layers: screen.layers.map(layer =>
+          layer.id === mockupBeingReplaced ? { ...layer, content: result } : layer
+        )
+      })))
+      
+      setMockupBeingReplaced(null)
+    }
+    reader.readAsDataURL(file)
+    
+    // Reset input
+    e.target.value = ''
   }
 
   const selectedLayerData = layers.find(l => l.id === selectedLayer)
@@ -790,6 +845,14 @@ export function DesignCanvas({
 
   return (
     <div className="w-full bg-neutral-50 overflow-hidden shrink-0 h-full flex flex-col">
+      {/* Hidden file input for replacing mockup images */}
+      <input
+        ref={mockupFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleMockupFileSelect}
+        className="hidden"
+      />
 
       {/* Figma-style Floating Toolbar */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 bg-white border border-neutral-200 shadow-lg px-2 py-2">
@@ -1069,6 +1132,7 @@ export function DesignCanvas({
                             variant={layer.mockupVariant || 'black'}
                             className="w-full h-full"
                           />
+                          
                           {/* Resize Handle */}
                           {isSelected && (
                             <div
@@ -1693,6 +1757,51 @@ export function DesignCanvas({
                           />
                         ))}
                       </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Mockup Properties */}
+              {selectedLayerData.type === "mockup" && (
+                <>
+                  <div>
+                    <label className="text-xs text-neutral-400 mb-2 block">Screenshot</label>
+                    <button
+                      onClick={() => handleReplaceMockupImage(selectedLayerData.id)}
+                      className="w-full px-4 py-3 bg-neutral-900 text-white text-sm hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Replace Image
+                    </button>
+                    <p className="text-xs text-neutral-400 mt-2">
+                      Click to upload a new screenshot for this mockup
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-neutral-400 mb-2 block">Mockup Color</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => updateLayerStyle(selectedLayerData.id, { mockupVariant: 'black' })}
+                        className={`flex-1 px-4 py-2 border text-sm transition-all duration-200 ${
+                          selectedLayerData.mockupVariant === 'black' || !selectedLayerData.mockupVariant
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
+                        }`}
+                      >
+                        Black
+                      </button>
+                      <button
+                        onClick={() => updateLayerStyle(selectedLayerData.id, { mockupVariant: 'white' })}
+                        className={`flex-1 px-4 py-2 border text-sm transition-all duration-200 ${
+                          selectedLayerData.mockupVariant === 'white' 
+                            ? 'bg-neutral-900 text-white border-neutral-900' 
+                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100'
+                        }`}
+                      >
+                        White
+                      </button>
                     </div>
                   </div>
                 </>

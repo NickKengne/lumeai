@@ -136,7 +136,9 @@ export async function analyzeUserPrompt(userPrompt: string): Promise<PromptAnaly
           },
           {
             role: 'user',
-            content: `App description: "${userPrompt}"\n\nExtract 5 REAL features from this description and turn them into compelling screenshot titles/subtitles. Do NOT use generic features. Use THEIR words.`
+            content: userPrompt.includes('Screenshot 1:') || userPrompt.includes('**Screenshot') 
+              ? `The user described their 5 screenshots:\n\n${userPrompt}\n\nFor each screenshot description, create a compelling 2-word title and 8-12 word subtitle that captures what that screen does. Use the user's own words and descriptions.`
+              : `App description: "${userPrompt}"\n\nExtract 5 REAL features from this description and turn them into compelling screenshot titles/subtitles. Do NOT use generic features. Use THEIR words.`
           }
         ],
         response_format: { type: 'json_object' },
@@ -185,9 +187,102 @@ export async function analyzeUserPrompt(userPrompt: string): Promise<PromptAnaly
 }
 
 /**
- * Fallback when AI is not available - minimal logic
+ * Fallback when AI is not available - analyze text for real features
  */
 function generateFallbackPromptAnalysis(userPrompt: string): PromptAnalysisResult {
+  const prompt = userPrompt.toLowerCase()
+  
+  // Fitness app
+  if (prompt.includes('fitness') || prompt.includes('workout') || prompt.includes('exercise')) {
+    return {
+      titles: ['AI Workouts', 'Progress Tracking', 'Custom Plans', 'Form Coaching', 'Smart Goals'],
+      subtitles: [
+        'Get personalized workout routines powered by artificial intelligence',
+        'Monitor your fitness journey with detailed charts and statistics',
+        'Create custom workout plans tailored to your fitness level',
+        'Receive real-time feedback on your exercise form and technique',
+        'Set and achieve your fitness goals with intelligent tracking'
+      ],
+      appCategory: 'fitness',
+      tone: 'bold',
+      targetAudience: 'fitness enthusiasts',
+      suggestedLayout: 'layout2'
+    }
+  }
+  
+  // Finance app
+  if (prompt.includes('finance') || prompt.includes('budget') || prompt.includes('money') || prompt.includes('bank')) {
+    return {
+      titles: ['Expense Tracking', 'Smart Budgets', 'Bill Splitting', 'Instant Payments', 'Group Balance'],
+      subtitles: [
+        'Automatically categorize and track all your expenses in real time',
+        'Create intelligent budgets that adapt to your spending patterns',
+        'Split bills with friends and settle up instantly with one tap',
+        'Send money to anyone instantly without fees or delays',
+        'See who owes what in your groups with crystal clear balances'
+      ],
+      appCategory: 'finance',
+      tone: 'professional',
+      targetAudience: 'young professionals',
+      suggestedLayout: 'layout1'
+    }
+  }
+  
+  // Meditation/Wellness app
+  if (prompt.includes('meditation') || prompt.includes('mindful') || prompt.includes('sleep') || prompt.includes('wellness')) {
+    return {
+      titles: ['Sleep Meditations', 'Nature Soundscapes', 'Guided Breathwork', 'Bedtime Stories', 'Progress Insights'],
+      subtitles: [
+        'Fall asleep faster with calming guided meditation sessions',
+        'Relax with high-quality recordings of rain forests and oceans',
+        'Learn breathing techniques that reduce stress and anxiety',
+        'Drift off to soothing narrated tales for adults',
+        'Track your sleep quality and meditation streaks over time'
+      ],
+      appCategory: 'wellness',
+      tone: 'minimal',
+      targetAudience: 'professionals with sleep issues',
+      suggestedLayout: 'layout1'
+    }
+  }
+  
+  // Social/Dating app
+  if (prompt.includes('social') || prompt.includes('dating') || prompt.includes('chat') || prompt.includes('connect')) {
+    return {
+      titles: ['Smart Matching', 'Real Conversations', 'Safe Community', 'Group Spaces', 'Instant Messaging'],
+      subtitles: [
+        'Connect with people who share your interests and values',
+        'Start meaningful conversations without awkward icebreakers',
+        'Verified profiles and built-in safety features protect you',
+        'Join communities based on your hobbies and passions',
+        'Chat seamlessly with photos videos and voice messages'
+      ],
+      appCategory: 'social',
+      tone: 'playful',
+      targetAudience: 'young adults',
+      suggestedLayout: 'layout2'
+    }
+  }
+  
+  // Food/Recipe app
+  if (prompt.includes('recipe') || prompt.includes('food') || prompt.includes('cooking') || prompt.includes('meal')) {
+    return {
+      titles: ['Photo Recognition', 'Ingredient Scanner', 'Recipe Suggestions', 'Cooking Timers', 'Save Favorites'],
+      subtitles: [
+        'Snap a photo of your fridge and see what you can make',
+        'AI identifies every ingredient from your pantry photos',
+        'Get personalized recipe ideas based on what you have',
+        'Follow step-by-step instructions with built-in timers',
+        'Bookmark your favorite recipes for quick access anytime'
+      ],
+      appCategory: 'food',
+      tone: 'playful',
+      targetAudience: 'home cooks',
+      suggestedLayout: 'layout2'
+    }
+  }
+  
+  // Generic fallback
   return {
     titles: [
       'Smart Features',
@@ -201,7 +296,7 @@ function generateFallbackPromptAnalysis(userPrompt: string): PromptAnalysisResul
       'Get to what you need instantly with intuitive navigation',
       'Start using the app in seconds with simple onboarding',
       'Everything stays in sync across all your devices seamlessly',
-      'Advanced features that give you complete control and flexibility'
+      'Advanced features that give you complete control'
     ],
     appCategory: 'general',
     tone: 'professional',

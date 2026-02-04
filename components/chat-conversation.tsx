@@ -257,27 +257,57 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
       // Generate AI analysis before opening canvas
       setIsGeneratingStructure(true)
       try {
-        // Analyze the prompt to get titles and subtitles
-        console.log("🔍 Analyzing user prompt for titles/subtitles...")
-        const titlesSubtitles = await analyzeUserPrompt(content)
-        setPromptTitlesSubtitles(titlesSubtitles)
-        console.log("✅ Prompt analysis complete:", titlesSubtitles)
+        // Extract screenshot descriptions from the last upload message
+        const uploadMessage = messages
+          .filter(m => m.role === 'user' && m.content.includes('[Uploaded 5 screenshots]'))
+          .pop()
         
-        // Optional: Still get Gemini analysis for other data
-        console.log("🔍 Getting additional prompt analysis...")
-        const analysis = await analyzeUserPromptGemini(content)
+        let fullContext = content
+        
+        if (uploadMessage) {
+          // User provided descriptions - use those!
+          fullContext = uploadMessage.content
+          console.log("✅ Using screenshot descriptions from user")
+        } else {
+          // Fallback to conversation summary
+          const conversationSummary = messages
+            .filter(m => m.role === 'user' && !m.content.includes('[Uploaded'))
+            .map(m => m.content)
+            .join('\n\n')
+          fullContext = conversationSummary || content
+          console.log("📝 Using conversation context")
+        }
+        
+        console.log("🔍 Context being sent:", fullContext)
+        
+        // Analyze to get titles and subtitles
+        console.log("🔍 Analyzing for titles/subtitles...")
+        const titlesSubtitles = await analyzeUserPrompt(fullContext)
+        setPromptTitlesSubtitles(titlesSubtitles)
+        console.log("✅ Titles/Subtitles received:", titlesSubtitles)
+        console.log("📋 Titles array:", titlesSubtitles.titles)
+        console.log("📋 Subtitles array:", titlesSubtitles.subtitles)
+        
+        // Get Gemini analysis for additional context
+        console.log("🔍 Getting AI analysis...")
+        const analysis = await analyzeUserPromptGemini(fullContext)
         setPromptAnalysis(analysis)
         
-        // Optional: Still generate structure with OpenAI (for backwards compatibility)
+        // Generate structure with OpenAI using FULL conversation
         console.log("🎨 Generating screenshot structure...")
         const structure = hasOpenAIKey() 
-          ? await generateScreenshotStructure(content)
-          : generateMockStructure(content)
+          ? await generateScreenshotStructure(fullContext)
+          : generateMockStructure(fullContext)
         setAiStructure(structure)
+        console.log("✅ Structure generated:", structure)
       } catch (error) {
         console.error('Failed to generate structure or analysis:', error)
-        // Fallback to mock
-        setAiStructure(generateMockStructure(content))
+        // Fallback to mock with conversation context
+        const conversationSummary = messages
+          .filter(m => m.role === 'user' && !m.content.includes('[Uploaded'))
+          .map(m => m.content)
+          .join(' ')
+        setAiStructure(generateMockStructure(conversationSummary || content))
       }
       setIsGeneratingStructure(false)
     }
@@ -646,19 +676,56 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                         ))}
                       </div>
 
-                      {/* Step 1: Analyze Screenshots */}
+                      {/* Step 1: Font Selection & Analyze Screenshots */}
                       {!hasAnalyzed && (
-                        <div className="mt-3">
+                        <div className="mt-3 space-y-3">
+                          {/* Font Selection */}
+                          <div>
+                            <label className="text-xs text-neutral-500 mb-2 block">
+                              Choose a font for your screenshots
+                            </label>
+                            <select
+                              value={selectedFont || ''}
+                              onChange={(e) => setSelectedFont(e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent bg-white"
+                            >
+                              <option value="">Select a font...</option>
+                              <optgroup label="Popular Fonts">
+                                <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">SF Pro (iOS)</option>
+                                <option value="'Inter', sans-serif">Inter</option>
+                                <option value="'Poppins', sans-serif">Poppins</option>
+                                <option value="'Roboto', sans-serif">Roboto</option>
+                                <option value="'Montserrat', sans-serif">Montserrat</option>
+                                <option value="'Open Sans', sans-serif">Open Sans</option>
+                                <option value="'Lato', sans-serif">Lato</option>
+                                <option value="'Raleway', sans-serif">Raleway</option>
+                              </optgroup>
+                              <optgroup label="Modern Fonts">
+                                <option value="'DM Sans', sans-serif">DM Sans</option>
+                                <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                                <option value="'Manrope', sans-serif">Manrope</option>
+                                <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+                                <option value="'Outfit', sans-serif">Outfit</option>
+                                <option value="'Sora', sans-serif">Sora</option>
+                              </optgroup>
+                              <optgroup label="System Fonts">
+                                <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica</option>
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                              </optgroup>
+                            </select>
+                          </div>
+
                           <button
                             onClick={handleAnalyzeScreenshotsForBenchmark}
                             disabled={isAnalyzingScreenshots}
-                            className="w-full flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm   hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
+                            className="w-full flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
                           >
                             <Search className="h-4 w-4" />
                             {isAnalyzingScreenshots ? 'Analyzing Screenshots...' : 'Analyze Screenshots'}
                           </button>
                           <p className="text-xs text-neutral-400 mt-2 text-center">
-                            Analyze colors, fonts, and backgrounds before generating
+                            We'll analyze colors and backgrounds from your screenshots
                           </p>
                         </div>
                       )}

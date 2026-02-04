@@ -87,7 +87,7 @@ export function IphoneMockup({
           <img
             src={src}
             alt=""
-            className="block size-full object-cover object-top"
+            className="block size-full object-fit"
           />
         </div>
       )}

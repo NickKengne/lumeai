@@ -55,6 +55,9 @@ export function ChatInput({
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const [uploadedScreenshots, setUploadedScreenshots] = React.useState<string[]>([])
   const [showScreenshotUpload, setShowScreenshotUpload] = React.useState(false)
+  const [showDescriptionModal, setShowDescriptionModal] = React.useState(false)
+  const [screenshotDescriptions, setScreenshotDescriptions] = React.useState<string[]>([])
+  const [tempScreenshots, setTempScreenshots] = React.useState<string[]>([])
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Track panel open state - use prop if available
@@ -513,86 +516,23 @@ Ready to upload your app screenshots?`
 
     // Require exactly 5 screenshots
     if (files.length < 5) {
-      alert("Please upload at least 5 screenshots to proceed.")
+      alert("Please upload exactly 5 screenshots to proceed.")
       return
     }
 
     const urls: string[] = []
-    for (let i = 0; i < Math.min(files.length, 5); i++) {
+    for (let i = 0; i < 5; i++) {
       const file = files[i]
       if (file.type.startsWith('image/')) {
         const reader = new FileReader()
         reader.onloadend = () => {
           const result = reader.result as string
           urls.push(result)
-          if (urls.length === Math.min(files.length, 5)) {
-            setUploadedScreenshots(urls)
-            setShowScreenshotUpload(false)
-            
-            // Add user message with screenshots
-            const screenshotMessage: Message = {
-              id: Date.now().toString(),
-              role: "user",
-              content: `[Uploaded ${urls.length} screenshots for analysis]`,
-              timestamp: new Date(),
-              screenshots: urls
-            }
-            
-            const updatedMessages = [...messages, screenshotMessage]
-            setMessages(updatedMessages)
-            
-            // Save to localStorage
-            if (chatId) {
-              localStorage.setItem(`chat-${chatId}`, JSON.stringify(updatedMessages))
-            }
-            
-            // Trigger AI analysis of screenshots
-            const aiMessageId = (Date.now() + 1).toString()
-            const aiMessage: Message = {
-              id: aiMessageId,
-              role: "assistant",
-              content: "",
-              timestamp: new Date(),
-              isStreaming: true
-            }
-            
-            const messagesWithAI = [...updatedMessages, aiMessage]
-            setMessages(messagesWithAI)
-            
-            // Generate analysis response (use special format to trigger screenshot detection)
-            const analysisPrompt = `[Uploaded ${urls.length} screenshots for analysis]`
-            
-            const streamFn = hasOpenAIKey() ? streamAIResponse : mockStreamAIResponse
-            
-            streamFn(analysisPrompt, {
-              onStart: () => {},
-              onToken: (token, fullText) => {
-                setMessages(prev => 
-                  prev.map(msg => 
-                    msg.id === aiMessageId 
-                      ? { ...msg, content: fullText, isStreaming: true }
-                      : msg
-                  )
-                )
-              },
-              onComplete: (fullText) => {
-                const finalMessages = updatedMessages.concat({
-                  id: aiMessageId,
-                  role: "assistant",
-                  content: fullText,
-                  timestamp: new Date(),
-                  isStreaming: false
-                })
-                setMessages(finalMessages)
-                
-                if (chatId) {
-                  localStorage.setItem(`chat-${chatId}`, JSON.stringify(finalMessages))
-                }
-              },
-              onError: (error) => {
-                console.error('AI Error:', error)
-              }
-            }, updatedMessages.length)
+          if (urls.length === 5) {
+            // Store screenshots temporarily and show description modal
+            setTempScreenshots(urls)
+            setScreenshotDescriptions(['', '', '', '', ''])
+            setShowDescriptionModal(true)
           }
         }
         reader.readAsDataURL(file)
@@ -600,20 +540,166 @@ Ready to upload your app screenshots?`
     }
   }
 
+  const handleDescriptionsSubmit = () => {
+    // Validate all descriptions are filled
+    const allFilled = screenshotDescriptions.every(desc => desc.trim().length > 0)
+    if (!allFilled) {
+      alert("Please describe all 5 screenshots before continuing.")
+      return
+    }
+
+    setUploadedScreenshots(tempScreenshots)
+    setShowDescriptionModal(false)
+    
+    // Add user message with screenshots and descriptions
+    const screenshotMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: `[Uploaded 5 screenshots]\n\n${screenshotDescriptions.map((desc, i) => `**Screenshot ${i + 1}:** ${desc}`).join('\n')}`,
+      timestamp: new Date(),
+      screenshots: tempScreenshots
+    }
+    
+    const updatedMessages = [...messages, screenshotMessage]
+    setMessages(updatedMessages)
+    
+    // Save to localStorage
+    if (chatId) {
+      localStorage.setItem(`chat-${chatId}`, JSON.stringify(updatedMessages))
+    }
+    
+    // Trigger AI response
+    const aiMessageId = (Date.now() + 1).toString()
+    const aiMessage: Message = {
+      id: aiMessageId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isStreaming: true
+    }
+    
+    const messagesWithAI = [...updatedMessages, aiMessage]
+    setMessages(messagesWithAI)
+    
+    // AI acknowledges and asks to generate
+    const analysisPrompt = `The user uploaded 5 screenshots with descriptions:
+${screenshotDescriptions.map((desc, i) => `${i + 1}. ${desc}`).join('\n')}
+
+Acknowledge what you see and ask if they'd like to generate App Store screenshots using Template 1.`
+    
+    const streamFn = hasOpenAIKey() ? streamAIResponse : mockStreamAIResponse
+    
+    streamFn(analysisPrompt, {
+      onStart: () => {},
+      onToken: (token, fullText) => {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === aiMessageId 
+              ? { ...msg, content: fullText, isStreaming: true }
+              : msg
+          )
+        )
+      },
+      onComplete: (fullText) => {
+        const finalMessages = updatedMessages.concat({
+          id: aiMessageId,
+          role: "assistant",
+          content: fullText,
+          timestamp: new Date(),
+          isStreaming: false
+        })
+        setMessages(finalMessages)
+        
+        if (chatId) {
+          localStorage.setItem(`chat-${chatId}`, JSON.stringify(finalMessages))
+        }
+      },
+      onError: (error) => {
+        console.error('AI Error:', error)
+      }
+    }, updatedMessages.length)
+  }
+
   const handleOpenScreenshotUpload = () => {
     fileInputRef.current?.click()
   }
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden isolate">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-hidden">
-        <ChatConversation 
-          messages={messages} 
-          onPanelOpenChange={handlePanelOpenChange}
-          onAddMessage={handleAddMessage}
-        />
-      </div>
+    <>
+      {/* Screenshot Description Modal */}
+      {showDescriptionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-100 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-light text-neutral-900 mb-2">
+                Describe Your Screenshots
+              </h2>
+              <p className="text-sm text-neutral-500 mb-6">
+                Tell us what each screenshot shows. This helps us create better titles and descriptions.
+              </p>
+
+              <div className="space-y-6">
+                {tempScreenshots.map((screenshot, idx) => (
+                  <div key={idx} className="flex gap-4">
+                    <div className="w-24 h-44 shrink-0 rounded-lg overflow-hidden border border-neutral-200">
+                      <img 
+                        src={screenshot} 
+                        alt={`Screenshot ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Screenshot {idx + 1} - What does this screen show?
+                      </label>
+                      <input
+                        type="text"
+                        value={screenshotDescriptions[idx]}
+                        onChange={(e) => {
+                          const newDescriptions = [...screenshotDescriptions]
+                          newDescriptions[idx] = e.target.value
+                          setScreenshotDescriptions(newDescriptions)
+                        }}
+                        placeholder="e.g., Dashboard with expense tracking and budget overview"
+                        className="w-full px-4 py-2 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowDescriptionModal(false)
+                    setTempScreenshots([])
+                    setScreenshotDescriptions([])
+                  }}
+                  className="flex-1 px-4 py-2 border border-neutral-200 text-neutral-900 rounded-lg hover:bg-neutral-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDescriptionsSubmit}
+                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full h-full flex flex-col overflow-hidden isolate">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-hidden">
+          <ChatConversation 
+            messages={messages} 
+            onPanelOpenChange={handlePanelOpenChange}
+            onAddMessage={handleAddMessage}
+          />
+        </div>
 
       {/* Chat Input - Shrinks when canvas is open */}
       <motion.div 
@@ -693,6 +779,7 @@ Ready to upload your app screenshots?`
           </div>
         </div>
       </motion.div>
-    </div>
+      </div>
+    </>
   )
 }

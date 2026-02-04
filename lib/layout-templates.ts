@@ -43,12 +43,12 @@ export interface LayoutTemplate {
 const SCREEN_CONFIGS_1 = [
   {
     mockup: { x: 34, y: 245, width: 307, height: 622 },
-    title: { x: 26, y: 45, width: 300, height: 50, fontSize: 34, align: 'left' as const },
-    subtitle: { x: 26, y: 115, width: 340, height: 20, fontSize: 16, align: 'left' as const }
+    title: { x: 26, y: 45, width: 300, height: 50, fontSize: 31, align: 'left' as const },
+    subtitle: { x: 26, y: 102, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   },
   {
     mockup: { x: 34, y: -66, width: 307, height: 622 },
-    title: { x: 26, y: 612, width: 300, height: 50, fontSize: 34, align: 'left' as const },
+    title: { x: 21, y: 622, width: 300, height: 50, fontSize: 31, align: 'left' as const },
     subtitle: { x: 26, y: 680, width: 340, height: 20, fontSize: 16, align: 'left' as const }
   }
 ]
@@ -57,13 +57,13 @@ const SCREEN_CONFIGS_1 = [
 const SCREEN_CONFIGS_2 = [
   {
     mockup: { x: 34, y: 170, width: 307, height: 622 },
-    title: { x: 49, y: 42, width: 300, height: 50, fontSize: 34, align: 'center' as const },
-    subtitle: { x: 19, y: 89, width: 340, height: 20, fontSize: 16, align: 'center' as const }
+    title: { x: 35, y: 43, width: 317, height: 50, fontSize: 31, align: 'center' as const },
+    subtitle: { x: 19, y: 94, width: 340, height: 20, fontSize: 16, align: 'center' as const }
   },
   {
     mockup: { x: 34, y: 170, width: 307, height: 622 },
-    title: { x: 49, y: 42, width: 300, height: 50, fontSize: 34, align: 'center' as const },
-    subtitle: { x: 19, y: 89, width: 340, height: 20, fontSize: 16, align: 'center' as const }
+    title: { x: 35, y: 43, width: 317, height: 50, fontSize: 31, align: 'center' as const },
+    subtitle: { x: 19, y: 94, width: 340, height: 20, fontSize: 16, align: 'center' as const }
   },
 ]
 
