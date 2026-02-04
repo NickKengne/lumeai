@@ -72,6 +72,15 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
   const [selectedFont, setSelectedFont] = React.useState<string | undefined>(undefined)
   const [analysisMessageId, setAnalysisMessageId] = React.useState<string | null>(null)
 
+  // Sync uploaded screenshots from messages
+  React.useEffect(() => {
+    // Find the latest message with screenshots
+    const messageWithScreenshots = [...messages].reverse().find(m => m.screenshots && m.screenshots.length > 0)
+    if (messageWithScreenshots && messageWithScreenshots.screenshots) {
+      setUploadedScreenshots(messageWithScreenshots.screenshots)
+    }
+  }, [messages])
+
   // Update panel width based on screen size
   React.useEffect(() => {
     const updatePanelWidth = () => {
@@ -435,7 +444,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
 
       // Now do the actual analysis
       await new Promise(resolve => setTimeout(resolve, 300))
-      const analysis = await analyzeScreenshots(uploadedScreenshots, selectedPrompt || "App screenshots")
+      const analysis = await analyzeScreenshots(uploadedScreenshots)
       
       // Map backgrounds to their appropriate text colors
       const backgroundsWithTextColors = analysis.suggestedBackgrounds.map(bg => ({
@@ -559,9 +568,24 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                   onFontSelect={setSelectedFont}
                 />
               ) : (
-                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </p>
+                <>
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                  {message.screenshots && message.screenshots.length > 0 && (
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {message.screenshots.map((screenshot, idx) => (
+                        <div key={idx} className="relative aspect-[9/16] rounded-lg overflow-hidden border border-neutral-200">
+                          <img 
+                            src={screenshot} 
+                            alt={`Screenshot ${idx + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
               
               {/* Show upload button for design-related messages */}
@@ -570,7 +594,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                   {uploadedScreenshots.length === 0 && !showUploader && (
                     <button
                       onClick={() => setShowUploader(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors w-full justify-center border border-neutral-900"
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm   hover:bg-neutral-800 transition-colors w-full justify-center border border-neutral-900"
                     >
                       <Upload className="h-4 w-4" />
                       Upload App Screenshots
@@ -628,7 +652,7 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                           <button
                             onClick={handleAnalyzeScreenshotsForBenchmark}
                             disabled={isAnalyzingScreenshots}
-                            className="w-full flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
+                            className="w-full flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm   hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
                           >
                             <Search className="h-4 w-4" />
                             {isAnalyzingScreenshots ? 'Analyzing Screenshots...' : 'Analyze Screenshots'}
@@ -645,14 +669,14 @@ export function ChatConversation({ messages, onPanelOpenChange, onScreenshotsUpl
                           <button
                             onClick={() => handleOpenDesignTool(message.content, uploadedScreenshots)}
                             disabled={isGeneratingStructure}
-                            className="flex-1 flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm font-light hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
+                            className="flex-1 flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-sm   hover:bg-neutral-800 transition-colors justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-900"
                           >
                             <Sparkles className="h-4 w-4" />
                             {isGeneratingStructure ? 'Generating...' : 'Generate Screenshots'}
                           </button>
                           <button
                             onClick={() => setShowVideoGenerator(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-900 text-sm font-light hover:bg-neutral-200 transition-colors justify-center border border-neutral-200"
+                            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-900 text-sm   hover:bg-neutral-200 transition-colors justify-center border border-neutral-200"
                           >
                             <Video className="h-4 w-4" />
                             Video

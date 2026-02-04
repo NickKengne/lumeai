@@ -778,11 +778,11 @@ export function DesignCanvas({
         {isAnalyzing ? (
           <div className="text-center px-4">
             <Sparkles className="h-8 w-8 mx-auto mb-4 text-neutral-900 animate-pulse" />
-            <p className="text-sm text-neutral-900 font-light mb-2">AI is analyzing your screenshots...</p>
-            <p className="text-xs text-neutral-500 font-light">Extracting colors, suggesting layouts, and generating headlines</p>
+            <p className="text-sm text-neutral-900   mb-2">AI is analyzing your screenshots...</p>
+            <p className="text-xs text-neutral-500  ">Extracting colors, suggesting layouts, and generating headlines</p>
           </div>
         ) : (
-          <p className="text-neutral-500 font-light">Loading canvas...</p>
+          <p className="text-neutral-500  ">Loading canvas...</p>
         )}
       </div>
     )
@@ -890,7 +890,7 @@ export function DesignCanvas({
           <ZoomOut className="h-4 w-4" />
         </button>
         
-        <span className="text-xs text-neutral-500 min-w-[45px] text-center font-light select-none">
+        <span className="text-xs text-neutral-500 min-w-[45px] text-center   select-none">
           {Math.round(zoom * 100)}%
         </span>
         
@@ -1137,9 +1137,9 @@ export function DesignCanvas({
              <div className="bg-linear-to-br from-neutral-900 to-neutral-800 p-4 text-white space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                  <Sparkles className="h-4 w-4" />
-                 <h3 className="text-xs font-light">AI Template Selection</h3>
+                 <h3 className="text-xs  ">AI Template Selection</h3>
                   </div>
-               <p className="text-xs font-light opacity-90">
+               <p className="text-xs   opacity-90">
                  {aiAnalysis.templateReasoning}
                </p>
                <div className="flex gap-1.5 mt-3">
@@ -1152,7 +1152,7 @@ export function DesignCanvas({
                    />
                  ))}
                     </div>
-               <p className="text-[10px] font-light opacity-70 mt-2">
+               <p className="text-[10px]   opacity-70 mt-2">
                  Colors extracted from your app
                     </p>
                 </div>
@@ -1197,7 +1197,7 @@ export function DesignCanvas({
                 <div className="space-y-2">
                    <div className="flex items-center gap-2">
                      <Sparkles className="h-3.5 w-3.5 text-neutral-400" />
-                     <p className="text-[10px] font-light text-neutral-400">AI-Suggested Colors</p>
+                     <p className="text-[10px]   text-neutral-400">AI-Suggested Colors</p>
                    </div>
                   <div className="grid grid-cols-5 gap-2">
                      {aiAnalysis.suggestedBackgrounds.slice(0, 5).map((color: string, idx: number) => (
@@ -1230,7 +1230,7 @@ export function DesignCanvas({
                       </button>
                     ))}
                   </div>
-                   <p className="text-[9px] font-light text-neutral-500 italic">Extracted from your app's color scheme</p>
+                   <p className="text-[9px]   text-neutral-500 italic">Extracted from your app's color scheme</p>
                 </div>
               )}
               
@@ -1243,7 +1243,7 @@ export function DesignCanvas({
               {/* Analyzed Colors from Screenshots */}
               {screenshotAnalysis && screenshotAnalysis.backgroundsWithTextColors.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-light text-neutral-400">🎨 Colors from Your Screenshots</p>
+                  <p className="text-[10px]   text-neutral-400">🎨 Colors from Your Screenshots</p>
                   <div className="grid grid-cols-6 gap-2">
                     {screenshotAnalysis.backgroundsWithTextColors.map((item, idx) => (
                       <button
@@ -1273,7 +1273,7 @@ export function DesignCanvas({
               )}
               
               <div className="space-y-2">
-                 <p className="text-[10px] font-light text-neutral-400">More Options</p>
+                 <p className="text-[10px]   text-neutral-400">More Options</p>
                 <div className="grid grid-cols-6 gap-2">
                   {[
                     '#FFFFFF', '#F5F5F5', '#000000',
@@ -1310,7 +1310,7 @@ export function DesignCanvas({
               {screens.length > 1 && currentScreen && (
                 <button
                   onClick={() => applyBackgroundToAllScreens(currentScreen.backgroundColor)}
-                  className="w-full py-2 px-3 text-xs font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
+                  className="w-full py-2 px-3 text-xs   bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
                 >
                   <Layers className="h-3.5 w-3.5" />
                   Apply Current Background to All {screens.length} Screens
@@ -1328,13 +1328,13 @@ export function DesignCanvas({
                 className="p-3 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100 transition-all duration-200 flex flex-col items-center gap-2 group"
               >
                 <Type className="h-5 w-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-                <span className="text-xs font-light text-neutral-500 group-hover:text-neutral-900 transition-colors">Text</span>
+                <span className="text-xs   text-neutral-500 group-hover:text-neutral-900 transition-colors">Text</span>
               </button>
               <button 
                 className="p-3 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-100 transition-all duration-200 flex flex-col items-center gap-2 group"
               >
                 <ImageIcon className="h-5 w-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-                <span className="text-xs font-light text-neutral-500 group-hover:text-neutral-900 transition-colors">Image</span>
+                <span className="text-xs   text-neutral-500 group-hover:text-neutral-900 transition-colors">Image</span>
               </button>
             </div>
           </div>
@@ -1347,7 +1347,7 @@ export function DesignCanvas({
               {/* Logo */}
               {uploadedLogo && (
                 <div>
-                  <p className="text-[10px] text-neutral-400 mb-2 font-light">App Logo</p>
+                  <p className="text-[10px] text-neutral-400 mb-2  ">App Logo</p>
                   <div 
                     className="relative group cursor-pointer"
                     draggable
@@ -1362,7 +1362,7 @@ export function DesignCanvas({
                       className="w-16 h-16 object-cover border border-neutral-200 bg-neutral-50 hover:border-neutral-900 transition-all"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
-                      <span className="text-[8px] text-white opacity-0 group-hover:opacity-100 font-light bg-neutral-900 px-2 py-1">Drag to canvas</span>
+                      <span className="text-[8px] text-white opacity-0 group-hover:opacity-100   bg-neutral-900 px-2 py-1">Drag to canvas</span>
                     </div>
                   </div>
                 </div>
@@ -1371,7 +1371,7 @@ export function DesignCanvas({
               {/* Brand Assets */}
               {uploadedAssets.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-neutral-400 mb-2 font-light">Brand Assets</p>
+                  <p className="text-[10px] text-neutral-400 mb-2  ">Brand Assets</p>
                   <div className="grid grid-cols-3 gap-2">
                     {uploadedAssets.map((asset, idx) => (
                       <div 
@@ -1392,7 +1392,7 @@ export function DesignCanvas({
                       </div>
                     ))}
                   </div>
-                  <p className="text-[9px] text-neutral-400 mt-2 font-light">Drag assets to canvas to add them</p>
+                  <p className="text-[9px] text-neutral-400 mt-2  ">Drag assets to canvas to add them</p>
                 </div>
               )}
             </div>
@@ -1446,7 +1446,7 @@ export function DesignCanvas({
               
               {/* Position - Like Figma */}
               <div>
-                <label className="text-xs font-light text-neutral-400 mb-2 block">Position</label>
+                <label className="text-xs   text-neutral-400 mb-2 block">Position</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] text-neutral-400 mb-1 block">X</label>
@@ -1477,7 +1477,7 @@ export function DesignCanvas({
 
               {/* Dimensions - Like Figma */}
               <div>
-                <label className="text-xs font-light text-neutral-400 mb-2 block">Dimensions</label>
+                <label className="text-xs   text-neutral-400 mb-2 block">Dimensions</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] text-neutral-400 mb-1 block">W</label>
@@ -1509,7 +1509,7 @@ export function DesignCanvas({
               {selectedLayerData.type === "text" && (
                 <>
                   <div>
-                    <label className="text-xs font-light text-neutral-400 mb-2 block">Content</label>
+                    <label className="text-xs   text-neutral-400 mb-2 block">Content</label>
                     <textarea
                       value={selectedLayerData.content}
                       onChange={(e) => updateLayerContent(selectedLayerData.id, e.target.value)}
@@ -1521,7 +1521,7 @@ export function DesignCanvas({
 
                   {/* Text Formatting - Minimalist */}
                   <div>
-                    <label className="text-xs font-light text-neutral-400 mb-2 block">Style</label>
+                    <label className="text-xs   text-neutral-400 mb-2 block">Style</label>
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { bold: !selectedLayerData.bold })}
@@ -1558,7 +1558,7 @@ export function DesignCanvas({
 
                   {/* Text Alignment - Minimalist */}
                   <div>
-                    <label className="text-xs font-light text-neutral-400 mb-2 block">Alignment</label>
+                    <label className="text-xs   text-neutral-400 mb-2 block">Alignment</label>
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => updateLayerStyle(selectedLayerData.id, { align: 'left' })}
@@ -1595,7 +1595,7 @@ export function DesignCanvas({
 
                   {/* Font Family - Minimalist */}
                   <div>
-                    <label className="text-xs font-light text-neutral-400 mb-2 block">Font</label>
+                    <label className="text-xs   text-neutral-400 mb-2 block">Font</label>
                     <select
                       value={selectedLayerData.fontFamily || 'inherit'}
                       onChange={(e) => updateLayerStyle(selectedLayerData.id, { fontFamily: e.target.value })}
@@ -1657,8 +1657,8 @@ export function DesignCanvas({
                   {/* Font Size - Minimalist */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-light text-neutral-400">Size</label>
-                      <span className="text-xs font-light text-neutral-900">{selectedLayerData.fontSize || 20}px</span>
+                      <label className="text-xs   text-neutral-400">Size</label>
+                      <span className="text-xs   text-neutral-900">{selectedLayerData.fontSize || 20}px</span>
                     </div>
                     <input
                       type="range"
@@ -1671,7 +1671,7 @@ export function DesignCanvas({
                   </div>
                   
                   <div>
-                    <label className="text-xs font-light text-neutral-400 mb-2 block">Color</label>
+                    <label className="text-xs   text-neutral-400 mb-2 block">Color</label>
                     <div className="space-y-3">
                       <input
                         type="color"
@@ -1702,17 +1702,17 @@ export function DesignCanvas({
 
           {/* Tips - Minimalist */}
           <div className="space-y-3 pt-4 border-t border-neutral-200">
-            <h3 className="text-xs font-light text-neutral-900">Quick Tips</h3>
+            <h3 className="text-xs   text-neutral-900">Quick Tips</h3>
             <div className="space-y-2">
-              <div className="flex items-start gap-2 text-xs text-neutral-500 font-light">
+              <div className="flex items-start gap-2 text-xs text-neutral-500  ">
                 <div className="w-1.5 h-1.5 bg-neutral-400 mt-1.5 shrink-0"></div>
                 <p>Drag elements to reposition</p>
               </div>
-              <div className="flex items-start gap-2 text-xs text-neutral-500 font-light">
+              <div className="flex items-start gap-2 text-xs text-neutral-500  ">
                 <div className="w-1.5 h-1.5 bg-neutral-400 mt-1.5 shrink-0"></div>
-                <p>Hold <kbd className="px-1.5 py-0.5 bg-neutral-50 text-[10px] font-light border border-neutral-200">Space</kbd> + drag to pan</p>
+                <p>Hold <kbd className="px-1.5 py-0.5 bg-neutral-50 text-[10px]   border border-neutral-200">Space</kbd> + drag to pan</p>
               </div>
-              <div className="flex items-start gap-2 text-xs text-neutral-500 font-light">
+              <div className="flex items-start gap-2 text-xs text-neutral-500  ">
                 <div className="w-1.5 h-1.5 bg-neutral-400 mt-1.5 shrink-0"></div>
                 <p>Use zoom to scale canvas</p>
               </div>
@@ -1831,8 +1831,8 @@ export function DesignCanvas({
 
           {/* Modal Header */}
           <div className="mb-6">
-            <h3 className="text-lg font-light text-neutral-900 mb-2">Share Screenshot</h3>
-            <p className="text-sm font-light text-neutral-500">
+            <h3 className="text-lg   text-neutral-900 mb-2">Share Screenshot</h3>
+            <p className="text-sm   text-neutral-500">
               Your screenshot is ready to share. Copy the image to clipboard or download it.
             </p>
           </div>
@@ -1852,14 +1852,14 @@ export function DesignCanvas({
           <div className="space-y-3">
             <button
               onClick={copyShareLink}
-              className="w-full px-4 py-3 text-sm font-light bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900 flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 text-sm   bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-200 border border-neutral-900 flex items-center justify-center gap-2"
             >
               <Copy className="h-4 w-4" />
               Copy Image to Clipboard
             </button>
             <button
               onClick={downloadFromShare}
-              className="w-full px-4 py-3 text-sm font-light bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 text-sm   bg-neutral-50 text-neutral-900 hover:bg-neutral-100 transition-all duration-200 border border-neutral-200 flex items-center justify-center gap-2"
             >
               <Download className="h-4 w-4" />
               Download as PNG
@@ -1868,7 +1868,7 @@ export function DesignCanvas({
 
           {/* Additional Info */}
           <div className="mt-6 pt-4 border-t border-neutral-200">
-            <p className="text-xs font-light text-neutral-400 text-center">
+            <p className="text-xs   text-neutral-400 text-center">
               Your screenshot has been copied and is ready to share
             </p>
           </div>

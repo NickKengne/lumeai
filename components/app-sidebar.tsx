@@ -189,7 +189,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <div className="flex gap-2">
           <Button 
             onClick={handleNewChat}
-            className="flex-1 bg-neutral-900 text-white p-0 font-light border border-neutral-900" 
+            className="flex-1 bg-neutral-900 text-white p-0   border border-neutral-900" 
             variant={"default"}
           >
             <Plus className="size-4" />
@@ -197,7 +197,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </Button>
           <Button 
             onClick={() => router.push('/dashboard/video')}
-            className="bg-neutral-50 hover:bg-neutral-100 px-3 font-light border border-neutral-200" 
+            className="bg-neutral-50 hover:bg-neutral-100 px-3   border border-neutral-200" 
             variant={"default"}
           >
             <Video className="size-4 text-neutral-900" />

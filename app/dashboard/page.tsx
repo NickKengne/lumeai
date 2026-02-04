@@ -71,10 +71,10 @@ export default function Page() {
       </header>
       <div className="bg-neutral-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
         <div className="max-w-3xl">
-          <h1 className="text-5xl font-light tracking-tight text-neutral-900">
+          <h1 className="text-5xl   tracking-tight text-neutral-900">
             {greeting}, {userName}!
           </h1>
-            <p className="text-3xl text-neutral-500 mb-4 mt-2 font-light">
+            <p className="text-3xl text-neutral-500 mb-4 mt-2  ">
               How can I help you with your screenshots today?
             </p>
         <FeatureGrid />

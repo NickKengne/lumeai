@@ -134,10 +134,10 @@ export default function SettingsPage() {
       <div className="bg-neutral-50 flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto px-6 py-10">
           <div className="mb-8">
-            <h1 className="text-4xl font-light tracking-tight text-neutral-900 mb-2">
+            <h1 className="text-4xl   tracking-tight text-neutral-900 mb-2">
               Account Settings
             </h1>
-            <p className="text-neutral-500 font-light">
+            <p className="text-neutral-500  ">
               Manage your account information and preferences
             </p>
           </div>
@@ -150,7 +150,7 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-light border-b-2 transition-colors flex items-center gap-2 ${
+                  className={`px-4 py-3 text-sm   border-b-2 transition-colors flex items-center gap-2 ${
                     activeTab === tab.id
                       ? "border-neutral-900 text-neutral-900"
                       : "border-transparent text-neutral-500 hover:text-neutral-900"
@@ -167,7 +167,7 @@ export default function SettingsPage() {
           {activeTab === "profile" && (
             <div className="space-y-8">
               <div className="border border-neutral-200 bg-neutral-50 p-8">
-                <h2 className="text-lg font-light text-neutral-900 mb-6">Profile Information</h2>
+                <h2 className="text-lg   text-neutral-900 mb-6">Profile Information</h2>
                 
                 <div className="flex items-start gap-8 mb-8">
                   <div className="relative">
@@ -188,14 +188,14 @@ export default function SettingsPage() {
                     </label>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-neutral-500 font-light mb-1">Profile Picture</p>
-                    <p className="text-xs text-neutral-400 font-light">JPG, PNG or GIF. Max size 2MB</p>
+                    <p className="text-sm text-neutral-500   mb-1">Profile Picture</p>
+                    <p className="text-xs text-neutral-400  ">JPG, PNG or GIF. Max size 2MB</p>
                   </div>
                 </div>
 
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="name" className="text-sm font-light text-neutral-600 mb-2 block">
+                    <Label htmlFor="name" className="text-sm   text-neutral-600 mb-2 block">
                       Full Name
                     </Label>
                     <Input
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="email" className="text-sm font-light text-neutral-600 mb-2 block">
+                    <Label htmlFor="email" className="text-sm   text-neutral-600 mb-2 block">
                       Email Address
                     </Label>
                     <Input
@@ -223,7 +223,7 @@ export default function SettingsPage() {
                     <Button
                       onClick={handleSaveProfile}
                       disabled={isSaving}
-                      className="bg-neutral-900 text-white font-light border border-neutral-900 hover:bg-neutral-800"
+                      className="bg-neutral-900 text-white   border border-neutral-900 hover:bg-neutral-800"
                     >
                       {isSaving ? (
                         <>
@@ -239,7 +239,7 @@ export default function SettingsPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      className="font-light border-neutral-200 hover:bg-neutral-100"
+                      className="  border-neutral-200 hover:bg-neutral-100"
                     >
                       Cancel
                     </Button>
@@ -253,11 +253,11 @@ export default function SettingsPage() {
           {activeTab === "password" && (
             <div className="space-y-8">
               <div className="border border-neutral-200 bg-neutral-50 p-8">
-                <h2 className="text-lg font-light text-neutral-900 mb-6">Change Password</h2>
+                <h2 className="text-lg   text-neutral-900 mb-6">Change Password</h2>
                 
                 <div className="space-y-6">
                   <div>
-                    <Label htmlFor="currentPassword" className="text-sm font-light text-neutral-600 mb-2 block">
+                    <Label htmlFor="currentPassword" className="text-sm   text-neutral-600 mb-2 block">
                       Current Password
                     </Label>
                     <Input
@@ -270,7 +270,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="newPassword" className="text-sm font-light text-neutral-600 mb-2 block">
+                    <Label htmlFor="newPassword" className="text-sm   text-neutral-600 mb-2 block">
                       New Password
                     </Label>
                     <Input
@@ -280,11 +280,11 @@ export default function SettingsPage() {
                       onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
                       className="bg-neutral-50 border-neutral-200 focus:border-neutral-900 focus:ring-neutral-900"
                     />
-                    <p className="text-xs text-neutral-400 font-light mt-1">Must be at least 8 characters</p>
+                    <p className="text-xs text-neutral-400   mt-1">Must be at least 8 characters</p>
                   </div>
 
                   <div>
-                    <Label htmlFor="confirmPassword" className="text-sm font-light text-neutral-600 mb-2 block">
+                    <Label htmlFor="confirmPassword" className="text-sm   text-neutral-600 mb-2 block">
                       Confirm New Password
                     </Label>
                     <Input
@@ -300,7 +300,7 @@ export default function SettingsPage() {
                     <Button
                       onClick={handleSavePassword}
                       disabled={isSaving || !passwordData.currentPassword || !passwordData.newPassword || passwordData.newPassword !== passwordData.confirmPassword}
-                      className="bg-neutral-900 text-white font-light border border-neutral-900 hover:bg-neutral-800 disabled:opacity-50"
+                      className="bg-neutral-900 text-white   border border-neutral-900 hover:bg-neutral-800 disabled:opacity-50"
                     >
                       {isSaving ? (
                         <>
@@ -317,7 +317,7 @@ export default function SettingsPage() {
                     <Button
                       variant="outline"
                       onClick={() => setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })}
-                      className="font-light border-neutral-200 hover:bg-neutral-100"
+                      className="  border-neutral-200 hover:bg-neutral-100"
                     >
                       Cancel
                     </Button>
@@ -331,13 +331,13 @@ export default function SettingsPage() {
           {activeTab === "preferences" && (
             <div className="space-y-8">
               <div className="border border-neutral-200 bg-neutral-50 p-8">
-                <h2 className="text-lg font-light text-neutral-900 mb-6">Notification Preferences</h2>
+                <h2 className="text-lg   text-neutral-900 mb-6">Notification Preferences</h2>
                 
                 <div className="space-y-6">
                   <div className="flex items-center justify-between py-3 border-b border-neutral-200">
                     <div>
-                      <p className="text-sm font-light text-neutral-900">Email Notifications</p>
-                      <p className="text-xs text-neutral-500 font-light">Receive email updates about your account</p>
+                      <p className="text-sm   text-neutral-900">Email Notifications</p>
+                      <p className="text-xs text-neutral-500  ">Receive email updates about your account</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -352,8 +352,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between py-3 border-b border-neutral-200">
                     <div>
-                      <p className="text-sm font-light text-neutral-900">Marketing Emails</p>
-                      <p className="text-xs text-neutral-500 font-light">Receive emails about new features and updates</p>
+                      <p className="text-sm   text-neutral-900">Marketing Emails</p>
+                      <p className="text-xs text-neutral-500  ">Receive emails about new features and updates</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -368,8 +368,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <p className="text-sm font-light text-neutral-900">Weekly Digest</p>
-                      <p className="text-xs text-neutral-500 font-light">Get a weekly summary of your activity</p>
+                      <p className="text-sm   text-neutral-900">Weekly Digest</p>
+                      <p className="text-xs text-neutral-500  ">Get a weekly summary of your activity</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -386,7 +386,7 @@ export default function SettingsPage() {
                     <Button
                       onClick={handleSavePreferences}
                       disabled={isSaving}
-                      className="bg-neutral-900 text-white font-light border border-neutral-900 hover:bg-neutral-800"
+                      className="bg-neutral-900 text-white   border border-neutral-900 hover:bg-neutral-800"
                     >
                       {isSaving ? (
                         <>
@@ -410,17 +410,17 @@ export default function SettingsPage() {
           {activeTab === "billing" && (
             <div className="space-y-8">
               <div className="border border-neutral-200 bg-neutral-50 p-8">
-                <h2 className="text-lg font-light text-neutral-900 mb-6">Subscription & Billing</h2>
+                <h2 className="text-lg   text-neutral-900 mb-6">Subscription & Billing</h2>
                 
                 <div className="space-y-6">
                   <div className="flex items-center justify-between py-4 border-b border-neutral-200">
                     <div>
-                      <p className="text-sm font-light text-neutral-900">Current Plan</p>
-                      <p className="text-xs text-neutral-500 font-light mt-1">Pro Plan - $29/month</p>
+                      <p className="text-sm   text-neutral-900">Current Plan</p>
+                      <p className="text-xs text-neutral-500   mt-1">Pro Plan - $29/month</p>
                     </div>
                     <Button
                       variant="outline"
-                      className="font-light border-neutral-200 hover:bg-neutral-100"
+                      className="  border-neutral-200 hover:bg-neutral-100"
                     >
                       Change Plan
                     </Button>
@@ -428,19 +428,19 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between py-4 border-b border-neutral-200">
                     <div>
-                      <p className="text-sm font-light text-neutral-900">Next Billing Date</p>
-                      <p className="text-xs text-neutral-500 font-light mt-1">January 15, 2025</p>
+                      <p className="text-sm   text-neutral-900">Next Billing Date</p>
+                      <p className="text-xs text-neutral-500   mt-1">January 15, 2025</p>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between py-4">
                     <div>
-                      <p className="text-sm font-light text-neutral-900">Payment Method</p>
-                      <p className="text-xs text-neutral-500 font-light mt-1">•••• •••• •••• 4242</p>
+                      <p className="text-sm   text-neutral-900">Payment Method</p>
+                      <p className="text-xs text-neutral-500   mt-1">•••• •••• •••• 4242</p>
                     </div>
                     <Button
                       variant="outline"
-                      className="font-light border-neutral-200 hover:bg-neutral-100"
+                      className="  border-neutral-200 hover:bg-neutral-100"
                     >
                       Update
                     </Button>
@@ -449,7 +449,7 @@ export default function SettingsPage() {
                   <div className="pt-6 border-t border-neutral-200">
                     <Button
                       variant="outline"
-                      className="font-light border-neutral-200 hover:bg-neutral-100 text-neutral-600"
+                      className="  border-neutral-200 hover:bg-neutral-100 text-neutral-600"
                     >
                       View Billing History
                     </Button>
@@ -463,16 +463,16 @@ export default function SettingsPage() {
           {activeTab === "api" && (
             <div className="space-y-8">
               <div className="border border-neutral-200 bg-neutral-50 p-8">
-                <h2 className="text-lg font-light text-neutral-900 mb-2">API Keys</h2>
-                <p className="text-sm text-neutral-500 font-light mb-6">
+                <h2 className="text-lg   text-neutral-900 mb-2">API Keys</h2>
+                <p className="text-sm text-neutral-500   mb-6">
                   Manage your API keys for programmatic access to Lume AI
                 </p>
                 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 border border-neutral-200 bg-neutral-50">
                     <div className="flex-1">
-                      <p className="text-sm font-light text-neutral-900">Production Key</p>
-                      <p className="text-xs text-neutral-500 font-light mt-1 font-mono">
+                      <p className="text-sm   text-neutral-900">Production Key</p>
+                      <p className="text-xs text-neutral-500   mt-1 font-mono">
                         lume_sk_live_••••••••••••••••••••••••••••••••
                       </p>
                     </div>
@@ -480,14 +480,14 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="font-light border-neutral-200 hover:bg-neutral-100"
+                        className="  border-neutral-200 hover:bg-neutral-100"
                       >
                         Copy
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="font-light border-neutral-200 hover:bg-neutral-100"
+                        className="  border-neutral-200 hover:bg-neutral-100"
                       >
                         Regenerate
                       </Button>
@@ -496,8 +496,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between p-4 border border-neutral-200 bg-neutral-50">
                     <div className="flex-1">
-                      <p className="text-sm font-light text-neutral-900">Test Key</p>
-                      <p className="text-xs text-neutral-500 font-light mt-1 font-mono">
+                      <p className="text-sm   text-neutral-900">Test Key</p>
+                      <p className="text-xs text-neutral-500   mt-1 font-mono">
                         lume_sk_test_••••••••••••••••••••••••••••••••
                       </p>
                     </div>
@@ -505,14 +505,14 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="font-light border-neutral-200 hover:bg-neutral-100"
+                        className="  border-neutral-200 hover:bg-neutral-100"
                       >
                         Copy
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="font-light border-neutral-200 hover:bg-neutral-100"
+                        className="  border-neutral-200 hover:bg-neutral-100"
                       >
                         Regenerate
                       </Button>
@@ -522,7 +522,7 @@ export default function SettingsPage() {
                   <div className="pt-4">
                     <Button
                       variant="outline"
-                      className="font-light border-neutral-200 hover:bg-neutral-100"
+                      className="  border-neutral-200 hover:bg-neutral-100"
                     >
                       <Key className="h-4 w-4 mr-2" />
                       Create New API Key
@@ -535,22 +535,22 @@ export default function SettingsPage() {
 
           {/* Danger Zone */}
           <div className="border border-neutral-200 bg-neutral-50 p-8 mt-8">
-            <h2 className="text-lg font-light text-neutral-900 mb-2">Danger Zone</h2>
-            <p className="text-sm text-neutral-500 font-light mb-6">
+            <h2 className="text-lg   text-neutral-900 mb-2">Danger Zone</h2>
+            <p className="text-sm text-neutral-500   mb-6">
               Irreversible and destructive actions
             </p>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between py-4 border-b border-neutral-200">
                 <div>
-                  <p className="text-sm font-light text-neutral-900">Delete Account</p>
-                  <p className="text-xs text-neutral-500 font-light mt-1">
+                  <p className="text-sm   text-neutral-900">Delete Account</p>
+                  <p className="text-xs text-neutral-500   mt-1">
                     Permanently delete your account and all associated data
                   </p>
                 </div>
                 <Button
                   variant="outline"
-                  className="font-light border-neutral-200 hover:bg-neutral-100 text-neutral-600"
+                  className="  border-neutral-200 hover:bg-neutral-100 text-neutral-600"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Account

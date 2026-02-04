@@ -14,16 +14,16 @@ export function SidebarPremium() {
             <Sparkles className="size-5 text-neutral-600" />
           </div>
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-light text-neutral-900">
+            <p className="text-sm   text-neutral-900">
               Upgrade to Premium
             </p>
-            <p className="text-xs text-neutral-500 font-light">
+            <p className="text-xs text-neutral-500  ">
               Unlock advanced features and unlimited access
             </p>
           </div>
         </div>
         <Button 
-          className="bg-neutral-900 text-white font-light border border-neutral-900"
+          className="bg-neutral-900 text-white   border border-neutral-900"
           size="sm"
         >
           Upgrade Now

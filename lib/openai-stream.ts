@@ -8,34 +8,37 @@ import { AIResponseSchema, type AIResponse, type ScreenLayout } from './ai-helpe
 // Chat system prompt (clean markdown, conversational)
 const CHAT_SYSTEM_PROMPT = `You are a seasoned App Store marketing consultant who's helped hundreds of apps succeed.
 
-Think like a real marketing strategist, not a template. Every app is different - analyze what they're actually building and give relevant, specific advice.
+Your conversation flow:
 
-Your job:
-- Understand their app concept deeply
-- Think about what makes it different from competitors
-- Suggest 5 compelling screenshot titles and subtitles that highlight their actual features
-- Give strategic advice that actually helps
-- Be conversational and human
+**STAGES:**
 
-CRITICAL: Always include 5 screenshot suggestions in this format:
+1. **First 3-5 messages**: Have a natural conversation about their app
+   - Ask clarifying questions about their app concept
+   - Understand their target audience and key features
+   - Give strategic advice about App Store positioning
+   - NO screenshot suggestions yet, just conversation
+   - Keep responses under 150 words
 
-**Suggested Screenshots:**
+2. **After 3-5 exchanges**: When you have a good understanding, naturally suggest:
+   "I have a clear picture of what you're building. To create stunning App Store screenshots, I'll need to see your actual app screens. Can you upload 5 screenshots of your key features?"
 
-1. **Title One** - Subtitle explaining the benefit (8-12 words)
-2. **Title Two** - Subtitle explaining the benefit (8-12 words)
-3. **Title Three** - Subtitle explaining the benefit (8-12 words)
-4. **Title Four** - Subtitle explaining the benefit (8-12 words)
-5. **Title Five** - Subtitle explaining the benefit (8-12 words)
+3. **After screenshots uploaded**: You'll receive image analysis data
+   - Acknowledge what you see in their design
+   - Comment on fonts, colors, layout
+   - Ask if they want to proceed with generation
 
-Rules:
-- Titles: EXACTLY 2 words, extracted from THEIR features (e.g., "AI Workouts", "Bill Splitting")
-- Subtitles: 8-12 words explaining the actual benefit
-- Each one should be different and represent a real feature they mentioned
-- Use App Store keywords that users search for
+**RULES:**
+- Be conversational and natural, not template-driven
+- Each response should be different based on context
+- Ask follow-up questions to understand their app better
+- Don't rush to screenshot generation
+- No emojis unless they use them first
+- Keep responses concise (under 200 words)
 
-Think for yourself. Don't follow a rigid template. Respond naturally based on what they're building.
-
-Keep it conversational, strategic, and under 300 words. No emojis.`
+**CONTEXT AWARENESS:**
+- Track conversation stage (early discussion vs. ready for upload)
+- Vary your responses - don't sound repetitive
+- Focus on their specific app, not generic advice`
 
 // Structure system prompt (JSON only)
 const STRUCTURE_SYSTEM_PROMPT = `You are an App Store marketing expert extracting screenshot copy from user descriptions.
@@ -200,13 +203,14 @@ export async function streamAIResponse(
  */
 export async function mockStreamAIResponse(
   userMessage: string,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  messageCount?: number
 ): Promise<void> {
   const { onStart, onToken, onComplete } = callbacks
 
   onStart?.()
 
-  const response = generateMockMarkdownResponse(userMessage)
+  const response = generateMockMarkdownResponse(userMessage, messageCount)
   const words = response.split(' ')
   
   let fullText = ''
@@ -280,8 +284,30 @@ function generate5Screenshots(userInput: string): string {
     screenshots.map((s, i) => `${i + 1}. **${s.title}** - ${s.subtitle}`).join('\n')
 }
 
-function generateMockMarkdownResponse(userInput: string): string {
+function generateMockMarkdownResponse(userInput: string, messageCount?: number): string {
   const input = userInput.toLowerCase()
+  
+  // Check if this is an upload confirmation message
+  if (input.includes('[uploaded') && input.includes('screenshots')) {
+    return `Great! I can see you've uploaded your app screenshots. Let me take a look at what you've got.
+
+From what I can observe, your app has a clean, modern design. The color scheme looks well thought out, and the interface appears intuitive.
+
+**Next Steps:**
+
+Would you like me to generate professional App Store screenshots using Template 1? I'll create compelling designs with:
+- Eye-catching headlines based on your app's features
+- Professional layout optimized for the App Store
+- Proper sizing for all required iPhone dimensions
+
+Ready to generate? Just let me know!`
+  }
+  
+  // After 3-5 messages, suggest uploading screenshots
+  const shouldSuggestUpload = messageCount && messageCount >= 5 && !input.includes('upload')
+  const uploadSuggestion = shouldSuggestUpload 
+    ? `\n\n---\n\n**Ready for the next step?**\n\nI have a clear picture of what you're building. To create stunning App Store screenshots, I'll need to see your actual app screens.\n\n📱 **Upload 5 screenshots** of your key features using the attachment button below, and I'll analyze your design to generate professional App Store visuals.`
+    : ''
   
   // Generate varied response styles
   const responseStyles = ['direct', 'analytical', 'strategic', 'visual-first']
@@ -303,9 +329,8 @@ Your biggest competitor isn't other apps—it's the friction of switching banks.
 - Whatever makes you different from ${input.includes('transfer') ? 'Venmo' : input.includes('budget') ? 'Mint' : 'your bank app'}
 
 Skip the generic "manage your money" messaging. Show the moment someone realizes they just saved 3 minutes doing something that used to take 10.
-${screenshotsSection}
 
-Upload your screens and I'll help you highlight what actually converts.`
+What specific features does your app have that you want to highlight?${uploadSuggestion}`
     } else if (selectedStyle === 'analytical') {
       response = `Finance app. Interesting space—high trust barrier, high switching cost.
 
@@ -320,9 +345,8 @@ Screen 2: The dashboard. But make it a dashboard someone would actually check da
 Screen 3: Trust signals. Security isn't a feature anymore, it's table stakes. Show biometrics, encryption, whatever. But quickly.
 
 **Critical:** ${input.includes('real-time') ? 'You mentioned real-time. That\'s your angle. Hammer it.' : input.includes('easy') ? 'Everyone says "easy." Show fast instead.' : 'Find your one differentiator and lead with it.'}
-${screenshotsSection}
 
-Upload your actual screens so we can craft something that stands out.`
+Tell me more about what makes your app different from competitors?${uploadSuggestion}`
     } else if (selectedStyle === 'strategic') {
       response = `${input.includes('empower') || input.includes('manage') ? 'Empowerment messaging is everywhere in fintech.' : 'Finance app space is crowded.'} You need sharper positioning.
 
@@ -338,9 +362,8 @@ Don't try to explain features. Show outcomes. Not "track transactions"—show so
 3. The payoff (saved money? saved time? less stress?)
 
 ${input.includes('security') || input.includes('safe') ? '\n**On Security:** Mention it, don\'t overexplain it. One line, one icon, done.\n' : ''}
-${screenshotsSection}
 
-Let's see what you've built and figure out the angle that'll make people stop scrolling.`
+What are the 2-3 core features you want people to know about immediately?${uploadSuggestion}`
     } else {
       response = `Looking at ${input.includes('bank') ? 'banking' : 'finance'} app screenshots...
 
@@ -358,8 +381,7 @@ ${input.includes('transfer') ? '→ The transfer flow: 3 taps max\n→ Confirmat
 ${input.includes('track') || input.includes('history') ? '→ Transaction list that\'s scannable\n→ Search/filter that actually works\n→ Insights that are useful, not generic' : ''}
 ${input.includes('dashboard') ? '→ Account balances front and center\n→ Recent activity (not buried)\n→ Quick actions within thumb reach' : ''}
 
-Share your screenshots and I'll help you create something that looks as good as it functions.
-${screenshotsSection}`
+Once you're ready, you can upload your app screenshots and we'll create something that looks as good as it functions.${uploadSuggestion}`
     }
   } else if (input.includes('fitness') || input.includes('health') || input.includes('workout')) {
     const variations = [
@@ -383,7 +405,7 @@ ${input.includes('track') ? 'You mentioned tracking. Good. But show the insight,
 ${input.includes('plan') ? 'Plans are great until they\'re too rigid. Show flexibility.' : ''}
 ${screenshotsSection}
 
-Upload your screens. Let's make something that actually gets people to lace up their shoes.`,
+What type of workouts or fitness features does your app focus on?${uploadSuggestion}`,
 
       `Health/fitness space. Tough market because motivation is hard to capture in a screenshot.
 
@@ -403,8 +425,7 @@ Your screenshots should answer: "Will I actually use this?"
 - Complicated workout plans
 - "Revolutionary" claims
 
-What's your actual hook? Upload your UI and let's figure out how to show it.
-${screenshotsSection}`
+What's your actual hook? What makes people want to come back day after day?${uploadSuggestion}`
     ]
     response = variations[Math.floor(Math.random() * variations.length)]
   } else if (input.includes('social') || input.includes('dating') || input.includes('chat')) {
@@ -424,8 +445,7 @@ But screenshots can kill interest fast if they look:
 - Whatever makes your community different
 - Activity indicators (this place is alive)
 
-Upload your UI. Let's make sure it doesn't look like every other social app that failed.
-${screenshotsSection}`,
+What makes your community different from existing platforms?${uploadSuggestion}`,
 
       `The network effect problem: Social apps need users to be useful, but users won't join without users.
 
@@ -442,8 +462,7 @@ Your screenshots can't solve this, but they can avoid making it worse.
 2. Demonstrate the core interaction (is this chat? feed? something new?)
 3. Highlight what's different (please don't say "authentic connections")
 
-What's your actual differentiator? Let's see your screens.
-${screenshotsSection}`
+What's your actual differentiator?${uploadSuggestion}`
     ]
     response = socialVariations[Math.floor(Math.random() * socialVariations.length)]
   } else {
@@ -464,8 +483,7 @@ The goal isn't to explain your app. It's to make someone curious enough to downl
 3. Look polished enough to trust
 4. Stand out from similar apps
 
-Upload your actual app screens and let's figure out what story they should tell.
-${screenshotsSection}`,
+Tell me more about the main problem your app solves?${uploadSuggestion}`,
 
       `"${userInput.slice(0, 60)}${userInput.length > 60 ? '...' : ''}"
 
@@ -480,8 +498,7 @@ Most apps fail here. They show features (buttons, menus, lists) instead of outco
 - Screen 2: The proof (okay, this actually works)
 - Screen 3+: Details (if they're still interested)
 
-Let me see what you've built. We'll figure out the angle that makes people stop scrolling.
-${screenshotsSection}`,
+Let's dig deeper - what's the main benefit users get from your app?${uploadSuggestion}`,
 
       `Got it: "${userInput.slice(0, 70)}${userInput.length > 70 ? '...' : ''}"
 
@@ -501,8 +518,7 @@ You've got maybe 4 seconds of attention. Your screenshots need to work at a glan
 - Cluttered interfaces
 - No clear value prop
 
-Upload your UI and I'll help you create something that converts browsers into downloads.
-${screenshotsSection}`
+What's the one thing that makes your app stand out?${uploadSuggestion}`
     ]
     response = genericVariations[Math.floor(Math.random() * genericVariations.length)]
   }

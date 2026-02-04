@@ -79,10 +79,10 @@ export default function VideoPage() {
             <div className="inline-flex items-center justify-center h-16 w-16 bg-neutral-900 mb-4">
               <Video className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-light text-neutral-900 mb-2">
+            <h1 className="text-3xl   text-neutral-900 mb-2">
               Create Promotional Video
             </h1>
-            <p className="text-neutral-500 font-light">
+            <p className="text-neutral-500  ">
               Transform your app screenshots into stunning promotional videos with AI
             </p>
           </div>
@@ -104,13 +104,13 @@ export default function VideoPage() {
                   className="w-full"
                 >
                   <Upload className="h-12 w-12 mx-auto mb-4 text-neutral-400" />
-                  <p className="text-lg font-light text-neutral-900 mb-2">
+                  <p className="text-lg   text-neutral-900 mb-2">
                     Upload App Screenshots
                   </p>
-                  <p className="text-sm text-neutral-500 font-light">
+                  <p className="text-sm text-neutral-500  ">
                     Select multiple screenshots to create your video
                   </p>
-                  <p className="text-xs text-neutral-400 mt-2 font-light">
+                  <p className="text-xs text-neutral-400 mt-2  ">
                     PNG, JPG up to 10MB each
                   </p>
                 </button>
@@ -122,12 +122,12 @@ export default function VideoPage() {
           {screenshots.length > 0 && (
             <div className="bg-neutral-50 border border-neutral-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-light text-neutral-900">
+                <p className="text-sm   text-neutral-900">
                   Screenshots ({screenshots.length})
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-xs text-neutral-500 hover:text-neutral-900 font-light"
+                  className="text-xs text-neutral-500 hover:text-neutral-900  "
                 >
                   + Add more
                 </button>

@@ -59,7 +59,7 @@ export function SidebarUser({
             sideOffset={8}
             alignOffset={0}
           >
-            <DropdownMenuLabel className="p-0 font-light">
+            <DropdownMenuLabel className="p-0  ">
               <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                 <Avatar className="size-8">
                   <AvatarImage src={user.avatar} alt={user.name} />
@@ -68,20 +68,20 @@ export function SidebarUser({
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-light text-neutral-900">{user.name}</span>
-                  <span className="truncate text-xs text-neutral-500 font-light">{user.email}</span>
+                  <span className="truncate   text-neutral-900">{user.name}</span>
+                  <span className="truncate text-xs text-neutral-500  ">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-neutral-200" />
             <DropdownMenuItem 
-              className="font-light text-neutral-600 focus:bg-neutral-100 focus:text-neutral-900 cursor-pointer"
+              className="  text-neutral-600 focus:bg-neutral-100 focus:text-neutral-900 cursor-pointer"
               onClick={() => router.push("/dashboard/settings")}
             >
               <User className="mr-2 size-4" />
               Account Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="font-light text-neutral-600 focus:bg-neutral-100 focus:text-neutral-900 cursor-pointer">
+            <DropdownMenuItem className="  text-neutral-600 focus:bg-neutral-100 focus:text-neutral-900 cursor-pointer">
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

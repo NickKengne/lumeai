@@ -23,10 +23,10 @@ function FeatureCard({ icon, title, description, onClick, className = "" }: Feat
       <div className="mb-6 h-32 flex items-center justify-center">{icon}</div>
 
       {/* Title */}
-      <h3 className="text-xl font-light text-neutral-900 mb-3">{title}</h3>
+      <h3 className="text-xl   text-neutral-900 mb-3">{title}</h3>
 
       {/* Description */}
-      <p className="text-neutral-500 text-sm leading-relaxed font-light">{description}</p>
+      <p className="text-neutral-500 text-sm leading-relaxed  ">{description}</p>
     </button>
   );
 }

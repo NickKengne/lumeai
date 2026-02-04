@@ -21,6 +21,7 @@ interface Message {
   content: string
   timestamp: Date
   isStreaming?: boolean
+  screenshots?: string[]
 }
 
 interface ChatInputProps {
@@ -52,6 +53,9 @@ export function ChatInput({
   const [showBanner, setShowBanner] = React.useState(true)
   const [messages, setMessages] = React.useState<Message[]>(initialMessages)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const [uploadedScreenshots, setUploadedScreenshots] = React.useState<string[]>([])
+  const [showScreenshotUpload, setShowScreenshotUpload] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Track panel open state - use prop if available
   const isPanelOpen = canvasPanelOpen
@@ -223,7 +227,7 @@ Ready to upload your app screenshots?`
           console.error('AI Error:', error)
           onAIResponseTriggered?.()
         }
-      })
+      }, messages.length)
     }
   }, [triggerAIResponse, messages.length, messages, chatId, onAIResponseTriggered])
 
@@ -305,6 +309,7 @@ Ready to upload your app screenshots?`
       
       // Stream the response
       const streamFn = hasOpenAIKey() ? streamAIResponse : mockStreamAIResponse
+      const conversationLength = updatedMessages.length
       
       streamFn(userMessage.content, {
         onStart: () => {
@@ -344,7 +349,7 @@ Ready to upload your app screenshots?`
           setMessages(errorMessage)
           localStorage.setItem(`chat-${chatId}`, JSON.stringify(errorMessage))
         }
-      })
+      }, conversationLength)
     }
   }
 
@@ -502,6 +507,103 @@ Ready to upload your app screenshots?`
     }
   }
 
+  const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    // Require exactly 5 screenshots
+    if (files.length < 5) {
+      alert("Please upload at least 5 screenshots to proceed.")
+      return
+    }
+
+    const urls: string[] = []
+    for (let i = 0; i < Math.min(files.length, 5); i++) {
+      const file = files[i]
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const result = reader.result as string
+          urls.push(result)
+          if (urls.length === Math.min(files.length, 5)) {
+            setUploadedScreenshots(urls)
+            setShowScreenshotUpload(false)
+            
+            // Add user message with screenshots
+            const screenshotMessage: Message = {
+              id: Date.now().toString(),
+              role: "user",
+              content: `[Uploaded ${urls.length} screenshots for analysis]`,
+              timestamp: new Date(),
+              screenshots: urls
+            }
+            
+            const updatedMessages = [...messages, screenshotMessage]
+            setMessages(updatedMessages)
+            
+            // Save to localStorage
+            if (chatId) {
+              localStorage.setItem(`chat-${chatId}`, JSON.stringify(updatedMessages))
+            }
+            
+            // Trigger AI analysis of screenshots
+            const aiMessageId = (Date.now() + 1).toString()
+            const aiMessage: Message = {
+              id: aiMessageId,
+              role: "assistant",
+              content: "",
+              timestamp: new Date(),
+              isStreaming: true
+            }
+            
+            const messagesWithAI = [...updatedMessages, aiMessage]
+            setMessages(messagesWithAI)
+            
+            // Generate analysis response (use special format to trigger screenshot detection)
+            const analysisPrompt = `[Uploaded ${urls.length} screenshots for analysis]`
+            
+            const streamFn = hasOpenAIKey() ? streamAIResponse : mockStreamAIResponse
+            
+            streamFn(analysisPrompt, {
+              onStart: () => {},
+              onToken: (token, fullText) => {
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === aiMessageId 
+                      ? { ...msg, content: fullText, isStreaming: true }
+                      : msg
+                  )
+                )
+              },
+              onComplete: (fullText) => {
+                const finalMessages = updatedMessages.concat({
+                  id: aiMessageId,
+                  role: "assistant",
+                  content: fullText,
+                  timestamp: new Date(),
+                  isStreaming: false
+                })
+                setMessages(finalMessages)
+                
+                if (chatId) {
+                  localStorage.setItem(`chat-${chatId}`, JSON.stringify(finalMessages))
+                }
+              },
+              onError: (error) => {
+                console.error('AI Error:', error)
+              }
+            }, updatedMessages.length)
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+  }
+
+  const handleOpenScreenshotUpload = () => {
+    fileInputRef.current?.click()
+  }
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden isolate">
       {/* Messages Area */}
@@ -548,7 +650,19 @@ Ready to upload your app screenshots?`
         {/* Bottom bar - Actions */}
         <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-t border-zinc-100">
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-            <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleScreenshotUpload}
+              className="hidden"
+            />
+            <button 
+              onClick={handleOpenScreenshotUpload}
+              className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              title="Upload screenshots (5 required)"
+            >
               <Paperclip className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
             <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">

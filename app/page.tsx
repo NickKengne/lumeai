@@ -154,7 +154,7 @@ export default function Home() {
           {/* Hero Section */}
           <section className="max-w-7xl mx-auto w-full px-6 py-32">
             <div className="flex flex-col items-center gap-6 max-w-4xl mx-auto">
-              <h1 className="text-6xl md:text-7xl font-light text-center tracking-tight text-neutral-900">
+              <h1 className="text-6xl md:text-7xl text-center tracking-tight text-neutral-900">
                 Turn screenshots into{" "}
                 <span className="relative inline-block">
                   <span className="relative z-10">stunning visuals</span>
@@ -164,11 +164,11 @@ export default function Home() {
                 in seconds, not hours
               </h1>
               <div className="flex flex-col items-center gap-3 w-full">
-                <p className="text-xl text-center text-neutral-500 font-light max-w-2xl">
+                <p className="text-xl text-center text-neutral-500 max-w-2xl">
                   AI-powered screenshot editor that creates beautiful App Store assets instantly. 
                   Upload your screens, add mockups, generate headlines—all automated.
                 </p>
-                <p className="text-base text-center text-neutral-400 font-light">
+                <p className="text-base text-center text-neutral-400">
                   Join 10,000+ developers shipping faster with AI
                 </p>
               </div>
@@ -184,10 +184,10 @@ export default function Home() {
           <section className="max-w-7xl mx-auto w-full px-6 py-20 border-t border-neutral-200">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-light tracking-tight text-neutral-900 mb-4">
+                <h2 className="text-4xl tracking-tight text-neutral-900 mb-4">
                   Simple, transparent pricing
                 </h2>
-                <p className="text-lg text-neutral-500 font-light">
+                <p className="text-lg text-neutral-500">
                   Start for free. Upgrade when you're ready.
                 </p>
               </div>
@@ -197,39 +197,39 @@ export default function Home() {
                 <div className="bg-neutral-50 p-10">
                   <div className="space-y-8">
                     <div>
-                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4">
                         Free
                       </h3>
                       <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-5xl font-light text-neutral-900">$0</span>
-                        <span className="text-neutral-400 font-light">/month</span>
+                        <span className="text-5xl text-neutral-900">$0</span>
+                        <span className="text-neutral-400  ">/month</span>
                       </div>
-                      <p className="text-sm text-neutral-500 font-light">
+                      <p className="text-sm text-neutral-500">
                         Perfect to get started
                       </p>
                     </div>
 
                     <ul className="space-y-3">
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>3 screenshot generations</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>AI analysis & suggestions</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Basic templates</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Standard export</span>
                       </li>
                     </ul>
 
                     <Link href="/dashboard">
-                      <button className="w-full py-3 px-6 border border-neutral-200 text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                      <button className="w-full py-3 px-6 border border-neutral-200 text-neutral-900 text-sm tracking-wide hover:bg-neutral-100 transition-colors">
                         Get Started
                       </button>
                     </Link>
@@ -239,50 +239,50 @@ export default function Home() {
                 {/* Pro Plan */}
                 <div className="bg-neutral-900 p-10 relative">
                   <div className="absolute top-4 right-4">
-                    <span className="text-xs uppercase tracking-widest text-neutral-400 font-light">
+                    <span className="text-xs uppercase tracking-widest text-neutral-400  ">
                       Popular
                     </span>
                   </div>
                   
                   <div className="space-y-8">
                     <div>
-                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4  ">
                         Pro
                       </h3>
                       <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-5xl font-light text-white">$29</span>
-                        <span className="text-neutral-400 font-light">/month</span>
+                        <span className="text-5xl   text-white">$29</span>
+                        <span className="text-neutral-400  ">/month</span>
                       </div>
-                      <p className="text-sm text-neutral-400 font-light">
+                      <p className="text-sm text-neutral-400  ">
                         For serious developers
                       </p>
                     </div>
 
                     <ul className="space-y-3">
-                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-300  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Unlimited screenshots</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-300  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Advanced AI analysis</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-300  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>All templates</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-300  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Priority support</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-300 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-300  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>10 videos/month (30s)</span>
                       </li>
                     </ul>
 
                     <Link href="/dashboard">
-                      <button className="w-full py-3 px-6 bg-white text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                      <button className="w-full py-3 px-6 bg-white text-neutral-900 text-sm   tracking-wide hover:bg-neutral-100 transition-colors">
                         Start Pro Trial
                       </button>
                     </Link>
@@ -293,42 +293,42 @@ export default function Home() {
                 <div className="bg-neutral-50 p-10">
                   <div className="space-y-8">
                     <div>
-                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                      <h3 className="text-sm uppercase tracking-widest text-neutral-400 mb-4  ">
                         Enterprise
                       </h3>
                       <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-5xl font-light text-neutral-900">Custom</span>
+                        <span className="text-5xl   text-neutral-900">Custom</span>
                       </div>
-                      <p className="text-sm text-neutral-500 font-light">
+                      <p className="text-sm text-neutral-500  ">
                         For teams & agencies
                       </p>
                     </div>
 
                     <ul className="space-y-3">
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Everything in Pro</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Team collaboration</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Custom templates</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>Unlimited videos</span>
                       </li>
-                      <li className="flex items-start gap-3 text-sm text-neutral-600 font-light">
+                      <li className="flex items-start gap-3 text-sm text-neutral-600  ">
                         <Check className="w-4 h-4 mt-0.5 text-neutral-400 shrink-0" />
                         <span>API access</span>
                       </li>
                     </ul>
 
                     <Link href="/pricing">
-                      <button className="w-full py-3 px-6 border border-neutral-200 text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                      <button className="w-full py-3 px-6 border border-neutral-200 text-neutral-900 text-sm   tracking-wide hover:bg-neutral-100 transition-colors">
                         Contact Sales
                       </button>
                     </Link>
@@ -337,7 +337,7 @@ export default function Home() {
               </div>
 
               <div className="text-center mt-12">
-                <Link href="/pricing" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                <Link href="/pricing" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                   View full pricing details →
                 </Link>
               </div>
@@ -347,21 +347,21 @@ export default function Home() {
           {/* Call-to-Action Section */}
           <section className="max-w-7xl mx-auto w-full px-6 py-20 border-t border-neutral-200">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-4xl md:text-5xl font-light tracking-tight text-neutral-900 mb-6">
+              <h2 className="text-4xl md:text-5xl   tracking-tight text-neutral-900 mb-6">
                 Ready to transform your app visuals?
               </h2>
-              <p className="text-xl text-neutral-500 font-light mb-10 max-w-2xl mx-auto">
+              <p className="text-xl text-neutral-500   mb-10 max-w-2xl mx-auto">
                 Join thousands of developers creating stunning App Store assets with AI. 
                 Start free, no credit card required.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Link href="/dashboard">
-                  <button className="px-8 py-3 bg-neutral-900 text-white text-sm font-light tracking-wide hover:bg-neutral-800 transition-colors border border-neutral-900">
+                  <button className="px-8 py-3 bg-neutral-900 text-white text-sm   tracking-wide hover:bg-neutral-800 transition-colors border border-neutral-900">
                     Get Started Free
                   </button>
                 </Link>
                 <Link href="/pricing">
-                  <button className="px-8 py-3 border border-neutral-200 text-neutral-900 text-sm font-light tracking-wide hover:bg-neutral-100 transition-colors">
+                  <button className="px-8 py-3 border border-neutral-200 text-neutral-900 text-sm   tracking-wide hover:bg-neutral-100 transition-colors">
                     View Pricing
                   </button>
                 </Link>
@@ -376,30 +376,30 @@ export default function Home() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <img src="/images/logo.png" alt="LumeAI" width={30} height={30} />
-                    <span className="text-lg font-light text-neutral-900">Lume AI</span>
+                    <span className="text-lg   text-neutral-900">Lume AI</span>
                   </div>
-                  <p className="text-sm text-neutral-500 font-light">
+                  <p className="text-sm text-neutral-500  ">
                     AI-powered App Store screenshot generator for developers and designers.
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4  ">
                     Product
                   </h4>
                   <ul className="space-y-2">
                     <li>
-                      <Link href="/dashboard" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/dashboard" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         Dashboard
                       </Link>
                     </li>
                     <li>
-                      <Link href="/pricing" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/pricing" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         Pricing
                       </Link>
                     </li>
                     <li>
-                      <Link href="/features" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/features" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         Features
                       </Link>
                     </li>
@@ -407,17 +407,17 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4  ">
                     Company
                   </h4>
                   <ul className="space-y-2">
                     <li>
-                      <Link href="/about" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/about" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         About
                       </Link>
                     </li>
                     <li>
-                      <Link href="/docs" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/docs" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         Documentation
                       </Link>
                     </li>
@@ -425,17 +425,17 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4 font-light">
+                  <h4 className="text-sm uppercase tracking-widest text-neutral-400 mb-4  ">
                     Legal
                   </h4>
                   <ul className="space-y-2">
                     <li>
-                      <Link href="/privacy" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/privacy" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         Privacy Policy
                       </Link>
                     </li>
                     <li>
-                      <Link href="/terms" className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors">
+                      <Link href="/terms" className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors">
                         Terms of Service
                       </Link>
                     </li>
@@ -444,14 +444,14 @@ export default function Home() {
               </div>
 
               <div className="pt-8 border-t border-neutral-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-sm text-neutral-400 font-light">
+                <p className="text-sm text-neutral-400  ">
                   © {new Date().getFullYear()} Lume AI. All rights reserved.
                 </p>
                 <div className="flex items-center gap-6">
-                  <a href="https://twitter.com/lumeai" className="text-sm text-neutral-400 font-light hover:text-neutral-900 transition-colors">
+                  <a href="https://twitter.com/lumeai" className="text-sm text-neutral-400   hover:text-neutral-900 transition-colors">
                     Twitter
                   </a>
-                  <a href="https://github.com/lumeai" className="text-sm text-neutral-400 font-light hover:text-neutral-900 transition-colors">
+                  <a href="https://github.com/lumeai" className="text-sm text-neutral-400   hover:text-neutral-900 transition-colors">
                     GitHub
                   </a>
                 </div>

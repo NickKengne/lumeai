@@ -102,7 +102,7 @@ export default function ChatPage() {
           </div>
         </header>
         <div className="bg-neutral-50 flex flex-col gap-4 px-4 py-10 justify-center items-center">
-          <p className="text-neutral-400 font-light">Loading...</p>
+          <p className="text-neutral-400  ">Loading...</p>
         </div>
       </SidebarInset>
     )

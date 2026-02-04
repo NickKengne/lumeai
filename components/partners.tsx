@@ -28,7 +28,7 @@ export function Partners() {
     <div className="w-full py-12 mt-8 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col items-center gap-4 mb-8">
-          <p className="text-xs uppercase tracking-widest text-neutral-400 font-light">
+          <p className="text-xs uppercase tracking-widest text-neutral-400  ">
             TRUSTED BY LEADING APPLICATIONS
           </p>
         </div>
@@ -116,7 +116,7 @@ function CompanyLogo({ company }: { company: typeof companies[0] }) {
   // Text-based logos for companies without images
   return (
     <div className="flex items-center justify-center opacity-40 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
-      <span className="text-neutral-900 text-sm font-light tracking-wide">
+      <span className="text-neutral-900 text-sm   tracking-wide">
         {company.name}
       </span>
     </div>

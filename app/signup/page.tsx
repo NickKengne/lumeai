@@ -36,10 +36,10 @@ export default function SignupPage() {
           {!emailSent ? (
             <>
               <div className="mb-8">
-                <h1 className="text-3xl font-light text-neutral-900 tracking-tight mb-2">
+                <h1 className="text-3xl   text-neutral-900 tracking-tight mb-2">
                   Create your account
                 </h1>
-                <p className="text-sm text-neutral-500 font-light">
+                <p className="text-sm text-neutral-500  ">
                   Enter your email and we'll send you a magic link to get started
                 </p>
               </div>
@@ -48,7 +48,7 @@ export default function SignupPage() {
                 <div className="space-y-2">
                   <Label 
                     htmlFor="email" 
-                    className="text-xs uppercase tracking-widest text-neutral-400 font-light"
+                    className="text-xs uppercase tracking-widest text-neutral-400  "
                   >
                     Email
                   </Label>
@@ -59,19 +59,19 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3 bg-neutral-50 text-neutral-900 text-sm font-light focus:outline-none focus:bg-neutral-100 transition-colors placeholder:text-neutral-400"
+                    className="w-full px-4 py-3 bg-neutral-50 text-neutral-900 text-sm   focus:outline-none focus:bg-neutral-100 transition-colors placeholder:text-neutral-400"
                   />
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 bg-neutral-900 text-white text-sm font-light tracking-wide hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-neutral-900 text-white text-sm   tracking-wide hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Sending magic link..." : "Create account"}
                 </Button>
 
-                <p className="text-xs text-neutral-400 font-light text-center">
+                <p className="text-xs text-neutral-400   text-center">
                   By signing up, you agree to our{" "}
                   <Link href="/terms" className="text-neutral-900 hover:underline">
                     Terms of Service
@@ -100,18 +100,18 @@ export default function SignupPage() {
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-light text-neutral-900 tracking-tight mb-2">
+              <h2 className="text-2xl   text-neutral-900 tracking-tight mb-2">
                 Check your email
               </h2>
-              <p className="text-sm text-neutral-500 font-light mb-6">
+              <p className="text-sm text-neutral-500   mb-6">
                 We've sent a magic link to <span className="text-neutral-900">{email}</span>
               </p>
-              <p className="text-xs text-neutral-400 font-light mb-6">
+              <p className="text-xs text-neutral-400   mb-6">
                 Click the link in the email to complete your account setup. The link will expire in 15 minutes.
               </p>
               <button
                 onClick={() => setEmailSent(false)}
-                className="text-sm text-neutral-500 font-light hover:text-neutral-900 transition-colors"
+                className="text-sm text-neutral-500   hover:text-neutral-900 transition-colors"
               >
                 Try a different email
               </button>
@@ -122,7 +122,7 @@ export default function SignupPage() {
         {/* Login Link */}
         {!emailSent && (
           <div className="mt-6 text-center">
-            <p className="text-sm text-neutral-500 font-light">
+            <p className="text-sm text-neutral-500  ">
               Already have an account?{" "}
               <Link 
                 href="/login" 
@@ -138,7 +138,7 @@ export default function SignupPage() {
         <div className="mt-8 text-center">
           <Link 
             href="/" 
-            className="text-xs text-neutral-400 font-light hover:text-neutral-900 transition-colors inline-flex items-center gap-1"
+            className="text-xs text-neutral-400   hover:text-neutral-900 transition-colors inline-flex items-center gap-1"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
